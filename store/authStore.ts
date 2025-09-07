@@ -80,6 +80,7 @@ interface AuthStore {
   signOut: () => Promise<void>;
   updateProfile: (data: Database['public']['Tables']['profiles']['Update']) => Promise<void>;
   fetchProfile: (userId?: string) => Promise<void>;
+  findProfileByEmail: (email: string) => Promise<Profile | null>;
   setUser: (user: User | null) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -359,6 +360,38 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       isProfileLoading: false,
       error: null,
     });
+  },
+
+  findProfileByEmail: async (email: string) => {
+    console.log('[authStore] findProfileByEmail called:', { email });
+
+    try {
+      const supabase = createClient();
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      console.log('[authStore] findProfileByEmail result:', {
+        hasProfile: !!profile,
+        errorCode: error?.code,
+      });
+
+      if (error) {
+        if ((error as any).code === 'PGRST116') {
+          // 프로필이 없음 (정상적인 경우)
+          return null;
+        }
+        throw error;
+      }
+
+      return profile as Profile;
+    } catch (error) {
+      console.error('[authStore] findProfileByEmail error:', error);
+      throw error;
+    }
   },
 
   setLoading: (loading: boolean) => {

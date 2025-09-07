@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { setUser, fetchProfile, setLoading, resetState, signOut } = useAuthStore();
+  const { setUser, fetchProfile, findProfileByEmail, setLoading, resetState, signOut } = useAuthStore();
   const surveyStore = useSurveyStore();
   const routerNext = useRouter();
 
@@ -90,8 +90,76 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               console.log('[AuthProvider] fetchProfile failed:', error.message);
 
               if (error.message === 'PROFILE_NOT_FOUND') {
-                // 프로필이 없음 - 설문조사 완료 여부 확인
-                // 모든 펀드 설문조사에서 완료된 것이 있는지 확인
+                // 프로필이 없음 - 이메일로 기존 프로필 검색 후 설문조사 완료 여부 확인
+                
+                // 1) 먼저 OAuth 로그인 사용자의 이메일로 기존 프로필 검색
+                const userEmail = session.user.email;
+                console.log('[AuthProvider] Searching for existing profile with email:', userEmail);
+                
+                let existingProfile = null;
+                if (userEmail) {
+                  try {
+                    existingProfile = await findProfileByEmail(userEmail);
+                    console.log('[AuthProvider] Existing profile search result:', !!existingProfile);
+                  } catch (emailSearchError) {
+                    console.error('[AuthProvider] Error searching profile by email:', emailSearchError);
+                  }
+                }
+                
+                if (existingProfile) {
+                  // 이메일로 기존 프로필을 찾은 경우 - OAuth 계정과 연동
+                  console.log('[AuthProvider] Found existing profile, linking OAuth account...');
+                  
+                  try {
+                    const { data: updatedProfile, error: updateError } = await supabase
+                      .from('profiles')
+                      .update({
+                        user_id: session.user.id,
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq('id', existingProfile.id)
+                      .select()
+                      .single();
+
+                    if (updateError) {
+                      throw new Error(`프로필 연동 실패: ${updateError.message}`);
+                    }
+
+                    console.log('[AuthProvider] Profile linked successfully');
+
+                    // 프로필 데이터를 AuthStore에 로드 후 대시보드로 이동
+                    console.log('[AuthProvider] Loading linked profile data...');
+                    fetchProfile(session.user.id)
+                      .then(() => {
+                        console.log('[AuthProvider] Profile data loaded, redirecting to dashboard');
+                        routerNext.replace('/dashboard');
+                      })
+                      .catch(profileFetchError => {
+                        console.error(
+                          '[AuthProvider] Failed to fetch profile after linking:',
+                          profileFetchError
+                        );
+                        // 프로필 가져오기 실패해도 대시보드로 이동 (이미 DB에 저장됨)
+                        routerNext.replace('/dashboard');
+                      });
+                    
+                    return; // 여기서 종료
+                  } catch (linkError: any) {
+                    console.error('[AuthProvider] Profile linking failed:', linkError);
+
+                    // 세션 정리
+                    await signOut();
+                    resetState();
+
+                    routerNext.replace(
+                      '/login?error=' +
+                        encodeURIComponent('계정 연동에 실패했습니다. 다시 시도해주세요.')
+                    );
+                    return;
+                  }
+                }
+                
+                // 2) 기존 프로필이 없으면 설문조사 완료 여부 확인
                 const fundSurveys = surveyStore.fundSurveys;
                 let completedFundId: string | null = null;
                 let completedProfileId: string | null = null;
@@ -228,6 +296,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   }, [
     setUser,
     fetchProfile,
+    findProfileByEmail,
     setLoading,
     resetState,
     surveyStore,
