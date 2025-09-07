@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/store/authStore';
-import { LogOut, User } from 'lucide-react';
+import { isAdmin } from '@/lib/auth/admin';
+import { LogOut, User, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -79,6 +80,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <p className="text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
+
+              {/* 관리자 전용 관리자 페이지 링크 */}
+              {isAdmin(user) && (
+                <Button
+                  onClick={() => router.push('/admin')}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">관리자 페이지</span>
+                </Button>
+              )}
 
               <Button
                 onClick={handleSignOut}
