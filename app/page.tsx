@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import IRInquiryModal from '@/components/modals/IRInquiryModal';
+import AngelInquiryModal from '@/components/modals/AngelInquiryModal';
 
 interface ExecutiveMember {
   id: string;
@@ -211,6 +213,8 @@ export default function HomePage() {
   const [activeSection, setActiveSection] = useState('home');
   const [selectedMember, setSelectedMember] = useState<ExecutiveMember | null>(null);
   const [scrollY, setScrollY] = useState(0);
+  const [isIRModalOpen, setIsIRModalOpen] = useState(false);
+  const [isAngelModalOpen, setIsAngelModalOpen] = useState(false);
 
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -602,7 +606,10 @@ export default function HomePage() {
                   <p className="mb-6 text-gray-300 leading-relaxed">
                     혁신적인 기술과 비즈니스 모델을 가진 초기 스타트업의 IR을 기다립니다.
                   </p>
-                  <Button className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0">
+                  <Button 
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
+                    onClick={() => setIsIRModalOpen(true)}
+                  >
                     IR 문의하기
                   </Button>
                 </CardContent>
@@ -617,7 +624,10 @@ export default function HomePage() {
                   <p className="mb-6 text-gray-300 leading-relaxed">
                     함께 스타트업 생태계에 투자하고 성장시킬 클럽원을 모집합니다.
                   </p>
-                  <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0">
+                  <Button 
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                    onClick={() => setIsAngelModalOpen(true)}
+                  >
                     가입 문의하기
                   </Button>
                 </CardContent>
@@ -689,6 +699,18 @@ export default function HomePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* IR 문의 모달 */}
+      <IRInquiryModal
+        isOpen={isIRModalOpen}
+        onClose={() => setIsIRModalOpen(false)}
+      />
+
+      {/* 엔젤클럽 가입 문의 모달 */}
+      <AngelInquiryModal
+        isOpen={isAngelModalOpen}
+        onClose={() => setIsAngelModalOpen(false)}
+      />
     </div>
   );
 }
