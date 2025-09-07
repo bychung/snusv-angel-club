@@ -1,5 +1,5 @@
 import AdminLayout from '@/components/admin/AdminLayout';
-import FundMemberList from '@/components/admin/FundMemberList';
+import MemberList from '@/components/admin/MemberList';
 import FundExportModal from '@/components/admin/FundExportModal';
 import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
@@ -62,7 +62,7 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
         </div>
 
         {/* 조합원 목록 */}
-        <FundMemberList fundId={fundId} fundName={fund.name} />
+        <MemberList mode="fund_members" fundId={fundId} fundName={fund.name} />
       </div>
     </AdminLayout>
   );

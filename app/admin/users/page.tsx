@@ -1,5 +1,5 @@
 import AdminLayout from '@/components/admin/AdminLayout';
-import UserList from '@/components/admin/UserList';
+import MemberList from '@/components/admin/MemberList';
 
 export default function AdminUsersPage() {
   return (
@@ -12,7 +12,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* 사용자 목록 */}
-        <UserList />
+        <MemberList mode="users" />
       </div>
     </AdminLayout>
   );
