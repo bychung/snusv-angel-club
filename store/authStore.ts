@@ -313,10 +313,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           //   console.error('[authStore] SignOut failed, continuing anyway:', signOutError);
           // }
 
-          // 상태 초기화 후 에러 메시지 설정
+          // 에러 메시지만 설정 (user 상태는 signOut()에서 처리)
           set({
-            user: null,
-            profile: null,
             error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
           });
           throw new Error('PROFILE_NOT_FOUND');
