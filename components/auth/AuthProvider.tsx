@@ -8,7 +8,7 @@ import { useEffect, useRef } from 'react';
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, fetchProfile, setLoading, resetState, signOut } = useAuthStore();
-  const { hasCompletedSurvey, profileId, clearLocalStorage, resetSurvey } = useSurveyStore();
+  const surveyStore = useSurveyStore();
   const routerNext = useRouter();
 
   // 중복 SIGNED_IN 이벤트 처리 방지
@@ -91,10 +91,24 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
               if (error.message === 'PROFILE_NOT_FOUND') {
                 // 프로필이 없음 - 설문조사 완료 여부 확인
-                const isSignupFlow = hasCompletedSurvey();
+                // 모든 펀드 설문조사에서 완료된 것이 있는지 확인
+                const fundSurveys = surveyStore.fundSurveys;
+                let completedFundId: string | null = null;
+                let completedProfileId: string | null = null;
+                
+                for (const [fundId, surveyData] of Object.entries(fundSurveys)) {
+                  if (surveyData.profileId) {
+                    completedFundId = fundId;
+                    completedProfileId = surveyData.profileId;
+                    break;
+                  }
+                }
+                
+                const isSignupFlow = !!completedProfileId;
                 console.log('[AuthProvider] Profile not found, checking signup flow:', {
                   isSignupFlow,
-                  profileId,
+                  completedFundId,
+                  completedProfileId,
                 });
 
                 if (isSignupFlow) {
@@ -108,7 +122,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                         user_id: session.user.id,
                         updated_at: new Date().toISOString(),
                       })
-                      .eq('id', profileId)
+                      .eq('id', completedProfileId)
                       .select()
                       .single();
 
@@ -118,9 +132,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                     console.log('[AuthProvider] Profile updated successfully');
 
-                    // 설문조사 데이터 정리
-                    clearLocalStorage();
-                    resetSurvey();
+                    // 설문조사 데이터 정리 - 완료된 펀드의 데이터만 정리
+                    if (completedFundId) {
+                      surveyStore.clearLocalStorage(completedFundId);
+                      surveyStore.resetSurvey(completedFundId);
+                    }
 
                     // 프로필 데이터를 AuthStore에 로드 후 대시보드로 이동
                     console.log('[AuthProvider] Loading updated profile data...');
@@ -214,11 +230,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     fetchProfile,
     setLoading,
     resetState,
-    hasCompletedSurvey,
-    profileId,
-    clearLocalStorage,
-    resetSurvey,
+    surveyStore,
     routerNext,
+    signOut,
   ]);
 
   return <>{children}</>;

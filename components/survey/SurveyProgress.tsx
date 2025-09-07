@@ -3,7 +3,9 @@
 import { useSurveyStore } from '@/store/surveyStore';
 
 export default function SurveyProgress() {
-  const { currentPage, surveyData } = useSurveyStore();
+  const store = useSurveyStore();
+  const currentPage = store.getCurrentPage();
+  const surveyData = store.getCurrentSurveyData();
 
   // 실제 진행률 계산 (조건부 페이지 고려)
   const calculateProgress = () => {

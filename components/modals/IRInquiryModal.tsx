@@ -236,7 +236,7 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
               )}
             </div>
             {errors.irDeck && (
-              <p className="text-sm text-red-500">{errors.irDeck as string}</p>
+              <p className="text-sm text-red-500">{String(errors.irDeck)}</p>
             )}
             <p className="text-xs text-gray-500">
               PDF 파일만 업로드 가능 (최대 10MB)

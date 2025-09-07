@@ -19,10 +19,22 @@ export default function SignupForm() {
   const [signupMethod, setSignupMethod] = useState<'email' | 'oauth' | null>(null);
 
   const { signUp, signInWithOAuth, isLoading: authLoading, error } = useAuthStore();
-  const { surveyData } = useSurveyStore();
+  const surveyStore = useSurveyStore();
 
+  // 완료된 설문조사 데이터 찾기
+  const getCompletedSurveyData = () => {
+    const fundSurveys = surveyStore.fundSurveys;
+    for (const [fundId, surveyData] of Object.entries(fundSurveys)) {
+      if (surveyData.profileId) {
+        return surveyData.surveyData;
+      }
+    }
+    return null;
+  };
+
+  const surveyData = getCompletedSurveyData();
   // 설문조사 데이터에서 이메일 가져오기
-  const email = surveyData.email;
+  const email = surveyData?.email || '';
 
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,9 +122,9 @@ export default function SignupForm() {
               <span className="text-sm font-medium text-green-800">설문조사 정보</span>
             </div>
             <div className="text-sm text-green-700 space-y-1">
-              <div>이름: {surveyData.name}</div>
+              <div>이름: {surveyData?.name || ''}</div>
               <div>이메일: {email}</div>
-              <div>전화번호: {surveyData.phone}</div>
+              <div>전화번호: {surveyData?.phone || ''}</div>
             </div>
           </div>
 

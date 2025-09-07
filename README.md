@@ -50,10 +50,6 @@ npm install
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 SUPABASE_SERVICE_KEY=your_supabase_service_key_here
-
-# Fund Configuration
-NEXT_PUBLIC_FUND_ID=550e8400-e29b-41d4-a716-446655440000
-NEXT_PUBLIC_FUND_NAME=프로펠-SNUSV엔젤투자조합2호
 ```
 
 ### 3. Supabase 데이터베이스 설정

@@ -2,9 +2,12 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
 import type { Fund, FundMember, Profile } from '@/types/database';
-import { Building, Users, TrendingUp, ChevronRight, Link2, Check } from 'lucide-react';
+import { Building, Users, TrendingUp, ChevronRight, Link2, Check, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
@@ -19,6 +22,9 @@ export default function FundList() {
   const [funds, setFunds] = useState<FundWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedFundId, setCopiedFundId] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newFundName, setNewFundName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchFunds();
@@ -49,9 +55,9 @@ export default function FundList() {
       // 각 펀드별 통계 계산
       const fundsWithStats: FundWithStats[] = fundsData?.map(fund => {
         const members = fund.fund_members || [];
-        const totalInvestment = members.reduce((sum, member) => sum + member.investment_units, 0);
-        const registeredMembers = members.filter(member => member.profile?.user_id).length;
-        const surveyOnlyMembers = members.filter(member => !member.profile?.user_id).length;
+        const totalInvestment = members.reduce((sum: number, member: any) => sum + member.investment_units, 0);
+        const registeredMembers = members.filter((member: any) => member.profile?.user_id).length;
+        const surveyOnlyMembers = members.filter((member: any) => !member.profile?.user_id).length;
 
         return {
           ...fund,
@@ -87,6 +93,35 @@ export default function FundList() {
       setTimeout(() => setCopiedFundId(null), 2000);
     } catch (error) {
       console.error('클립보드 복사 실패:', error);
+    }
+  };
+
+  const handleCreateFund = async () => {
+    if (!newFundName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      const supabase = createClient();
+      
+      const { data, error } = await supabase
+        .from('funds')
+        .insert([
+          { name: newFundName.trim() }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      // 펀드 목록 새로고침
+      await fetchFunds();
+      
+      // 다이얼로그 닫기 및 폼 리셋
+      setIsAddDialogOpen(false);
+      setNewFundName('');
+    } catch (error) {
+      console.error('펀드 생성 실패:', error);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -126,8 +161,54 @@ export default function FundList() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {funds.map(fund => (
+    <div className="space-y-6">
+      {/* 펀드 추가 버튼 */}
+      <div className="flex justify-end">
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              펀드 추가
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>새 펀드 추가</DialogTitle>
+              <DialogDescription>
+                새로운 펀드를 생성합니다. 펀드 이름을 입력해주세요.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fundName" className="text-right">
+                  펀드명
+                </Label>
+                <Input
+                  id="fundName"
+                  value={newFundName}
+                  onChange={(e) => setNewFundName(e.target.value)}
+                  className="col-span-3"
+                  placeholder="펀드 이름을 입력하세요"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateFund();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" onClick={handleCreateFund} disabled={isCreating || !newFundName.trim()}>
+                {isCreating ? '생성 중...' : '펀드 생성'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* 펀드 목록 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {funds.map(fund => (
         <Card key={fund.id} className="hover:shadow-lg transition-shadow cursor-pointer">
           <Link href={`/admin/funds/${fund.id}`}>
             <CardHeader className="pb-3">
@@ -216,6 +297,7 @@ export default function FundList() {
           </Link>
         </Card>
       ))}
+      </div>
     </div>
   );
 }

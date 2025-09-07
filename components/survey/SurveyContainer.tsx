@@ -26,21 +26,13 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  const {
-    surveyData,
-    currentPage,
-    updateField,
-    nextPage,
-    goToPage,
-    resetSurvey,
-    loadFromLocalStorage,
-    clearLocalStorage,
-    setProfileId,
-    setFundId,
-    setFundName,
-    fundId: storeFundId,
-    fundName,
-  } = useSurveyStore();
+  const store = useSurveyStore();
+  const activeFundId = fundId || store.activeFundId;
+  
+  // 현재 펀드의 설문조사 데이터 가져오기
+  const surveyData = activeFundId ? store.getFundSurveyData(activeFundId).surveyData : null;
+  const currentPage = activeFundId ? store.getFundSurveyData(activeFundId).currentPage : 1;
+  const fundName = activeFundId ? store.getFundSurveyData(activeFundId).fundName : null;
 
   // 펀드 정보 조회
   const fetchFundInfo = async (fundIdToFetch: string) => {
@@ -54,14 +46,20 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
       if (error) {
         console.error('펀드 정보 조회 실패:', error);
+        // 펀드가 존재하지 않더라도 계속 진행하도록 설정
+        if (error.code === 'PGRST116') {
+          store.setFundId(fundIdToFetch, '알 수 없는 펀드');
+        }
         return;
       }
 
       if (fund) {
-        setFundName(fund.name);
+        store.setFundId(fundIdToFetch, fund.name);
       }
     } catch (error) {
       console.error('펀드 정보 조회 중 오류:', error);
+      // 오류가 발생해도 기본값으로 진행
+      store.setFundId(fundIdToFetch, '알 수 없는 펀드');
     }
   };
 
@@ -71,27 +69,36 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
     const restoreData = async () => {
       if (mounted && !isInitialized) {
-        // fundId가 없으면 홈페이지로 리다이렉트
-        if (!fundId && !storeFundId) {
-          router.push('/');
-          return;
-        }
+        try {
+          // fundId가 없으면 홈페이지로 리다이렉트
+          if (!fundId && !store.activeFundId) {
+            router.push('/');
+            return;
+          }
 
-        // fundId가 제공되면 스토어에 설정
-        if (fundId) {
-          setFundId(fundId);
-          // 펀드 정보 조회
-          await fetchFundInfo(fundId);
-        } else if (storeFundId && !fundName) {
-          // 스토어에 fundId는 있지만 fundName이 없으면 조회
-          await fetchFundInfo(storeFundId);
-        }
+          // fundId가 제공되면 스토어에 설정
+          if (fundId) {
+            store.setActiveFundId(fundId);
+            store.setFundId(fundId);
+            // 펀드 정보 조회
+            await fetchFundInfo(fundId);
+          } else if (store.activeFundId && !fundName) {
+            // 스토어에 fundId는 있지만 fundName이 없으면 조회
+            await fetchFundInfo(store.activeFundId);
+          }
 
-        const hasData = loadFromLocalStorage();
-        if (hasData) {
-          console.log('설문 데이터가 복원되었습니다.');
+          const currentFundId = fundId || store.activeFundId;
+          if (currentFundId) {
+            const hasData = store.loadFromLocalStorage(currentFundId);
+            if (hasData) {
+              console.log('설문 데이터가 복원되었습니다.');
+            }
+          }
+        } catch (error) {
+          console.error('초기화 중 오류:', error);
+        } finally {
+          setIsInitialized(true);
         }
-        setIsInitialized(true);
       }
     };
 
@@ -100,29 +107,20 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     return () => {
       mounted = false;
     };
-  }, [
-    fundId,
-    setFundId,
-    setFundName,
-    loadFromLocalStorage,
-    isInitialized,
-    router,
-    storeFundId,
-    fundName,
-  ]);
+  }, [fundId, isInitialized]); // 의존성 배열 축소
 
   // 조건부 페이지 스킵 로직을 제거하고, 렌더링에서 직접 처리
 
   // 유효성 검사 함수들
   const validateName = () => {
-    if (!surveyData.name || surveyData.name.trim().length < 2) {
+    if (!surveyData?.name || surveyData.name.trim().length < 2) {
       return '이름 또는 회사명을 입력해주세요 (최소 2자)';
     }
     return null;
   };
 
   const validateInvestmentUnits = () => {
-    if (!surveyData.investmentUnits || surveyData.investmentUnits < 1) {
+    if (!surveyData?.investmentUnits || surveyData.investmentUnits < 1) {
       return '최소 1좌 이상 입력해주세요';
     }
     return null;
@@ -130,7 +128,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
   const validatePhone = () => {
     const phoneRegex = /^0\d{1,2}-\d{3,4}-\d{4}$/;
-    if (!surveyData.phone || !phoneRegex.test(surveyData.phone)) {
+    if (!surveyData?.phone || !phoneRegex.test(surveyData.phone)) {
       return '올바른 전화번호 형식이 아닙니다';
     }
     return null;
@@ -138,35 +136,35 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
   const validateEmail = () => {
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!surveyData.email || !emailRegex.test(surveyData.email)) {
+    if (!surveyData?.email || !emailRegex.test(surveyData.email)) {
       return '올바른 이메일 형식이 아닙니다';
     }
     return null;
   };
 
   const validateAddress = () => {
-    if (!surveyData.address || surveyData.address.trim().length < 5) {
+    if (!surveyData?.address || surveyData.address.trim().length < 5) {
       return '주소를 입력해주세요 (최소 5자)';
     }
     return null;
   };
 
   const validateEntityType = () => {
-    if (!surveyData.entityType) {
+    if (!surveyData?.entityType) {
       return '개인 또는 법인을 선택해주세요';
     }
     return null;
   };
 
   const validateBirthDate = () => {
-    if (surveyData.entityType === 'individual' && !surveyData.birthDate) {
+    if (surveyData?.entityType === 'individual' && !surveyData.birthDate) {
       return '생년월일을 입력해주세요';
     }
     return null;
   };
 
   const validateBusinessNumber = () => {
-    if (surveyData.entityType === 'corporate') {
+    if (surveyData?.entityType === 'corporate') {
       const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
       if (!surveyData.businessNumber || !businessNumberRegex.test(surveyData.businessNumber)) {
         return '올바른 사업자번호 형식이 아닙니다 (xxx-xx-xxxxx)';
@@ -201,16 +199,19 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
   // 다음 버튼 클릭 핸들러
   const handleNext = () => {
+    if (!activeFundId) return;
     const error = validateCurrentPage();
     if (error) {
       alert(error);
       return;
     }
-    nextPage();
+    store.nextPage(activeFundId);
   };
 
   // 제출 핸들러
   const handleSubmit = async () => {
+    if (!activeFundId || !surveyData) return;
+    
     setIsLoading(true);
     setSubmitError(null);
 
@@ -243,14 +244,13 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       }
 
       // 2. 펀드 ID 확인
-      const currentFundId = storeFundId || fundId;
-      if (!currentFundId) {
+      if (!activeFundId) {
         throw new Error('펀드 ID가 필요합니다. URL에 fund_id 파라미터를 포함해주세요.');
       }
 
       // 3. fund_members 테이블에 upsert
       const fundMemberData = {
-        fund_id: currentFundId,
+        fund_id: activeFundId,
         profile_id: (profile as any).id,
         investment_units: surveyData.investmentUnits,
         updated_at: new Date().toISOString(),
@@ -267,10 +267,10 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       }
 
       // 성공 시 profileId 저장 (회원가입시 매칭용)
-      setProfileId((profile as any).id);
+      store.setProfileId(activeFundId, (profile as any).id);
 
       // 9페이지로 이동 (제출 완료 페이지)
-      nextPage();
+      store.nextPage(activeFundId);
     } catch (error) {
       console.error('제출 오류:', error);
       setSubmitError(error instanceof Error ? error.message : '제출 중 오류가 발생했습니다.');
@@ -286,7 +286,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
   // 페이지 나가기
   const handleExit = () => {
-    resetSurvey();
+    if (activeFundId) {
+      store.resetSurvey(activeFundId);
+    }
     router.push('/');
   };
 
@@ -303,8 +305,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <TextInput
-                value={surveyData.name}
-                onChange={value => updateField('name', value)}
+                value={surveyData?.name || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'name', value)}
                 placeholder="홍길동 또는 (주)회사명"
                 required
               />
@@ -327,15 +329,15 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <NumberInput
-                value={surveyData.investmentUnits}
-                onChange={value => updateField('investmentUnits', value)}
+                value={surveyData?.investmentUnits || 0}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'investmentUnits', value)}
                 placeholder="20"
                 min={1}
                 required
               />
               <div className="text-sm text-gray-600">
-                출자금액: {(surveyData.investmentUnits || 0).toLocaleString()}좌 ={' '}
-                {((surveyData.investmentUnits || 0) * 1000000).toLocaleString()}원
+                출자금액: {(surveyData?.investmentUnits || 0).toLocaleString()}좌 ={' '}
+                {((surveyData?.investmentUnits || 0) * 1000000).toLocaleString()}원
               </div>
               <Button onClick={handleNext} className="w-full" size="lg">
                 다음
@@ -352,8 +354,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <PhoneInput
-                value={surveyData.phone}
-                onChange={value => updateField('phone', value)}
+                value={surveyData?.phone || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'phone', value)}
                 required
               />
               <Button onClick={handleNext} className="w-full" size="lg">
@@ -371,8 +373,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <TextInput
-                value={surveyData.address}
-                onChange={value => updateField('address', value)}
+                value={surveyData?.address || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'address', value)}
                 placeholder="서울특별시 강남구..."
                 required
               />
@@ -391,8 +393,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <EmailInput
-                value={surveyData.email}
-                onChange={value => updateField('email', value)}
+                value={surveyData?.email || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'email', value)}
                 required
               />
               <Button onClick={handleNext} className="w-full" size="lg">
@@ -410,8 +412,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <RadioSelect
-                value={surveyData.entityType || ''}
-                onChange={value => updateField('entityType', value as 'individual' | 'corporate')}
+                value={surveyData?.entityType || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'entityType', value as 'individual' | 'corporate')}
                 options={[
                   { value: 'individual', label: '개인' },
                   { value: 'corporate', label: '법인' },
@@ -434,8 +436,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <BirthDateInput
-                value={surveyData.birthDate || ''}
-                onChange={value => updateField('birthDate', value)}
+                value={surveyData?.birthDate || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'birthDate', value)}
                 required
               />
               <Button onClick={handleSubmit} className="w-full" size="lg" disabled={isLoading}>
@@ -455,8 +457,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             </CardHeader>
             <CardContent className="space-y-4">
               <BusinessNumberInput
-                value={surveyData.businessNumber || ''}
-                onChange={value => updateField('businessNumber', value)}
+                value={surveyData?.businessNumber || ''}
+                onChange={value => activeFundId && store.updateField(activeFundId, 'businessNumber', value)}
                 required
               />
               <Button onClick={handleSubmit} className="w-full" size="lg" disabled={isLoading}>
@@ -497,7 +499,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   };
 
   // fundId가 없으면 로딩 상태 표시
-  if (!isInitialized || (!fundId && !storeFundId)) {
+  if (!isInitialized || !activeFundId || !surveyData) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
         <div className="text-center">

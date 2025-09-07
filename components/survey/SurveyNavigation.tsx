@@ -5,7 +5,14 @@ import { useSurveyStore } from '@/store/surveyStore';
 import { ArrowLeft } from 'lucide-react';
 
 export default function SurveyNavigation() {
-  const { currentPage, prevPage } = useSurveyStore();
+  const store = useSurveyStore();
+  const currentPage = store.getCurrentPage();
+  
+  const handlePrevPage = () => {
+    if (store.activeFundId) {
+      store.prevPage(store.activeFundId);
+    }
+  };
 
   return (
     <div className="flex justify-between items-center mb-6">
@@ -13,7 +20,7 @@ export default function SurveyNavigation() {
         {currentPage > 1 && currentPage < 9 && (
           <Button
             variant="ghost"
-            onClick={prevPage}
+            onClick={handlePrevPage}
             className="flex items-center gap-2 hover:bg-gray-100"
           >
             <ArrowLeft className="h-4 w-4" />

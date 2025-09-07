@@ -1,41 +1,47 @@
 import { SurveyData } from '@/types/survey';
 import { create } from 'zustand';
 
-interface SurveyStore {
-  // 설문 데이터
+interface FundSurveyData {
   surveyData: SurveyData;
-
-  // 페이지 관리
   currentPage: number;
-
-  // 제출 상태
   isSubmitting: boolean;
   submitError: Error | null;
-
-  // 저장된 profile_id (설문조사 완료 후 회원가입용)
   profileId: string | null;
-
-  // 펀드 ID
-  fundId: string | null;
-
-  // 펀드명
   fundName: string | null;
+  timestamp: number;
+}
+
+interface SurveyStore {
+  // 펀드별 설문조사 데이터 (fund_id를 키로 사용)
+  fundSurveys: Record<string, FundSurveyData>;
+
+  // 현재 활성화된 펀드 ID
+  activeFundId: string | null;
 
   // 액션
-  updateField: <K extends keyof SurveyData>(field: K, value: SurveyData[K]) => void;
-  goToPage: (page: number) => void;
-  nextPage: () => void;
-  prevPage: () => void;
-  resetSurvey: () => void;
-  saveToLocalStorage: () => void;
-  loadFromLocalStorage: () => boolean; // 복원 성공 여부 반환
-  clearLocalStorage: () => void;
-  setSubmitting: (isSubmitting: boolean) => void;
-  setSubmitError: (error: Error | null) => void;
-  setProfileId: (profileId: string | null) => void;
-  setFundId: (fundId: string | null) => void;
-  setFundName: (fundName: string | null) => void;
-  hasCompletedSurvey: () => boolean; // 설문조사 완료 여부 확인
+  updateField: <K extends keyof SurveyData>(fundId: string, field: K, value: SurveyData[K]) => void;
+  goToPage: (fundId: string, page: number) => void;
+  nextPage: (fundId: string) => void;
+  prevPage: (fundId: string) => void;
+  resetSurvey: (fundId: string) => void;
+  saveToLocalStorage: (fundId: string) => void;
+  loadFromLocalStorage: (fundId: string) => boolean;
+  clearLocalStorage: (fundId: string) => void;
+  setSubmitting: (fundId: string, isSubmitting: boolean) => void;
+  setSubmitError: (fundId: string, error: Error | null) => void;
+  setProfileId: (fundId: string, profileId: string | null) => void;
+  setFundId: (fundId: string, fundName?: string) => void;
+  hasCompletedSurvey: (fundId: string) => boolean;
+  setActiveFundId: (fundId: string | null) => void;
+  getFundSurveyData: (fundId: string) => FundSurveyData;
+
+  // 편의성을 위한 현재 활성 펀드 관련 getter
+  getCurrentSurveyData: () => SurveyData | null;
+  getCurrentPage: () => number;
+  getIsSubmitting: () => boolean;
+  getSubmitError: () => Error | null;
+  getProfileId: () => string | null;
+  getFundName: () => string | null;
 }
 
 const initialSurveyData: SurveyData = {
@@ -49,35 +55,74 @@ const initialSurveyData: SurveyData = {
   businessNumber: undefined,
 };
 
-const LOCAL_STORAGE_KEY = 'survey_draft';
+const LOCAL_STORAGE_KEY_PREFIX = 'survey_draft_';
 
-export const useSurveyStore = create<SurveyStore>((set, get) => ({
-  surveyData: initialSurveyData,
+const createInitialFundSurveyData = (): FundSurveyData => ({
+  surveyData: { ...initialSurveyData },
   currentPage: 1,
   isSubmitting: false,
   submitError: null,
   profileId: null,
-  fundId: null,
   fundName: null,
+  timestamp: Date.now(),
+});
 
-  updateField: (field, value) => {
+export const useSurveyStore = create<SurveyStore>((set, get) => ({
+  fundSurveys: {},
+  activeFundId: null,
+
+  getFundSurveyData: (fundId: string) => {
+    const { fundSurveys } = get();
+    if (!fundSurveys[fundId]) {
+      // 새로운 펀드 설문조사 데이터 생성
+      set(state => ({
+        fundSurveys: {
+          ...state.fundSurveys,
+          [fundId]: createInitialFundSurveyData(),
+        }
+      }));
+      return get().fundSurveys[fundId];
+    }
+    return fundSurveys[fundId];
+  },
+
+  updateField: (fundId: string, field, value) => {
+    get().getFundSurveyData(fundId); // 존재 확인 및 생성
     set(state => ({
-      surveyData: {
-        ...state.surveyData,
-        [field]: value,
-      },
+      fundSurveys: {
+        ...state.fundSurveys,
+        [fundId]: {
+          ...state.fundSurveys[fundId],
+          surveyData: {
+            ...state.fundSurveys[fundId].surveyData,
+            [field]: value,
+          },
+          timestamp: Date.now(),
+        }
+      }
     }));
     // 자동 저장
-    get().saveToLocalStorage();
+    get().saveToLocalStorage(fundId);
   },
 
-  goToPage: page => {
-    set({ currentPage: page });
-    get().saveToLocalStorage();
+  goToPage: (fundId: string, page: number) => {
+    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    set(state => ({
+      fundSurveys: {
+        ...state.fundSurveys,
+        [fundId]: {
+          ...state.fundSurveys[fundId],
+          currentPage: page,
+          timestamp: Date.now(),
+        }
+      }
+    }));
+    get().saveToLocalStorage(fundId);
   },
 
-  nextPage: () => {
-    const { currentPage, surveyData } = get();
+  nextPage: (fundId: string) => {
+    const fundData = get().getFundSurveyData(fundId);
+    const { currentPage, surveyData } = fundData;
     let nextPageNumber = currentPage + 1;
 
     // 조건부 페이지 네비게이션 로직
@@ -93,12 +138,12 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
       nextPageNumber = 9;
     }
 
-    set({ currentPage: nextPageNumber });
-    get().saveToLocalStorage();
+    get().goToPage(fundId, nextPageNumber);
   },
 
-  prevPage: () => {
-    const { currentPage, surveyData } = get();
+  prevPage: (fundId: string) => {
+    const fundData = get().getFundSurveyData(fundId);
+    const { currentPage, surveyData } = fundData;
     let prevPageNumber = currentPage - 1;
 
     // 조건부 페이지 네비게이션 로직
@@ -115,61 +160,52 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
     }
 
     if (prevPageNumber >= 1) {
-      set({ currentPage: prevPageNumber });
-      get().saveToLocalStorage();
+      get().goToPage(fundId, prevPageNumber);
     }
   },
 
-  resetSurvey: () => {
-    const { fundId } = get();
-    set({
-      surveyData: initialSurveyData,
-      currentPage: 1,
-      isSubmitting: false,
-      submitError: null,
-      profileId: null,
-      // fundId는 유지
-    });
-    get().clearLocalStorage();
+  resetSurvey: (fundId: string) => {
+    set(state => ({
+      fundSurveys: {
+        ...state.fundSurveys,
+        [fundId]: createInitialFundSurveyData(),
+      }
+    }));
+    get().clearLocalStorage(fundId);
   },
 
-  saveToLocalStorage: () => {
-    const { surveyData, currentPage, profileId, fundId, fundName } = get();
+  saveToLocalStorage: (fundId: string) => {
+    const fundData = get().getFundSurveyData(fundId);
     const saveData = {
-      surveyData,
-      currentPage,
-      profileId,
-      fundId,
-      fundName,
+      ...fundData,
       timestamp: Date.now(),
     };
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saveData));
+      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${fundId}`, JSON.stringify(saveData));
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
     }
   },
 
-  loadFromLocalStorage: () => {
+  loadFromLocalStorage: (fundId: string) => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}${fundId}`);
       if (!saved) return false;
 
       const data = JSON.parse(saved);
 
       // 24시간 이상 된 데이터는 무시
       if (Date.now() - data.timestamp > 86400000) {
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}${fundId}`);
         return false;
       }
 
-      set({
-        surveyData: data.surveyData,
-        currentPage: data.currentPage,
-        profileId: data.profileId || null,
-        fundId: data.fundId || null,
-        fundName: data.fundName || null,
-      });
+      set(state => ({
+        fundSurveys: {
+          ...state.fundSurveys,
+          [fundId]: data,
+        }
+      }));
 
       return true;
     } catch (error) {
@@ -178,36 +214,117 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
     }
   },
 
-  clearLocalStorage: () => {
+  clearLocalStorage: (fundId: string) => {
     try {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}${fundId}`);
     } catch (error) {
       console.error('Failed to clear localStorage:', error);
     }
   },
 
-  setSubmitting: isSubmitting => {
-    set({ isSubmitting });
+  setSubmitting: (fundId: string, isSubmitting: boolean) => {
+    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    set(state => ({
+      fundSurveys: {
+        ...state.fundSurveys,
+        [fundId]: {
+          ...state.fundSurveys[fundId],
+          isSubmitting,
+          timestamp: Date.now(),
+        }
+      }
+    }));
   },
 
-  setSubmitError: error => {
-    set({ submitError: error });
+  setSubmitError: (fundId: string, error: Error | null) => {
+    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    set(state => ({
+      fundSurveys: {
+        ...state.fundSurveys,
+        [fundId]: {
+          ...state.fundSurveys[fundId],
+          submitError: error,
+          timestamp: Date.now(),
+        }
+      }
+    }));
   },
 
-  setProfileId: profileId => {
-    set({ profileId });
+  setProfileId: (fundId: string, profileId: string | null) => {
+    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    set(state => ({
+      fundSurveys: {
+        ...state.fundSurveys,
+        [fundId]: {
+          ...state.fundSurveys[fundId],
+          profileId,
+          timestamp: Date.now(),
+        }
+      }
+    }));
+    get().saveToLocalStorage(fundId);
   },
 
-  setFundId: fundId => {
-    set({ fundId });
+  setFundId: (fundId: string, fundName?: string) => {
+    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    if (fundName) {
+      set(state => ({
+        fundSurveys: {
+          ...state.fundSurveys,
+          [fundId]: {
+            ...state.fundSurveys[fundId],
+            fundName,
+            timestamp: Date.now(),
+          }
+        }
+      }));
+    }
+    set({ activeFundId: fundId });
   },
 
-  setFundName: fundName => {
-    set({ fundName });
+  hasCompletedSurvey: (fundId: string) => {
+    const fundData = get().getFundSurveyData(fundId);
+    return !!fundData.profileId;
   },
 
-  hasCompletedSurvey: () => {
-    const { profileId } = get();
-    return !!profileId;
+  setActiveFundId: (fundId: string | null) => {
+    set({ activeFundId: fundId });
+  },
+
+  // 편의성을 위한 현재 활성 펀드 관련 getter
+  getCurrentSurveyData: () => {
+    const { activeFundId } = get();
+    if (!activeFundId) return null;
+    return get().getFundSurveyData(activeFundId).surveyData;
+  },
+
+  getCurrentPage: () => {
+    const { activeFundId } = get();
+    if (!activeFundId) return 1;
+    return get().getFundSurveyData(activeFundId).currentPage;
+  },
+
+  getIsSubmitting: () => {
+    const { activeFundId } = get();
+    if (!activeFundId) return false;
+    return get().getFundSurveyData(activeFundId).isSubmitting;
+  },
+
+  getSubmitError: () => {
+    const { activeFundId } = get();
+    if (!activeFundId) return null;
+    return get().getFundSurveyData(activeFundId).submitError;
+  },
+
+  getProfileId: () => {
+    const { activeFundId } = get();
+    if (!activeFundId) return null;
+    return get().getFundSurveyData(activeFundId).profileId;
+  },
+
+  getFundName: () => {
+    const { activeFundId } = get();
+    if (!activeFundId) return null;
+    return get().getFundSurveyData(activeFundId).fundName;
   },
 }));
