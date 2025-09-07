@@ -9,9 +9,10 @@ import type { FundMember, Profile } from '@/types/database';
 import { Building, Edit, Eye, Filter, Mail, Phone, Search, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import EditMemberModal from './EditMemberModal';
+import ViewMemberModal from './ViewMemberModal';
 
 interface MemberWithFund extends Profile {
-  fund_members?: FundMember[];
+  fund_members?: (FundMember & { fund?: { name: string; abbreviation?: string | null } })[];
   registration_status: 'registered' | 'survey_only';
 }
 
@@ -35,6 +36,10 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
   const [editingMember, setEditingMember] = useState<MemberWithFund | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
+  // 상세 보기 모달 상태
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingMember, setViewingMember] = useState<MemberWithFund | null>(null);
+
   useEffect(() => {
     fetchMembers();
   }, [mode, fundId]);
@@ -51,10 +56,12 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
         // 특정 펀드의 조합원 목록 조회
         const { data: fundMembers, error } = await supabase
           .from('fund_members')
-          .select(`
+          .select(
+            `
             *,
             profile:profiles (*)
-          `)
+          `
+          )
           .eq('fund_id', fundId)
           .order('created_at', { ascending: false });
 
@@ -73,15 +80,21 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
         // 모든 사용자 목록 조회
         const { data: profiles, error } = await supabase
           .from('profiles')
-          .select(`
+          .select(
+            `
             *,
             fund_members (
               id,
               investment_units,
               created_at,
-              updated_at
+              updated_at,
+              fund:funds (
+                name,
+                abbreviation
+              )
             )
-          `)
+          `
+          )
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -155,6 +168,11 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
     setIsEditModalOpen(true);
   };
 
+  const handleViewMember = (member: MemberWithFund) => {
+    setViewingMember(member);
+    setIsViewModalOpen(true);
+  };
+
   const handleUpdateSuccess = async () => {
     await fetchMembers();
   };
@@ -180,7 +198,9 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
     if (members.length === 0) {
       return mode === 'fund_members' ? '등록된 조합원이 없습니다.' : '등록된 사용자가 없습니다.';
     }
-    return mode === 'fund_members' ? '조건에 맞는 조합원이 없습니다.' : '조건에 맞는 사용자가 없습니다.';
+    return mode === 'fund_members'
+      ? '조건에 맞는 조합원이 없습니다.'
+      : '조건에 맞는 사용자가 없습니다.';
   };
 
   if (isLoading) {
@@ -251,89 +271,147 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
               {filteredMembers.map(member => (
                 <div
                   key={member.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                  className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleViewMember(member)}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4 flex-1">
                       <div className="flex-shrink-0">
-                        <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div
+                          className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                            member.entity_type === 'corporate' ? 'bg-blue-100' : 'bg-green-100'
+                          }`}
+                        >
                           {member.entity_type === 'corporate' ? (
-                            <Building className="h-6 w-6 text-gray-600" />
+                            <Building className="h-4 w-4 text-blue-600" />
                           ) : (
-                            <User className="h-6 w-6 text-gray-600" />
+                            <User className="h-4 w-4 text-green-600" />
                           )}
                         </div>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-medium text-gray-900">{member.name}</h3>
-                          {getStatusBadge(member.registration_status)}
-                          <Badge variant="outline">
-                            {member.entity_type === 'individual' ? '개인' : '법인'}
-                          </Badge>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">
+                            {member.name}
+                          </h3>
+                          {mode === 'fund_members' ? (
+                            // 펀드 조합원 모드: 출자금액 표시
+                            member.fund_members && member.fund_members.length > 0 && (
+                              <div className="text-sm font-medium text-blue-400">
+                                {formatCurrency(member.fund_members[0].investment_units)}
+                              </div>
+                            )
+                          ) : (
+                            // 사용자 관리 모드: 펀드 칩 표시
+                            member.fund_members && member.fund_members.length > 0 && (
+                              <div className="flex gap-1 flex-wrap">
+                                {member.fund_members.map((fundMember, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                                    {fundMember.fund?.abbreviation || fundMember.fund?.name || '펀드'}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )
+                          )}
+                          {mode === 'fund_members' && getStatusBadge(member.registration_status)}
                         </div>
-                        <div className="mt-2 space-y-1 text-sm text-gray-600">
-                          <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4" />
-                            {member.email}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Phone className="h-4 w-4" />
-                            {member.phone}
-                          </div>
+                      </div>
+
+                      <div className="hidden sm:flex items-center space-x-6 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          <span className="truncate max-w-[150px]">{member.email}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          <span>{member.phone}</span>
+                        </div>
+                        {mode === 'fund_members' && member.fund_members && member.fund_members.length > 0 && (
                           <div className="text-xs text-gray-500">
-                            가입일: {formatDate(member.created_at)}
-                            {member.created_at !== member.updated_at && (
-                              <span> • 수정일: {formatDate(member.updated_at)}</span>
-                            )}
+                            <span>
+                              {member.fund_members[0].investment_units.toLocaleString()}좌
+                            </span>
                           </div>
-                        </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
+                    <div className="flex items-center space-x-2 ml-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewMember(member);
+                        }}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         상세
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleEditMember(member)}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditMember(member);
+                        }}
+                      >
                         <Edit className="h-4 w-4 mr-1" />
                         수정
                       </Button>
                     </div>
                   </div>
 
-                  {/* 투자 정보 - fund_members 모드이거나 투자 정보가 있을 때만 표시 */}
-                  {member.fund_members && member.fund_members.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-700">출자좌수:</span>
-                          <span className="ml-2 text-gray-900">
-                            {member.fund_members[0].investment_units.toLocaleString()}좌
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">출자금액:</span>
-                          <span className="ml-2 text-gray-900">
-                            {formatCurrency(member.fund_members[0].investment_units)}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">제출일:</span>
-                          <span className="ml-2 text-gray-900">
-                            {formatDate(member.fund_members[0].created_at)}
-                          </span>
-                        </div>
-                      </div>
+                  {/* 모바일에서 추가 정보 표시 */}
+                  <div className="sm:hidden mt-2 space-y-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-3 w-3" />
+                      <span className="truncate">{member.email}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-3 w-3" />
+                      <span>{member.phone}</span>
+                    </div>
+                    {mode === 'fund_members' && member.fund_members && member.fund_members.length > 0 && (
+                      <div className="flex gap-4 text-xs">
+                        <span>
+                          <span className="font-medium">출자좌수:</span>{' '}
+                          {member.fund_members[0].investment_units.toLocaleString()}좌
+                        </span>
+                        <span>
+                          <span className="font-medium">출자금액:</span>{' '}
+                          {formatCurrency(member.fund_members[0].investment_units)}
+                        </span>
+                      </div>
+                    )}
+                    {mode === 'users' && member.fund_members && member.fund_members.length > 0 && (
+                      <div className="flex gap-1 flex-wrap">
+                        {member.fund_members.map((fundMember, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                            {fundMember.fund?.abbreviation || fundMember.fund?.name || '펀드'}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* 상세 보기 모달 */}
+      <ViewMemberModal
+        isOpen={isViewModalOpen}
+        member={viewingMember}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingMember(null);
+        }}
+        showInvestmentInfo={mode === 'fund_members'}
+      />
 
       {/* 수정 모달 */}
       <EditMemberModal

@@ -15,6 +15,7 @@ export interface Profile {
 export interface Fund {
   id: string;
   name: string;
+  abbreviation?: string | null;
   created_at: string;
 }
 

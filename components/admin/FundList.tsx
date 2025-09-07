@@ -24,6 +24,7 @@ export default function FundList() {
   const [copiedFundId, setCopiedFundId] = useState<string | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newFundName, setNewFundName] = useState('');
+  const [newFundAbbreviation, setNewFundAbbreviation] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -106,7 +107,10 @@ export default function FundList() {
       const { data, error } = await supabase
         .from('funds')
         .insert([
-          { name: newFundName.trim() }
+          { 
+            name: newFundName.trim(),
+            abbreviation: newFundAbbreviation.trim() || null
+          }
         ])
         .select();
 
@@ -118,6 +122,7 @@ export default function FundList() {
       // 다이얼로그 닫기 및 폼 리셋
       setIsAddDialogOpen(false);
       setNewFundName('');
+      setNewFundAbbreviation('');
     } catch (error) {
       console.error('펀드 생성 실패:', error);
     } finally {
@@ -175,13 +180,13 @@ export default function FundList() {
             <DialogHeader>
               <DialogTitle>새 펀드 추가</DialogTitle>
               <DialogDescription>
-                새로운 펀드를 생성합니다. 펀드 이름을 입력해주세요.
+                새로운 펀드를 생성합니다. 펀드 정보를 입력해주세요.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="fundName" className="text-right">
-                  펀드명
+                  펀드명 *
                 </Label>
                 <Input
                   id="fundName"
@@ -189,6 +194,19 @@ export default function FundList() {
                   onChange={(e) => setNewFundName(e.target.value)}
                   className="col-span-3"
                   placeholder="펀드 이름을 입력하세요"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="fundAbbreviation" className="text-right">
+                  펀드 약칭
+                </Label>
+                <Input
+                  id="fundAbbreviation"
+                  value={newFundAbbreviation}
+                  onChange={(e) => setNewFundAbbreviation(e.target.value)}
+                  className="col-span-3"
+                  placeholder="펀드 약칭을 입력하세요 (예: 블라인드2호)"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleCreateFund();
