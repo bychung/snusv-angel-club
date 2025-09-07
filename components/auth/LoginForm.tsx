@@ -195,7 +195,7 @@ export default function LoginForm() {
             {(error || urlError) && (
               <div className="text-sm text-red-500 text-center bg-red-50 p-3 rounded-lg border border-red-200">
                 <p className="mb-2">{error || urlError}</p>
-                {(error || urlError)?.includes('가입되지 않은 계정') && (
+                {/* {(error || urlError)?.includes('가입되지 않은 계정') && (
                   <Button
                     variant="link"
                     className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
@@ -203,7 +203,7 @@ export default function LoginForm() {
                   >
                     지금 설문조사 참여하기 →
                   </Button>
-                )}
+                )} */}
               </div>
             )}
 
@@ -215,13 +215,9 @@ export default function LoginForm() {
           {/* 하단 링크 */}
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
-              계정이 없으신가요?{' '}
-              <Button
-                variant="link"
-                className="p-0 h-auto"
-                onClick={() => router.push('/survey')}
-              >
-                설문조사 먼저 참여하기
+              출자자인데 계정이 없으신가요?{' '}
+              <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/signup')}>
+                여기를 눌러 가입하세요.
               </Button>
             </p>
 

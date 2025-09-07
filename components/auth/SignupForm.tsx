@@ -36,10 +36,14 @@ export default function SignupForm() {
   // 설문조사 데이터에서 이메일 가져오기
   const email = surveyData?.email || '';
 
+  const [emailInput, setEmailInput] = useState(email);
+
   const handleEmailSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    const signupEmail = emailInput || email;
+
+    if (!signupEmail || !password) {
       return;
     }
 
@@ -57,23 +61,25 @@ export default function SignupForm() {
 
     try {
       // 회원가입
-      await signUp(email, password);
+      await signUp(signupEmail, password);
 
-      // 회원가입 성공 후 profiles 테이블의 user_id 업데이트
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      // 설문조사 정보가 있는 경우에만 profiles 테이블의 user_id 업데이트
+      if (email) {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-      if (user) {
-        // 기존 profiles 레코드에 user_id 연결
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ user_id: user.id })
-          .eq('email', email);
+        if (user) {
+          // 기존 profiles 레코드에 user_id 연결
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ user_id: user.id })
+            .eq('email', email);
 
-        if (updateError) {
-          console.error('프로필 업데이트 실패:', updateError);
+          if (updateError) {
+            console.error('프로필 업데이트 실패:', updateError);
+          }
         }
       }
 
@@ -95,38 +101,32 @@ export default function SignupForm() {
     }
   };
 
-  // 설문조사를 완료하지 않은 경우 리다이렉트
-  useEffect(() => {
-    if (!email) {
-      router.push('/survey');
-    }
-  }, [email, router]);
-
-  if (!email) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">회원가입</CardTitle>
-          <CardDescription>설문조사 정보로 간편하게 회원가입하세요</CardDescription>
+          <CardDescription>
+            {email ? '설문조사 정보로 간편하게 회원가입하세요' : '기존 계정과 연동하여 회원가입하세요'}
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* 기존 정보 표시 */}
-          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-            <div className="flex items-center mb-2">
-              <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-              <span className="text-sm font-medium text-green-800">설문조사 정보</span>
+          {/* 설문조사 정보가 있는 경우에만 표시 */}
+          {email && (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center mb-2">
+                <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
+                <span className="text-sm font-medium text-green-800">설문조사 정보</span>
+              </div>
+              <div className="text-sm text-green-700 space-y-1">
+                <div>이름: {surveyData?.name || ''}</div>
+                <div>이메일: {email}</div>
+                <div>전화번호: {surveyData?.phone || ''}</div>
+              </div>
             </div>
-            <div className="text-sm text-green-700 space-y-1">
-              <div>이름: {surveyData?.name || ''}</div>
-              <div>이메일: {email}</div>
-              <div>전화번호: {surveyData?.phone || ''}</div>
-            </div>
-          </div>
+          )}
 
           {!signupMethod && (
             <div className="space-y-4">
@@ -169,11 +169,17 @@ export default function SignupForm() {
                   <Input
                     id="signup-email"
                     type="email"
-                    value={email}
-                    disabled
-                    className="bg-gray-50"
+                    value={emailInput}
+                    onChange={e => setEmailInput(e.target.value)}
+                    disabled={!!email}
+                    className={email ? "bg-gray-50" : ""}
+                    required
                   />
-                  <p className="text-xs text-gray-500">설문조사에서 입력한 이메일이 사용됩니다.</p>
+                  {email ? (
+                    <p className="text-xs text-gray-500">설문조사에서 입력한 이메일이 사용됩니다.</p>
+                  ) : (
+                    <p className="text-xs text-gray-500">회원가입에 사용할 이메일을 입력하세요.</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
