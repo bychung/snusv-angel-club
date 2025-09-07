@@ -20,7 +20,7 @@ import TextInput from './inputs/TextInput';
 import SurveyNavigation from './SurveyNavigation';
 import SurveyProgress from './SurveyProgress';
 
-export default function SurveyContainer() {
+export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -36,14 +36,57 @@ export default function SurveyContainer() {
     loadFromLocalStorage,
     clearLocalStorage,
     setProfileId,
+    setFundId,
+    setFundName,
+    fundId: storeFundId,
+    fundName,
   } = useSurveyStore();
 
-  // 컴포넌트 마운트 시 로컬스토리지에서 데이터 복원 (한 번만 실행)
+  // 펀드 정보 조회
+  const fetchFundInfo = async (fundIdToFetch: string) => {
+    try {
+      const supabase = createClient();
+      const { data: fund, error } = await supabase
+        .from('funds')
+        .select('name')
+        .eq('id', fundIdToFetch)
+        .single();
+
+      if (error) {
+        console.error('펀드 정보 조회 실패:', error);
+        return;
+      }
+
+      if (fund) {
+        setFundName(fund.name);
+      }
+    } catch (error) {
+      console.error('펀드 정보 조회 중 오류:', error);
+    }
+  };
+
+  // 컴포넌트 마운트 시 fundId 설정 및 로컬스토리지에서 데이터 복원
   useEffect(() => {
     let mounted = true;
 
-    const restoreData = () => {
+    const restoreData = async () => {
       if (mounted && !isInitialized) {
+        // fundId가 없으면 홈페이지로 리다이렉트
+        if (!fundId && !storeFundId) {
+          router.push('/');
+          return;
+        }
+
+        // fundId가 제공되면 스토어에 설정
+        if (fundId) {
+          setFundId(fundId);
+          // 펀드 정보 조회
+          await fetchFundInfo(fundId);
+        } else if (storeFundId && !fundName) {
+          // 스토어에 fundId는 있지만 fundName이 없으면 조회
+          await fetchFundInfo(storeFundId);
+        }
+
         const hasData = loadFromLocalStorage();
         if (hasData) {
           console.log('설문 데이터가 복원되었습니다.');
@@ -57,7 +100,16 @@ export default function SurveyContainer() {
     return () => {
       mounted = false;
     };
-  }, []); // 완전히 빈 의존성 배열
+  }, [
+    fundId,
+    setFundId,
+    setFundName,
+    loadFromLocalStorage,
+    isInitialized,
+    router,
+    storeFundId,
+    fundName,
+  ]);
 
   // 조건부 페이지 스킵 로직을 제거하고, 렌더링에서 직접 처리
 
@@ -190,13 +242,15 @@ export default function SurveyContainer() {
         throw new Error(profileError.message);
       }
 
-      // 2. 고정 펀드 ID 가져오기 (하드코딩 또는 환경변수)
-      // 실제 운영시에는 funds 테이블에서 조회
-      const fundId = process.env.NEXT_PUBLIC_FUND_ID || 'default-fund-id';
+      // 2. 펀드 ID 확인
+      const currentFundId = storeFundId || fundId;
+      if (!currentFundId) {
+        throw new Error('펀드 ID가 필요합니다. URL에 fund_id 파라미터를 포함해주세요.');
+      }
 
       // 3. fund_members 테이블에 upsert
       const fundMemberData = {
-        fund_id: fundId,
+        fund_id: currentFundId,
         profile_id: (profile as any).id,
         investment_units: surveyData.investmentUnits,
         updated_at: new Date().toISOString(),
@@ -442,11 +496,32 @@ export default function SurveyContainer() {
     }
   };
 
+  // fundId가 없으면 로딩 상태 표시
+  if (!isInitialized || (!fundId && !storeFundId)) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg">로딩 중...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container max-w-2xl mx-auto px-4">
         {currentPage < 9 && <SurveyProgress />}
         {currentPage < 9 && <SurveyNavigation />}
+
+        {/* 펀드 설명 문구 */}
+        {fundName && currentPage < 9 && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-center text-blue-800 font-medium">
+              <b>{fundName}</b>에 대한 출자 의향을 묻는 조사입니다. <br />
+              마지막까지 입력 후 제출을 부탁드립니다.
+            </p>
+          </div>
+        )}
 
         <Card>{renderPage()}</Card>
       </div>

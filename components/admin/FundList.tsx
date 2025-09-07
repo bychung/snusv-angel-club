@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
 import type { Fund, FundMember, Profile } from '@/types/database';
-import { Building, Users, TrendingUp, ChevronRight } from 'lucide-react';
+import { Building, Users, TrendingUp, ChevronRight, Link2, Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
@@ -18,6 +18,7 @@ interface FundWithStats extends Fund {
 export default function FundList() {
   const [funds, setFunds] = useState<FundWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [copiedFundId, setCopiedFundId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFunds();
@@ -71,6 +72,22 @@ export default function FundList() {
 
   const formatCurrency = (amount: number) => {
     return (amount * 1000000).toLocaleString() + '원';
+  };
+
+  const copySurveyLink = async (fundId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    try {
+      const baseUrl = window.location.origin;
+      const surveyUrl = `${baseUrl}/survey?fund_id=${fundId}`;
+      await navigator.clipboard.writeText(surveyUrl);
+      
+      setCopiedFundId(fundId);
+      setTimeout(() => setCopiedFundId(null), 2000);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+    }
   };
 
   if (isLoading) {
@@ -159,7 +176,7 @@ export default function FundList() {
 
                 {/* 가입 현황 */}
                 <div className="pt-3 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="grid grid-cols-2 gap-4 text-center mb-3">
                     <div>
                       <div className="text-sm font-semibold text-green-600">
                         {fund.registeredMembers}
@@ -173,6 +190,26 @@ export default function FundList() {
                       <div className="text-xs text-gray-500">설문만</div>
                     </div>
                   </div>
+                  
+                  {/* 설문조사 링크 복사 버튼 */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={(e) => copySurveyLink(fund.id, e)}
+                  >
+                    {copiedFundId === fund.id ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        복사됨
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="h-4 w-4 mr-2" />
+                        설문조사 링크 복사
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardContent>

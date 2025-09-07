@@ -58,9 +58,13 @@
 ### 환경 설정
 필수 환경 변수 (env.example 참조):
 - Supabase 연결 (URL, anon key, service key)
-- 펀드 설정 (ID, 이름)
+- 펀드 설정 (이름)
 - OAuth 프로바이더 키 (Kakao)
 - 역할 기반 접근을 위한 관리자 이메일 목록
+
+### 설문조사 접근 방법
+- `/survey?fund_id=<펀드ID>` 형식으로 특정 펀드에 대한 설문조사 접근
+- fund_id는 URL 쿼리 파라미터로 전달되어야 함
 
 ### 특별한 기능
 - **Turbopack**: 더 빠른 컴파일을 위해 개발과 빌드 모두에 사용

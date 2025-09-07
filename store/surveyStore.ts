@@ -15,6 +15,12 @@ interface SurveyStore {
   // 저장된 profile_id (설문조사 완료 후 회원가입용)
   profileId: string | null;
 
+  // 펀드 ID
+  fundId: string | null;
+
+  // 펀드명
+  fundName: string | null;
+
   // 액션
   updateField: <K extends keyof SurveyData>(field: K, value: SurveyData[K]) => void;
   goToPage: (page: number) => void;
@@ -27,6 +33,8 @@ interface SurveyStore {
   setSubmitting: (isSubmitting: boolean) => void;
   setSubmitError: (error: Error | null) => void;
   setProfileId: (profileId: string | null) => void;
+  setFundId: (fundId: string | null) => void;
+  setFundName: (fundName: string | null) => void;
   hasCompletedSurvey: () => boolean; // 설문조사 완료 여부 확인
 }
 
@@ -49,6 +57,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   isSubmitting: false,
   submitError: null,
   profileId: null,
+  fundId: null,
+  fundName: null,
 
   updateField: (field, value) => {
     set(state => ({
@@ -111,22 +121,26 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   },
 
   resetSurvey: () => {
+    const { fundId } = get();
     set({
       surveyData: initialSurveyData,
       currentPage: 1,
       isSubmitting: false,
       submitError: null,
       profileId: null,
+      // fundId는 유지
     });
     get().clearLocalStorage();
   },
 
   saveToLocalStorage: () => {
-    const { surveyData, currentPage, profileId } = get();
+    const { surveyData, currentPage, profileId, fundId, fundName } = get();
     const saveData = {
       surveyData,
       currentPage,
       profileId,
+      fundId,
+      fundName,
       timestamp: Date.now(),
     };
     try {
@@ -153,6 +167,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
         surveyData: data.surveyData,
         currentPage: data.currentPage,
         profileId: data.profileId || null,
+        fundId: data.fundId || null,
+        fundName: data.fundName || null,
       });
 
       return true;
@@ -180,6 +196,14 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   setProfileId: profileId => {
     set({ profileId });
+  },
+
+  setFundId: fundId => {
+    set({ fundId });
+  },
+
+  setFundName: fundName => {
+    set({ fundName });
   },
 
   hasCompletedSurvey: () => {
