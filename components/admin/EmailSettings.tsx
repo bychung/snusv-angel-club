@@ -44,7 +44,7 @@ export default function EmailSettings() {
 - 이메일: {{email}}
 - 전화번호: {{phone}}
 - 출자좌수: {{investment_units}}좌
-- 투자금액: {{investment_amount}}원
+- 출자금액: {{investment_amount}}원
 
 관리자 페이지에서 자세한 내용을 확인하실 수 있습니다.
 

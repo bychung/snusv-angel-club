@@ -9,79 +9,81 @@ import type { FundMember, Profile } from '@/types/database';
 import { Building, Edit, Eye, Filter, Mail, Phone, Search, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-interface UserWithFund extends Profile {
+interface MemberWithFund extends Profile {
   fund_members?: FundMember[];
   registration_status: 'registered' | 'survey_only';
 }
 
-export default function UserList() {
-  const [users, setUsers] = useState<UserWithFund[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<UserWithFund[]>([]);
+interface FundMemberListProps {
+  fundId: string;
+  fundName: string;
+}
+
+export default function FundMemberList({ fundId, fundName }: FundMemberListProps) {
+  const [members, setMembers] = useState<MemberWithFund[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<MemberWithFund[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'registered' | 'survey_only'>('all');
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchMembers();
+  }, [fundId]);
 
   useEffect(() => {
-    filterUsers();
-  }, [users, searchTerm, filterStatus]);
+    filterMembers();
+  }, [members, searchTerm, filterStatus]);
 
-  const fetchUsers = async () => {
+  const fetchMembers = async () => {
     try {
       const supabase = createClient();
 
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select(
-          `
+      // 특정 펀드의 조합원 목록 조회
+      const { data: fundMembers, error } = await supabase
+        .from('fund_members')
+        .select(`
           *,
-          fund_members (
-            id,
-            investment_units,
-            created_at,
-            updated_at
-          )
-        `
-        )
+          profile:profiles (*)
+        `)
+        .eq('fund_id', fundId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const usersWithStatus: UserWithFund[] = profiles.map(profile => ({
-        ...profile,
-        registration_status: profile.user_id ? 'registered' : 'survey_only',
-      }));
+      // 프로필과 fund_member 정보를 합쳐서 형태 변환
+      const membersWithStatus: MemberWithFund[] = fundMembers?.map(fundMember => ({
+        ...fundMember.profile,
+        fund_members: [fundMember],
+        registration_status: fundMember.profile?.user_id ? 'registered' : 'survey_only',
+      })) || [];
 
-      setUsers(usersWithStatus);
+      setMembers(membersWithStatus);
     } catch (error) {
-      console.error('사용자 목록 조회 실패:', error);
+      console.error('조합원 목록 조회 실패:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filterUsers = () => {
-    let filtered = users;
+  const filterMembers = () => {
+    let filtered = members;
 
     // 검색어 필터링
     if (searchTerm) {
       filtered = filtered.filter(
-        user =>
-          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.phone.includes(searchTerm)
+        member =>
+          member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.phone.includes(searchTerm)
       );
     }
 
     // 상태 필터링
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(user => user.registration_status === filterStatus);
+      filtered = filtered.filter(member => member.registration_status === filterStatus);
     }
 
-    setFilteredUsers(filtered);
+    setFilteredMembers(filtered);
   };
 
   const getStatusBadge = (status: 'registered' | 'survey_only') => {
@@ -138,7 +140,7 @@ export default function UserList() {
       {/* 검색 및 필터 */}
       <Card>
         <CardHeader>
-          <CardTitle>사용자 검색 및 필터</CardTitle>
+          <CardTitle>조합원 검색 및 필터</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -167,27 +169,31 @@ export default function UserList() {
         </CardContent>
       </Card>
 
-      {/* 사용자 목록 */}
+      {/* 조합원 목록 */}
       <Card>
         <CardHeader>
-          <CardTitle>사용자 목록</CardTitle>
-          <CardDescription>총 {filteredUsers.length}명의 사용자가 있습니다.</CardDescription>
+          <CardTitle>{fundName} 조합원 목록</CardTitle>
+          <CardDescription>총 {filteredMembers.length}명의 조합원이 있습니다.</CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredUsers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">조건에 맞는 사용자가 없습니다.</div>
+          {filteredMembers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {members.length === 0
+                ? '등록된 조합원이 없습니다.'
+                : '조건에 맞는 조합원이 없습니다.'}
+            </div>
           ) : (
             <div className="space-y-4">
-              {filteredUsers.map(user => (
+              {filteredMembers.map(member => (
                 <div
-                  key={user.id}
+                  key={member.id}
                   className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0">
                         <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
-                          {user.entity_type === 'corporate' ? (
+                          {member.entity_type === 'corporate' ? (
                             <Building className="h-6 w-6 text-gray-600" />
                           ) : (
                             <User className="h-6 w-6 text-gray-600" />
@@ -196,25 +202,25 @@ export default function UserList() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
-                          <h3 className="text-lg font-medium text-gray-900">{user.name}</h3>
-                          {getStatusBadge(user.registration_status)}
+                          <h3 className="text-lg font-medium text-gray-900">{member.name}</h3>
+                          {getStatusBadge(member.registration_status)}
                           <Badge variant="outline">
-                            {user.entity_type === 'individual' ? '개인' : '법인'}
+                            {member.entity_type === 'individual' ? '개인' : '법인'}
                           </Badge>
                         </div>
                         <div className="mt-2 space-y-1 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            {user.email}
+                            {member.email}
                           </div>
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4" />
-                            {user.phone}
+                            {member.phone}
                           </div>
                           <div className="text-xs text-gray-500">
-                            가입일: {formatDate(user.created_at)}
-                            {user.created_at !== user.updated_at && (
-                              <span> • 수정일: {formatDate(user.updated_at)}</span>
+                            가입일: {formatDate(member.created_at)}
+                            {member.created_at !== member.updated_at && (
+                              <span> • 수정일: {formatDate(member.updated_at)}</span>
                             )}
                           </div>
                         </div>
@@ -234,25 +240,25 @@ export default function UserList() {
                   </div>
 
                   {/* 투자 정보 */}
-                  {user.fund_members && user.fund_members.length > 0 && (
+                  {member.fund_members && member.fund_members.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-100">
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                         <div>
                           <span className="font-medium text-gray-700">출자좌수:</span>
                           <span className="ml-2 text-gray-900">
-                            {user.fund_members[0].investment_units.toLocaleString()}좌
+                            {member.fund_members[0].investment_units.toLocaleString()}좌
                           </span>
                         </div>
                         <div>
                           <span className="font-medium text-gray-700">출자금액:</span>
                           <span className="ml-2 text-gray-900">
-                            {formatCurrency(user.fund_members[0].investment_units)}
+                            {formatCurrency(member.fund_members[0].investment_units)}
                           </span>
                         </div>
                         <div>
                           <span className="font-medium text-gray-700">제출일:</span>
                           <span className="ml-2 text-gray-900">
-                            {formatDate(user.fund_members[0].created_at)}
+                            {formatDate(member.fund_members[0].created_at)}
                           </span>
                         </div>
                       </div>

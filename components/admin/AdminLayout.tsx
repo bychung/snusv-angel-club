@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth/admin';
 import { useAuthStore } from '@/store/authStore';
-import { BarChart3, Download, LogOut, Mail, MessageSquare, Settings, Shield, Users } from 'lucide-react';
+import { BarChart3, Building, LogOut, Mail, MessageSquare, Settings, Shield, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -78,16 +78,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       current: pathname === '/admin',
     },
     {
+      name: '펀드 관리',
+      href: '/admin/funds',
+      icon: Building,
+      current: pathname.startsWith('/admin/funds'),
+    },
+    {
       name: '사용자 관리',
       href: '/admin/users',
       icon: Users,
       current: pathname === '/admin/users',
-    },
-    {
-      name: '데이터 내보내기',
-      href: '/admin/export',
-      icon: Download,
-      current: pathname === '/admin/export',
     },
     {
       name: '문의 관리',

@@ -83,10 +83,10 @@ export default function StatsCards() {
       suffix: '좌',
     },
     {
-      title: '총 투자금액',
+      title: '총 출자금액',
       value: stats.totalInvestment,
       icon: DollarSign,
-      description: '전체 투자금액',
+      description: '전체 출자금액',
       color: 'text-orange-600',
       format: 'currency',
     },

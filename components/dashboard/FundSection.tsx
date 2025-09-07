@@ -187,7 +187,7 @@ export default function FundSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>투자금액</Label>
+            <Label>출자금액</Label>
             <div className="p-3 bg-gray-50 rounded-md text-right font-medium">
               {((isEditing ? editUnits : fundInfo.investment_units) * 1000000).toLocaleString()}원
             </div>
@@ -202,7 +202,7 @@ export default function FundSection() {
         {/* 투자 일시 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>투자 일시</Label>
+            <Label>출자 일시</Label>
             <div className="p-3 bg-gray-50 rounded-md">
               {new Date(fundInfo.created_at).toLocaleString('ko-KR')}
             </div>
@@ -227,7 +227,7 @@ export default function FundSection() {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-green-700">총 투자금액:</span>
+              <span className="text-green-700">총 출자금액:</span>
               <span className="font-medium text-green-900">
                 {((isEditing ? editUnits : fundInfo.investment_units) * 1000000).toLocaleString()}원
               </span>
