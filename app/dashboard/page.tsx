@@ -1,6 +1,5 @@
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import FundSection from '@/components/dashboard/FundSection';
-import ProfileSection from '@/components/dashboard/ProfileSection';
 
 export default function DashboardPage() {
   return (
@@ -8,13 +7,10 @@ export default function DashboardPage() {
       <div className="space-y-8">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">대시보드</h2>
-          <p className="text-gray-600">설문조사에서 입력한 정보를 확인하고 수정할 수 있습니다.</p>
+          <p className="text-gray-600">투자하고 있는 펀드 정보를 확인하고 관리할 수 있습니다.</p>
         </div>
 
-        <div className="space-y-6">
-          <ProfileSection />
-          <FundSection />
-        </div>
+        <FundSection />
       </div>
     </DashboardLayout>
   );

@@ -69,6 +69,7 @@ interface AuthStore {
   // 상태
   user: User | null;
   profile: Profile | null;
+  userFunds: string[]; // 사용자가 참여한 펀드 ID 목록
   isLoading: boolean;
   isProfileLoading: boolean;
   error: string | null;
@@ -91,6 +92,7 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   profile: null,
+  userFunds: [],
   isLoading: false,
   isProfileLoading: false,
   error: null,
@@ -131,6 +133,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
+      // 설문조사 페이지에서 OAuth 로그인하는 경우 원래 URL 저장
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/survey')) {
+        const currentUrl = window.location.pathname + window.location.search;
+        sessionStorage.setItem('redirectAfterAuth', currentUrl);
+        console.log('[authStore] Saved redirect URL for survey:', currentUrl);
+      }
+
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -323,13 +332,45 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw error;
       }
 
-      console.log('[authStore] Profile found, setting profile');
-      set({ profile: profile as Profile });
+      console.log('[authStore] Profile found, fetching user funds...');
+
+      // 프로필과 함께 사용자의 펀드 참여 정보도 조회
+      try {
+        const { data: fundMembers, error: fundError } = await supabase
+          .from('fund_members')
+          .select('fund_id')
+          .eq('profile_id', profile.id);
+
+        let userFunds: string[] = [];
+        if (!fundError && fundMembers) {
+          userFunds = fundMembers.map(member => member.fund_id);
+          console.log('[authStore] User funds loaded successfully:', userFunds);
+        } else if (fundError) {
+          console.warn('[authStore] Failed to load user funds:', fundError);
+          // 에러가 있어도 빈 배열로 설정하여 survey에서 fallback DB 체크가 가능하도록 함
+        }
+
+        set({
+          profile: profile as Profile,
+          userFunds: userFunds,
+        });
+
+        console.log('[authStore] Profile and userFunds set successfully');
+      } catch (fundFetchError) {
+        console.warn('[authStore] Error fetching user funds:', fundFetchError);
+        // 펀드 정보 로딩에 실패해도 프로필은 설정
+        set({
+          profile: profile as Profile,
+          userFunds: [],
+        });
+        console.log('[authStore] Profile set with empty userFunds due to fetch error');
+      }
     } catch (error) {
       console.log('[authStore] fetchProfile error:', error);
       set({
         error: error instanceof Error ? error.message : '프로필을 불러오는데 실패했습니다.',
         profile: null,
+        userFunds: [],
       });
       throw error; // 에러를 다시 던져서 호출하는 곳에서 처리하게 함
     } finally {
@@ -356,6 +397,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({
       user: null,
       profile: null,
+      userFunds: [],
       isLoading: false,
       isProfileLoading: false,
       error: null,
@@ -367,7 +409,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const supabase = createClient();
-      
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')

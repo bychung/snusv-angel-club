@@ -3,27 +3,33 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import type { FundMember } from '@/types/database';
-import { Edit2, Save, TrendingUp, X } from 'lucide-react';
+import { Building, Edit2, Save, TrendingUp, X, Calendar, DollarSign } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+interface FundMemberWithFund extends FundMember {
+  funds: {
+    id: string;
+    name: string;
+  };
+}
 
 export default function FundSection() {
   const { profile, isLoading: authLoading } = useAuthStore();
-  const [fundInfo, setFundInfo] = useState<FundMember | null>(null);
+  const [fundInfos, setFundInfos] = useState<FundMemberWithFund[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  const [editingFundId, setEditingFundId] = useState<string | null>(null);
   const [editUnits, setEditUnits] = useState(0);
 
   useEffect(() => {
     if (profile) {
-      fetchFundInfo();
+      fetchFundInfos();
     }
   }, [profile]);
 
-  const fetchFundInfo = async () => {
+  const fetchFundInfos = async () => {
     if (!profile) return;
 
     setIsLoading(true);
@@ -41,13 +47,13 @@ export default function FundSection() {
         `
         )
         .eq('profile_id', profile.id)
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
 
-      setFundInfo(data);
+      setFundInfos(data || []);
     } catch (error) {
       console.error('펀드 정보 조회 실패:', error);
     } finally {
@@ -55,20 +61,19 @@ export default function FundSection() {
     }
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setEditUnits(fundInfo?.investment_units || 0);
+  const handleEdit = (fund: FundMemberWithFund) => {
+    setEditingFundId(fund.id);
+    setEditUnits(fund.investment_units || 0);
   };
 
   const handleCancel = () => {
-    setIsEditing(false);
-    setEditUnits(fundInfo?.investment_units || 0);
+    setEditingFundId(null);
+    setEditUnits(0);
   };
 
   const handleSave = async () => {
-    if (!profile || !fundInfo) return;
+    if (!profile || !editingFundId) return;
 
-    setIsLoading(true);
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -77,164 +82,176 @@ export default function FundSection() {
           investment_units: editUnits,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', fundInfo.id);
+        .eq('id', editingFundId);
 
       if (error) throw error;
 
       // 정보 다시 가져오기
-      await fetchFundInfo();
-      setIsEditing(false);
+      await fetchFundInfos();
+      setEditingFundId(null);
     } catch (error) {
       console.error('펀드 정보 업데이트 실패:', error);
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return (amount * 1000000).toLocaleString() + '원';
   };
 
   if (authLoading || isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            펀드 투자 정보
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-6">
+          <TrendingUp className="h-6 w-6" />
+          <h3 className="text-xl font-semibold">펀드 투자 정보</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="space-y-2">
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                    <div className="h-3 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     );
   }
 
-  if (!fundInfo) {
+  if (fundInfos.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            펀드 투자 정보
-          </CardTitle>
-          <CardDescription>펀드 투자 정보가 없습니다.</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 mb-6">
+          <TrendingUp className="h-6 w-6" />
+          <h3 className="text-xl font-semibold">펀드 투자 정보</h3>
+        </div>
+        <Card>
+          <CardContent className="p-12">
+            <div className="text-center">
+              <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">투자 중인 펀드가 없습니다</h3>
+              <p className="text-gray-600">설문조사를 통해 펀드에 참여하시면 여기에 투자 정보가 표시됩니다.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              펀드 투자 정보
-            </CardTitle>
-            <CardDescription>
-              설문조사에서 입력한 투자 정보를 확인하고 수정할 수 있습니다.
-            </CardDescription>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-6 w-6" />
+        <h3 className="text-xl font-semibold">펀드 투자 정보</h3>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {fundInfos.map(fund => {
+          const isEditing = editingFundId === fund.id;
+          
+          return (
+            <Card key={fund.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <Building className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        {fund.funds?.name || '펀드명 불명'}
+                      </CardTitle>
+                      <CardDescription className="text-sm text-gray-500">
+                        내 투자 정보
+                      </CardDescription>
+                    </div>
+                  </div>
+                  
+                  {!isEditing ? (
+                    <Button onClick={() => handleEdit(fund)} variant="outline" size="sm">
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <div className="flex gap-1">
+                      <Button onClick={handleSave} size="sm">
+                        <Save className="h-4 w-4" />
+                      </Button>
+                      <Button onClick={handleCancel} variant="outline" size="sm">
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              
+              <CardContent className="pt-0">
+                <div className="space-y-4">
+                  {/* 투자 금액 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">출자금액</span>
+                    </div>
+                    <span className="text-lg font-semibold text-gray-900">
+                      {formatCurrency(isEditing ? editUnits : fund.investment_units)}
+                    </span>
+                  </div>
 
-          {!isEditing ? (
-            <Button onClick={handleEdit} variant="outline" size="sm">
-              <Edit2 className="h-4 w-4 mr-2" />
-              수정
-            </Button>
-          ) : (
-            <div className="flex gap-2">
-              <Button onClick={handleSave} size="sm" disabled={isLoading}>
-                <Save className="h-4 w-4 mr-2" />
-                저장
-              </Button>
-              <Button onClick={handleCancel} variant="outline" size="sm">
-                <X className="h-4 w-4 mr-2" />
-                취소
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardHeader>
+                  {/* 출자좌수 */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">출자좌수</span>
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        value={editUnits}
+                        onChange={e => setEditUnits(Number(e.target.value))}
+                        className="w-20 h-8 text-sm text-right"
+                        min="1"
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-gray-900">
+                        {fund.investment_units.toLocaleString()}좌
+                      </span>
+                    )}
+                  </div>
 
-      <CardContent className="space-y-6">
-        {/* 펀드 정보 */}
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h3 className="font-medium text-blue-900 mb-2">펀드명</h3>
-          <p className="text-blue-800">
-            {(fundInfo as any).funds?.name || '프로펠-SNUSV엔젤투자조합2호'}
-          </p>
-        </div>
+                  {/* 출자 일시 */}
+                  <div className="pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3" />
+                        <span>출자일</span>
+                      </div>
+                      <span>{new Date(fund.created_at).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
+                      <span>최종수정</span>
+                      <span>{new Date(fund.updated_at).toLocaleDateString('ko-KR')}</span>
+                    </div>
+                  </div>
 
-        {/* 투자 정보 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>출자좌수</Label>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={editUnits}
-                onChange={e => setEditUnits(Number(e.target.value))}
-                placeholder="출자좌수"
-                min="1"
-              />
-            ) : (
-              <div className="p-3 bg-gray-50 rounded-md text-right">
-                {fundInfo.investment_units.toLocaleString()}좌
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>출자금액</Label>
-            <div className="p-3 bg-gray-50 rounded-md text-right font-medium">
-              {((isEditing ? editUnits : fundInfo.investment_units) * 1000000).toLocaleString()}원
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>1좌당 금액</Label>
-            <div className="p-3 bg-gray-50 rounded-md text-right">1,000,000원</div>
-          </div>
-        </div>
-
-        {/* 투자 일시 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>출자 일시</Label>
-            <div className="p-3 bg-gray-50 rounded-md">
-              {new Date(fundInfo.created_at).toLocaleString('ko-KR')}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>최종 수정일</Label>
-            <div className="p-3 bg-gray-50 rounded-md">
-              {new Date(fundInfo.updated_at).toLocaleString('ko-KR')}
-            </div>
-          </div>
-        </div>
-
-        {/* 투자 요약 */}
-        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-          <h3 className="font-medium text-green-900 mb-3">투자 요약</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="flex justify-between">
-              <span className="text-green-700">총 투자좌수:</span>
-              <span className="font-medium text-green-900">
-                {(isEditing ? editUnits : fundInfo.investment_units).toLocaleString()}좌
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-green-700">총 출자금액:</span>
-              <span className="font-medium text-green-900">
-                {((isEditing ? editUnits : fundInfo.investment_units) * 1000000).toLocaleString()}원
-              </span>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+                  {/* 1좌당 금액 안내 */}
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-xs text-gray-500 mb-1">1좌당 금액</div>
+                      <div className="text-sm font-medium text-gray-700">1,000,000원</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }
