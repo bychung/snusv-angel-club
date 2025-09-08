@@ -1,5 +1,7 @@
 'use client';
 
+import AngelInquiryModal from '@/components/modals/AngelInquiryModal';
+import IRInquiryModal from '@/components/modals/IRInquiryModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,8 +19,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import IRInquiryModal from '@/components/modals/IRInquiryModal';
-import AngelInquiryModal from '@/components/modals/AngelInquiryModal';
 
 interface ExecutiveMember {
   id: string;
@@ -336,8 +336,8 @@ export default function HomePage() {
                 후배 스타트업을 지원하며 함께 미래를 만들어가는 투자 생태계를 구축합니다.
               </p>
 
-              {/* <div className="flex justify-center">
-                <Link href="/survey">
+              <div className="flex justify-center">
+                <Link href="/survey?fund_id=550e8400-e29b-41d4-a716-446655440000">
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white border-0 shadow-lg shadow-cyan-500/25"
@@ -346,7 +346,7 @@ export default function HomePage() {
                     <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                 </Link>
-              </div> */}
+              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 mt-20">
@@ -494,11 +494,11 @@ export default function HomePage() {
                   onClick={() => window.open(portfolio.website, '_blank')}
                 >
                   <CardContent className="p-8">
-                    <div className="flex items-center justify-center h-20 mb-6 bg-white/5 rounded-xl border border-white/10">
+                    <div className="flex items-center justify-center h-20 mb-6 bg-white/10 rounded-xl">
                       <img
                         src={portfolio.logo || '/placeholder.svg'}
                         alt={portfolio.name}
-                        className="max-h-16 max-w-full object-contain filter brightness-0 invert"
+                        className="max-h-full max-w-full object-contain"
                       />
                     </div>
                     <div className="flex items-center justify-between mb-4">
@@ -541,11 +541,11 @@ export default function HomePage() {
                 <CardContent className="p-12">
                   <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div>
-                      <div className="flex items-center justify-center h-24 mb-8 bg-white/5 rounded-xl border border-white/10">
+                      <div className="flex items-center justify-center h-64 mb-8 bg-white/3 rounded-xl">
                         <img
                           src={partner.logo || '/placeholder.svg'}
                           alt={partner.name}
-                          className="max-h-20 max-w-full object-contain filter brightness-0 invert"
+                          className="max-h-full max-w-full object-contain"
                         />
                       </div>
                       <h3 className="text-3xl font-bold mb-6 text-white">{partner.name}</h3>
@@ -606,7 +606,7 @@ export default function HomePage() {
                   <p className="mb-6 text-gray-300 leading-relaxed">
                     혁신적인 기술과 비즈니스 모델을 가진 초기 스타트업의 IR을 기다립니다.
                   </p>
-                  <Button 
+                  <Button
                     className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
                     onClick={() => setIsIRModalOpen(true)}
                   >
@@ -624,7 +624,7 @@ export default function HomePage() {
                   <p className="mb-6 text-gray-300 leading-relaxed">
                     함께 스타트업 생태계에 투자하고 성장시킬 클럽원을 모집합니다.
                   </p>
-                  <Button 
+                  <Button
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
                     onClick={() => setIsAngelModalOpen(true)}
                   >
@@ -701,16 +701,10 @@ export default function HomePage() {
       </Dialog>
 
       {/* IR 문의 모달 */}
-      <IRInquiryModal
-        isOpen={isIRModalOpen}
-        onClose={() => setIsIRModalOpen(false)}
-      />
+      <IRInquiryModal isOpen={isIRModalOpen} onClose={() => setIsIRModalOpen(false)} />
 
       {/* 엔젤클럽 가입 문의 모달 */}
-      <AngelInquiryModal
-        isOpen={isAngelModalOpen}
-        onClose={() => setIsAngelModalOpen(false)}
-      />
+      <AngelInquiryModal isOpen={isAngelModalOpen} onClose={() => setIsAngelModalOpen(false)} />
     </div>
   );
 }
