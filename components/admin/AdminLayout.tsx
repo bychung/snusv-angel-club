@@ -5,7 +5,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { isAdmin } from '@/lib/auth/admin';
 import { useAuthStore } from '@/store/authStore';
-import { BarChart3, Building, LogOut, Mail, MessageSquare, Settings, Shield, Users } from 'lucide-react';
+import {
+  BarChart3,
+  Building,
+  LogOut,
+  Mail,
+  MessageSquare,
+  Settings,
+  Shield,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -26,6 +35,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     // 관리자 권한 확인
     if (!authLoading) {
       if (!user) {
+        console.log('[AdminLayout] user is null, redirecting to login');
         router.replace('/login');
         return;
       }

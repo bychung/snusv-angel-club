@@ -87,6 +87,7 @@ interface AuthStore {
   clearError: () => void;
   resetState: () => void;
   setLoading: (loading: boolean) => void;
+  getUserFunds: () => string[];
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -438,5 +439,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   setLoading: (loading: boolean) => {
     set({ isLoading: loading });
+  },
+
+  getUserFunds: () => {
+    return get().userFunds;
   },
 }));

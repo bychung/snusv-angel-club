@@ -18,14 +18,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     // 사용자가 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
+    // if (!authLoading && !user) {
+    //   router.push('/login');
+    //   return;
+    // }
+    console.log('[DashboardLayout] user:', user);
+    console.log('[DashboardLayout] authLoading:', authLoading);
 
-    setIsLoading(false);
+    setIsLoading(authLoading);
   }, [user, router, authLoading]);
-
 
   // 로딩 중이거나 인증되지 않은 경우
   if (isLoading || authLoading) {
