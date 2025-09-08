@@ -3,7 +3,6 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { isAdmin } from '@/lib/auth/admin';
 import { useAuthStore } from '@/store/authStore';
 import {
   BarChart3,
@@ -27,28 +26,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
 
   const { user, signOut, isLoading: authLoading } = useAuthStore();
 
   useEffect(() => {
-    // 관리자 권한 확인
-    if (!authLoading) {
-      if (!user) {
-        console.log('[AdminLayout] user is null, redirecting to login');
-        router.replace('/login');
-        return;
-      }
+    console.log('[AdminLayout] user:', user);
+    console.log('[AdminLayout] isLoading:', isLoading);
+    console.log('[AdminLayout] authLoading:', authLoading);
 
-      if (!isAdmin(user)) {
-        router.replace('/dashboard');
-        return;
-      }
-
-      setHasAccess(true);
-      setIsLoading(false);
-    }
-  }, [user, authLoading, router]);
+    setIsLoading(authLoading);
+  }, [authLoading]);
 
   const handleSignOut = async () => {
     try {

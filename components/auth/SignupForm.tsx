@@ -62,29 +62,33 @@ export default function SignupForm() {
     try {
       // 회원가입
       await signUp(signupEmail, password);
+      console.log('[SignupForm] signUp completed');
 
       // 설문조사 정보가 있는 경우에만 profiles 테이블의 user_id 업데이트
-      if (email) {
+      if (signupEmail) {
         const supabase = createClient();
         const {
           data: { user },
         } = await supabase.auth.getUser();
+        console.log('[SignupForm] user:', user);
 
         if (user) {
           // 기존 profiles 레코드에 user_id 연결
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ user_id: user.id })
-            .eq('email', email);
+            .eq('email', signupEmail);
 
           if (updateError) {
             console.error('프로필 업데이트 실패:', updateError);
+          } else {
+            console.log('[SignupForm] updateProfile completed');
           }
         }
       }
 
       // 회원가입 완료 페이지로 이동
-      router.push('/signup-complete');
+      router.push('/dashboard');
     } catch (error) {
       console.error('회원가입 실패:', error);
     } finally {

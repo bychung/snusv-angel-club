@@ -17,19 +17,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, isLoading: authLoading } = useAuthStore();
 
   useEffect(() => {
-    // 사용자가 로그인하지 않은 경우 로그인 페이지로 리다이렉트
-    // if (!authLoading && !user) {
-    //   router.push('/login');
-    //   return;
-    // }
     console.log('[DashboardLayout] user:', user);
     console.log('[DashboardLayout] authLoading:', authLoading);
 
     setIsLoading(authLoading);
-  }, [user, router, authLoading]);
+  }, [authLoading]);
 
   // 로딩 중이거나 인증되지 않은 경우
   if (isLoading || authLoading) {
+    console.log('[DashboardLayout-rendering] user:', user);
+    console.log('[DashboardLayout-rendering] isLoading:', isLoading);
+    console.log('[DashboardLayout-rendering] authLoading:', authLoading);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-pulse">

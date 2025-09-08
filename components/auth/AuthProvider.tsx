@@ -1,5 +1,6 @@
 'use client';
 
+import { isAdmin } from '@/lib/auth/admin';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
@@ -124,7 +125,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       session
     );
 
+    const currentPath = window.location.pathname;
     if (session?.user) {
+      // 새 탭에서 열거나 새로고침 하는 등, 이미 로그인이 되어 있는 경우에  이곳으로 진입하게 됨
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -137,7 +140,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setUser(user);
 
       // 경로별 추가 진행
-      const currentPath = window.location.pathname;
       if (currentPath.startsWith('/survey')) {
         // 이미 진행한 경우에는 대시보드로 강제 이동
         // 펀드 정보도 가져와야 함
@@ -157,11 +159,30 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           }, 1000);
           return;
         }
+      } else if (currentPath.startsWith('/admin')) {
+        if (!isAdmin(user)) {
+          routerNext.replace('/dashboard');
+          // TODO 더 좋은 방법 찾기
+          setTimeout(() => {
+            setLoading(false);
+          }, 1000);
+          return;
+        }
       }
+
       setLoading(false);
     } else {
-      // 미가입 유저 혹은 로그아웃 상태 - 별도의 과정 없이 로딩만 해제
-      setLoading(false);
+      // 미가입 유저 혹은 로그아웃 상태
+      if (currentPath.startsWith('/survey') || currentPath === '/' || currentPath === '/signup') {
+        setLoading(false);
+      } else {
+        routerNext.replace('/login');
+        // TODO 더 좋은 방법 찾기
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+        return;
+      }
     }
   };
 
@@ -480,7 +501,6 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       });
 
       if (event === 'INITIAL_SESSION') {
-        // 로그인 하지 않은 경우에만 처리
         handleInitialSessionEvent(session);
       }
 
@@ -494,6 +514,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     // 초기 로딩 상태 설정 (비로그인 상태 빠른 감지를 위해 짧은 로딩)
     setLoading(true);
+    console.log('[AuthProvider] useEffect:setLoading(true)');
 
     // const registerEventListeners = async () => {
     //   // 로그인된 사용자를 위한 전체 인증 상태 변화 감지
