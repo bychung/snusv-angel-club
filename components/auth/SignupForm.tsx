@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
 import { CheckCircle, Chrome, Lock, Mail, MessageSquare } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export default function SignupForm() {
   const router = useRouter();
@@ -94,6 +94,8 @@ export default function SignupForm() {
 
   const handleOAuthSignup = async (provider: 'google' | 'kakao') => {
     try {
+      // OAuth 보내기 직전에, profileId 정보를 로컬 스토리지에 저장
+      surveyStore.saveActiveFundIdToLocalStorage();
       await signInWithOAuth(provider);
       // OAuth는 리다이렉트로 처리되므로 여기서 추가 작업 불필요
     } catch (error) {
@@ -101,14 +103,15 @@ export default function SignupForm() {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">회원가입</CardTitle>
           <CardDescription>
-            {email ? '설문조사 정보로 간편하게 회원가입하세요' : '기존 계정과 연동하여 회원가입하세요'}
+            {email
+              ? '설문조사 정보로 간편하게 회원가입하세요'
+              : '기존 계정과 연동하여 회원가입하세요'}
           </CardDescription>
         </CardHeader>
 
@@ -172,11 +175,13 @@ export default function SignupForm() {
                     value={emailInput}
                     onChange={e => setEmailInput(e.target.value)}
                     disabled={!!email}
-                    className={email ? "bg-gray-50" : ""}
+                    className={email ? 'bg-gray-50' : ''}
                     required
                   />
                   {email ? (
-                    <p className="text-xs text-gray-500">설문조사에서 입력한 이메일이 사용됩니다.</p>
+                    <p className="text-xs text-gray-500">
+                      설문조사에서 입력한 이메일이 사용됩니다.
+                    </p>
                   ) : (
                     <p className="text-xs text-gray-500">회원가입에 사용할 이메일을 입력하세요.</p>
                   )}

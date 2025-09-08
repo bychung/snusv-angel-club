@@ -34,14 +34,18 @@ interface SurveyStore {
   hasCompletedSurvey: (fundId: string) => boolean;
   setActiveFundId: (fundId: string | null) => void;
   getFundSurveyData: (fundId: string) => FundSurveyData;
+  getProfileId: (fundId: string) => string | null;
 
   // 편의성을 위한 현재 활성 펀드 관련 getter
   getCurrentSurveyData: () => SurveyData | null;
   getCurrentPage: () => number;
   getIsSubmitting: () => boolean;
   getSubmitError: () => Error | null;
-  getProfileId: () => string | null;
+  getActiveProfileId: () => string | null;
   getFundName: () => string | null;
+  saveActiveFundIdToLocalStorage: () => void;
+  getActiveFundIdFromLocalStorage: () => string | null;
+  clearActiveFundIdFromLocalStorage: () => void;
 }
 
 const initialSurveyData: SurveyData = {
@@ -79,7 +83,7 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
         fundSurveys: {
           ...state.fundSurveys,
           [fundId]: createInitialFundSurveyData(),
-        }
+        },
       }));
       return get().fundSurveys[fundId];
     }
@@ -87,7 +91,9 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   },
 
   updateField: (fundId: string, field, value) => {
-    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    const { getFundSurveyData } = get();
+
+    getFundSurveyData(fundId); // 존재 확인 및 생성
     set(state => ({
       fundSurveys: {
         ...state.fundSurveys,
@@ -98,15 +104,17 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
             [field]: value,
           },
           timestamp: Date.now(),
-        }
-      }
+        },
+      },
     }));
     // 자동 저장
     get().saveToLocalStorage(fundId);
   },
 
   goToPage: (fundId: string, page: number) => {
-    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    const { getFundSurveyData } = get();
+
+    getFundSurveyData(fundId); // 존재 확인 및 생성
     set(state => ({
       fundSurveys: {
         ...state.fundSurveys,
@@ -114,14 +122,16 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
           ...state.fundSurveys[fundId],
           currentPage: page,
           timestamp: Date.now(),
-        }
-      }
+        },
+      },
     }));
     get().saveToLocalStorage(fundId);
   },
 
   nextPage: (fundId: string) => {
-    const fundData = get().getFundSurveyData(fundId);
+    const { getFundSurveyData } = get();
+
+    const fundData = getFundSurveyData(fundId);
     const { currentPage, surveyData } = fundData;
     let nextPageNumber = currentPage + 1;
 
@@ -142,7 +152,9 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   },
 
   prevPage: (fundId: string) => {
-    const fundData = get().getFundSurveyData(fundId);
+    const { getFundSurveyData } = get();
+
+    const fundData = getFundSurveyData(fundId);
     const { currentPage, surveyData } = fundData;
     let prevPageNumber = currentPage - 1;
 
@@ -169,13 +181,15 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
       fundSurveys: {
         ...state.fundSurveys,
         [fundId]: createInitialFundSurveyData(),
-      }
+      },
     }));
     get().clearLocalStorage(fundId);
   },
 
   saveToLocalStorage: (fundId: string) => {
-    const fundData = get().getFundSurveyData(fundId);
+    const { getFundSurveyData } = get();
+
+    const fundData = getFundSurveyData(fundId);
     const saveData = {
       ...fundData,
       timestamp: Date.now(),
@@ -204,7 +218,7 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
         fundSurveys: {
           ...state.fundSurveys,
           [fundId]: data,
-        }
+        },
       }));
 
       return true;
@@ -223,7 +237,9 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   },
 
   setSubmitting: (fundId: string, isSubmitting: boolean) => {
-    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    const { getFundSurveyData } = get();
+
+    getFundSurveyData(fundId); // 존재 확인 및 생성
     set(state => ({
       fundSurveys: {
         ...state.fundSurveys,
@@ -231,13 +247,15 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
           ...state.fundSurveys[fundId],
           isSubmitting,
           timestamp: Date.now(),
-        }
-      }
+        },
+      },
     }));
   },
 
   setSubmitError: (fundId: string, error: Error | null) => {
-    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    const { getFundSurveyData } = get();
+
+    getFundSurveyData(fundId); // 존재 확인 및 생성
     set(state => ({
       fundSurveys: {
         ...state.fundSurveys,
@@ -245,13 +263,15 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
           ...state.fundSurveys[fundId],
           submitError: error,
           timestamp: Date.now(),
-        }
-      }
+        },
+      },
     }));
   },
 
   setProfileId: (fundId: string, profileId: string | null) => {
-    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    const { getFundSurveyData } = get();
+
+    getFundSurveyData(fundId); // 존재 확인 및 생성
     set(state => ({
       fundSurveys: {
         ...state.fundSurveys,
@@ -259,14 +279,16 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
           ...state.fundSurveys[fundId],
           profileId,
           timestamp: Date.now(),
-        }
-      }
+        },
+      },
     }));
     get().saveToLocalStorage(fundId);
   },
 
   setFundId: (fundId: string, fundName?: string) => {
-    get().getFundSurveyData(fundId); // 존재 확인 및 생성
+    const { getFundSurveyData } = get();
+
+    getFundSurveyData(fundId); // 존재 확인 및 생성
     if (fundName) {
       set(state => ({
         fundSurveys: {
@@ -275,15 +297,22 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
             ...state.fundSurveys[fundId],
             fundName,
             timestamp: Date.now(),
-          }
-        }
+          },
+        },
       }));
     }
     set({ activeFundId: fundId });
   },
 
+  getProfileId: (fundId: string) => {
+    const { getFundSurveyData } = get();
+    const fundData = getFundSurveyData(fundId);
+    return fundData.profileId;
+  },
+
   hasCompletedSurvey: (fundId: string) => {
-    const fundData = get().getFundSurveyData(fundId);
+    const { getFundSurveyData } = get();
+    const fundData = getFundSurveyData(fundId);
     return !!fundData.profileId;
   },
 
@@ -293,38 +322,54 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   // 편의성을 위한 현재 활성 펀드 관련 getter
   getCurrentSurveyData: () => {
-    const { activeFundId } = get();
+    const { activeFundId, getFundSurveyData } = get();
     if (!activeFundId) return null;
-    return get().getFundSurveyData(activeFundId).surveyData;
+    return getFundSurveyData(activeFundId).surveyData;
   },
 
   getCurrentPage: () => {
-    const { activeFundId } = get();
+    const { activeFundId, getFundSurveyData } = get();
     if (!activeFundId) return 1;
-    return get().getFundSurveyData(activeFundId).currentPage;
+    return getFundSurveyData(activeFundId).currentPage;
   },
 
   getIsSubmitting: () => {
-    const { activeFundId } = get();
+    const { activeFundId, getFundSurveyData } = get();
     if (!activeFundId) return false;
-    return get().getFundSurveyData(activeFundId).isSubmitting;
+    return getFundSurveyData(activeFundId).isSubmitting;
   },
 
   getSubmitError: () => {
-    const { activeFundId } = get();
+    const { activeFundId, getFundSurveyData } = get();
     if (!activeFundId) return null;
-    return get().getFundSurveyData(activeFundId).submitError;
+    return getFundSurveyData(activeFundId).submitError;
   },
 
-  getProfileId: () => {
-    const { activeFundId } = get();
+  getActiveProfileId: () => {
+    const { activeFundId, getProfileId } = get();
     if (!activeFundId) return null;
-    return get().getFundSurveyData(activeFundId).profileId;
+    return getProfileId(activeFundId);
   },
 
   getFundName: () => {
-    const { activeFundId } = get();
+    const { activeFundId, getFundSurveyData } = get();
     if (!activeFundId) return null;
-    return get().getFundSurveyData(activeFundId).fundName;
+    return getFundSurveyData(activeFundId).fundName;
+  },
+
+  saveActiveFundIdToLocalStorage: () => {
+    const { activeFundId } = get();
+    if (activeFundId) {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`, activeFundId);
+    }
+  },
+
+  getActiveFundIdFromLocalStorage: () => {
+    const activeFundId = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`);
+    return activeFundId;
+  },
+
+  clearActiveFundIdFromLocalStorage: () => {
+    localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`);
   },
 }));

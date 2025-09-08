@@ -295,17 +295,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             }
 
             // 2) 기존 프로필이 없으면 설문조사 완료 여부 확인
-            const fundSurveys = surveyStore.fundSurveys;
-            let completedFundId: string | null = null;
-            let completedProfileId: string | null = null;
-
-            for (const [fundId, surveyData] of Object.entries(fundSurveys)) {
-              if (surveyData.profileId) {
-                completedFundId = fundId;
-                completedProfileId = surveyData.profileId;
-                break;
-              }
-            }
+            const completedFundId = surveyStore.getActiveFundIdFromLocalStorage() || '';
+            surveyStore.loadFromLocalStorage(completedFundId);
+            const completedProfileId = surveyStore.getProfileId(completedFundId);
 
             const isSignupFlow = !!completedProfileId;
             console.log('[AuthProvider] Profile not found, checking signup flow:', {
@@ -337,6 +329,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                 // 설문조사 데이터 정리 - 완료된 펀드의 데이터만 정리
                 if (completedFundId) {
+                  surveyStore.clearActiveFundIdFromLocalStorage();
                   surveyStore.clearLocalStorage(completedFundId);
                   surveyStore.resetSurvey(completedFundId);
                 }
