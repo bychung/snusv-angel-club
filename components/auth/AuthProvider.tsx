@@ -60,22 +60,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (fundId) {
           console.log('[AuthProvider] Checking participation for fund:', fundId);
 
-          // DB에서 펀드 참여 여부 직접 확인
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
+          // 프로필 정보 가져와서 펀드 참여 여부 확인
+          const userFunds = getUserFunds();
 
-          if (profile) {
-            const { data, error } = await supabase
-              .from('fund_members')
-              .select('id')
-              .eq('profile_id', profile.id)
-              .eq('fund_id', fundId)
-              .single();
+          if (userFunds.length > 0) {
+            const hasParticipated = userFunds.includes(fundId);
 
-            if (data && !error) {
+            if (hasParticipated) {
               console.log('[AuthProvider] Fund participation found, redirecting to dashboard');
               // 리다이렉트 실행 (상태 플래그 없이)
               routerNext.replace('/dashboard');
@@ -85,6 +76,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               console.log('[AuthProvider] No fund participation found, continuing with survey');
               return 'continue-survey';
             }
+          } else {
+            console.log('[AuthProvider] No user funds available, continuing with survey');
+            return 'continue-survey';
           }
         }
       } catch (error) {
@@ -168,6 +162,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           }, 1000);
           return;
         }
+      } else if (currentPath.startsWith('/login')) {
+        routerNext.replace('/dashboard');
+        // TODO 더 좋은 방법 찾기
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+        return;
       }
 
       setLoading(false);
@@ -267,6 +268,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               console.log('[AuthProvider] Found existing profile, linking OAuth account...');
 
               try {
+                // 기존 프로필에 user_id 직접 연결 (ID로 업데이트)
                 const { data: updatedProfile, error: updateError } = await supabase
                   .from('profiles')
                   .update({
@@ -332,6 +334,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               console.log('[AuthProvider] Signup flow detected, updating profile...');
 
               try {
+                // 설문조사로 생성된 프로필에 user_id 연결
                 const { data: updatedProfile, error: updateError } = await supabase
                   .from('profiles')
                   .update({
@@ -454,22 +457,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         if (fundId) {
           console.log('[AuthProvider] Checking participation for fund:', fundId);
 
-          // DB에서 펀드 참여 여부 직접 확인
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
+          // 프로필 정보 가져와서 펀드 참여 여부 확인
+          const userFunds = getUserFunds();
 
-          if (profile) {
-            const { data, error } = await supabase
-              .from('fund_members')
-              .select('id')
-              .eq('profile_id', profile.id)
-              .eq('fund_id', fundId)
-              .single();
+          if (userFunds.length > 0) {
+            const hasParticipated = userFunds.includes(fundId);
 
-            if (data && !error) {
+            if (hasParticipated) {
               console.log('[AuthProvider] Fund participation found, redirecting to dashboard');
               // 리다이렉트 실행 (상태 플래그 없이)
               routerNext.replace('/dashboard');
@@ -479,6 +473,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               console.log('[AuthProvider] No fund participation found, continuing with survey');
               return 'continue-survey';
             }
+          } else {
+            console.log('[AuthProvider] No user funds available, continuing with survey');
+            return 'continue-survey';
           }
         }
       } catch (error) {

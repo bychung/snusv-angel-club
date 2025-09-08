@@ -112,11 +112,49 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw error;
       }
 
-      set({ user: data.user });
+      const user = data.user;
+      if (!user) {
+        throw new Error('사용자 정보를 가져올 수 없습니다.');
+      }
+
+      set({ user });
 
       // 프로필 정보 가져오기
-      if (data.user) {
+      try {
         await get().fetchProfile();
+        console.log('[authStore] 이메일 로그인 및 프로필 로드 완료');
+      } catch (profileError: any) {
+        if (profileError?.message === 'PROFILE_NOT_FOUND') {
+          // 프로필이 없는 경우 - 이메일로 기존 프로필 찾아서 연결 시도
+          try {
+            const existingProfile = await get().findProfileByEmail(email);
+            if (existingProfile && !existingProfile.user_id) {
+              // 기존 프로필에 user_id 연결
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ 
+                  user_id: user.id,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('email', email);
+
+              if (updateError) {
+                throw new Error('프로필 연결에 실패했습니다.');
+              }
+
+              // 프로필 정보 다시 가져오기
+              await get().fetchProfile();
+              console.log('[authStore] 기존 프로필과 계정 연결 완료');
+            } else {
+              throw new Error('가입되지 않은 계정입니다.');
+            }
+          } catch (linkError) {
+            console.error('[authStore] 프로필 연결 실패:', linkError);
+            throw new Error('가입되지 않은 계정입니다. 회원가입을 먼저 진행해주세요.');
+          }
+        } else {
+          throw profileError;
+        }
       }
     } catch (error) {
       set({
@@ -167,6 +205,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const supabase = createClient();
+      
+      // 1. Supabase Auth 회원가입
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -176,7 +216,44 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw error;
       }
 
-      set({ user: data.user });
+      const user = data.user;
+      if (!user) {
+        throw new Error('사용자 정보를 가져올 수 없습니다.');
+      }
+
+      set({ user });
+
+      // 2. 기존 프로필이 있는지 확인하고 user_id 연결
+      try {
+        const existingProfile = await get().findProfileByEmail(email);
+        
+        if (existingProfile && !existingProfile.user_id) {
+          // 기존 프로필에 user_id 연결
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              user_id: user.id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('email', email);
+
+          if (updateError) {
+            console.error('프로필 연결 실패:', updateError);
+            throw new Error('프로필 연결에 실패했습니다.');
+          }
+
+          // 프로필 정보 다시 가져오기
+          await get().fetchProfile();
+          
+          console.log('[authStore] 기존 프로필과 계정 연결 완료');
+        }
+      } catch (profileError) {
+        console.warn('[authStore] 프로필 연결 중 오류 (무시):', profileError);
+        // 프로필 연결 실패해도 회원가입 자체는 성공으로 처리
+      }
+
+      console.log('[authStore] 회원가입 완료');
+      
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '회원가입에 실패했습니다.',

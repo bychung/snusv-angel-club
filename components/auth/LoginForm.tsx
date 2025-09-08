@@ -15,7 +15,7 @@ export default function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
 
@@ -26,7 +26,16 @@ export default function LoginForm() {
     error,
     clearError,
     resetState,
+    user,
+    isLoading: authLoading,
   } = useAuthStore();
+
+  useEffect(() => {
+    console.log('[LoginForm] user:', user);
+    console.log('[LoginForm] authLoading:', authLoading);
+
+    setIsLoading(authLoading);
+  }, [authLoading]);
 
   // 완전한 상태 초기화 (브라우저 스토리지 포함)
   const handleCompleteReset = async () => {
@@ -113,6 +122,24 @@ export default function LoginForm() {
       setIsOAuthLoading(false);
     }
   };
+
+  // 로딩 중이거나 인증되지 않은 경우
+  if (isLoading || authLoading) {
+    console.log('[LoginForm-rendering] user:', user);
+    console.log('[LoginForm-rendering] isLoading:', isLoading);
+    console.log('[LoginForm-rendering] authLoading:', authLoading);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse">
+          <Card className="w-64">
+            <CardContent className="p-6">
+              <div className="text-center">로딩 중...</div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">

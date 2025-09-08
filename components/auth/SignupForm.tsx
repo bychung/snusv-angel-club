@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
 import { CheckCircle, Chrome, Lock, Mail, MessageSquare } from 'lucide-react';
@@ -60,30 +59,19 @@ export default function SignupForm() {
     setIsLoading(true);
 
     try {
-      // 회원가입
+      // authStore의 signUp 함수 사용 (프로필 연결 로직 포함)
       await signUp(signupEmail, password);
       console.log('[SignupForm] signUp completed');
 
-      // 설문조사 정보가 있는 경우에만 profiles 테이블의 user_id 업데이트
-      if (signupEmail) {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        console.log('[SignupForm] user:', user);
-
-        if (user) {
-          // 기존 profiles 레코드에 user_id 연결
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ user_id: user.id })
-            .eq('email', signupEmail);
-
-          if (updateError) {
-            console.error('프로필 업데이트 실패:', updateError);
-          } else {
-            console.log('[SignupForm] updateProfile completed');
-          }
+      // 회원가입 성공 시 설문조사 데이터 정리
+      const fundSurveys = surveyStore.fundSurveys;
+      for (const [fundId, surveyData] of Object.entries(fundSurveys)) {
+        if (surveyData.profileId) {
+          console.log('[SignupForm] Clearing survey data for fund:', fundId);
+          surveyStore.clearActiveFundIdFromLocalStorage();
+          surveyStore.clearLocalStorage(fundId);
+          surveyStore.resetSurvey(fundId);
+          break; // 첫 번째로 완료된 설문조사 데이터만 정리
         }
       }
 
