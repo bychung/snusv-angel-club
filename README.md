@@ -68,12 +68,12 @@ npm run db:migrate
 npm run dev
 ```
 
-브라우저에서 [http://localhost:3000](http://localhost:3000)으로 접속
+브라우저에서 [http://localhost:3005](http://localhost:3005)으로 접속
 
 ## 📁 프로젝트 구조
 
 ```
-indi-fund-member/
+snusv-angel-club/
 ├── app/
 │   ├── layout.tsx            # 루트 레이아웃 (AuthProvider 포함)
 │   ├── page.tsx              # 홈페이지
