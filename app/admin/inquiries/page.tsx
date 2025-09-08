@@ -80,14 +80,28 @@ export default function InquiriesPage() {
     });
   };
 
-  const handleDownloadIRDeck = (url: string, companyName: string) => {
-    if (url) {
+  const handleDownloadIRDeck = async (inquiryId: string, companyName: string) => {
+    try {
+      const response = await fetch(`/api/inquiries/startup/${inquiryId}/download`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`다운로드 실패: ${errorData.error}`);
+        return;
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `${companyName}_IR_Deck.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('다운로드 오류:', error);
+      alert('다운로드 중 오류가 발생했습니다.');
     }
   };
 
@@ -263,7 +277,7 @@ export default function InquiriesPage() {
                   <div className="flex items-center gap-2">
                     <Button
                       onClick={() => handleDownloadIRDeck(
-                        selectedStartup.ir_deck_url!, 
+                        selectedStartup.id, 
                         selectedStartup.company_name
                       )}
                       variant="outline"

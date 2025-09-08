@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       .replace(/\s+/g, '_') // 공백을 언더스코어로 변환
       .substring(0, 50); // 길이 제한
     const fileName = `${safeName}_${timestamp}.pdf`;
-    const filePath = `ir-decks/${fileName}`;
+    const filePath = fileName; // 버킷 내에서 직접 저장 (ir-decks/ 접두사 불필요)
     
     // 파일을 ArrayBuffer로 변환
     const fileBuffer = await irDeckFile.arrayBuffer();
@@ -76,10 +76,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // 업로드된 파일의 공개 URL 생성
-    const { data: { publicUrl } } = supabase.storage
-      .from('ir-decks')
-      .getPublicUrl(filePath);
+    // Private 버킷이므로 파일 경로만 저장 (공개 URL 생성하지 않음)
+    // 다운로드는 서버 API를 통해 처리
     
     // 데이터베이스에 문의 내용 저장
     const { data, error: dbError } = await supabase
@@ -89,7 +87,7 @@ export async function POST(request: NextRequest) {
         contact_person: contactPerson,
         position: position,
         company_description: companyDescription,
-        ir_deck_url: publicUrl
+        ir_deck_url: filePath  // 파일 경로만 저장 (fileName)
       })
       .select('*')
       .single();
