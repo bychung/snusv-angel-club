@@ -589,7 +589,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                   <>
                     설문이 성공적으로 제출되었습니다.
                     <br />
-                    대시보드에서 투자 현황을 확인하실 수 있습니다.
+                    대시보드에서 출자(의향) 현황을 확인하실 수 있습니다.
                   </>
                 ) : (
                   <>
@@ -652,7 +652,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
               <div className="space-y-2">
                 <p className="text-sm text-gray-600">
-                  회원가입을 통해 투자 현황을 지속적으로 확인하실 수 있습니다.
+                  회원가입을 통해 출자 현황을 지속적으로 확인하실 수 있습니다.
                 </p>
                 <Button onClick={() => router.push('/signup')} className="mr-2">
                   회원 가입하기

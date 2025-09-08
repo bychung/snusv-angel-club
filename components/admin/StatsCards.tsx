@@ -40,7 +40,7 @@ export default function StatsCards() {
         .select('*', { count: 'exact', head: true })
         .not('user_id', 'is', null);
 
-      // 총 투자 정보
+      // 총 출자 정보
       const { data: fundData } = await supabase.from('fund_members').select('investment_units');
 
       const totalUnits = fundData?.reduce((sum, item) => sum + item.investment_units, 0) || 0;
@@ -78,7 +78,7 @@ export default function StatsCards() {
       title: '총 출자좌수',
       value: stats.totalUnits,
       icon: TrendingUp,
-      description: '전체 투자좌수',
+      description: '전체 출자좌수',
       color: 'text-purple-600',
       suffix: '좌',
     },

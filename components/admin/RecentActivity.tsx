@@ -92,7 +92,7 @@ export default function RecentActivity() {
             user_name: (member.profiles as any)?.name || 'Unknown',
             user_email: (member.profiles as any)?.email || 'unknown@email.com',
             timestamp: member.updated_at,
-            details: `투자좌수 변경: ${member.investment_units}좌`,
+            details: `출자좌수 변경: ${member.investment_units}좌`,
           });
         }
       });
@@ -128,7 +128,7 @@ export default function RecentActivity() {
       case 'profile_update':
         return '프로필 수정';
       case 'investment_update':
-        return '투자정보 수정';
+        return '출자정보 수정';
     }
   };
 

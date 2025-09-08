@@ -2,14 +2,22 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
-import type { Fund, FundMember, Profile } from '@/types/database';
-import { Building, Users, TrendingUp, ChevronRight, Link2, Check, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import type { Fund } from '@/types/database';
+import { Building, Check, ChevronRight, Link2, Plus, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface FundWithStats extends Fund {
   memberCount: number;
@@ -38,7 +46,8 @@ export default function FundList() {
       // 펀드 목록과 관련 통계 조회
       const { data: fundsData, error } = await supabase
         .from('funds')
-        .select(`
+        .select(
+          `
           *,
           fund_members (
             id,
@@ -48,26 +57,33 @@ export default function FundList() {
               user_id
             )
           )
-        `)
+        `
+        )
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       // 각 펀드별 통계 계산
-      const fundsWithStats: FundWithStats[] = fundsData?.map(fund => {
-        const members = fund.fund_members || [];
-        const totalInvestment = members.reduce((sum: number, member: any) => sum + member.investment_units, 0);
-        const registeredMembers = members.filter((member: any) => member.profile?.user_id).length;
-        const surveyOnlyMembers = members.filter((member: any) => !member.profile?.user_id).length;
+      const fundsWithStats: FundWithStats[] =
+        fundsData?.map(fund => {
+          const members = fund.fund_members || [];
+          const totalInvestment = members.reduce(
+            (sum: number, member: any) => sum + member.investment_units,
+            0
+          );
+          const registeredMembers = members.filter((member: any) => member.profile?.user_id).length;
+          const surveyOnlyMembers = members.filter(
+            (member: any) => !member.profile?.user_id
+          ).length;
 
-        return {
-          ...fund,
-          memberCount: members.length,
-          totalInvestment,
-          registeredMembers,
-          surveyOnlyMembers,
-        };
-      }) || [];
+          return {
+            ...fund,
+            memberCount: members.length,
+            totalInvestment,
+            registeredMembers,
+            surveyOnlyMembers,
+          };
+        }) || [];
 
       setFunds(fundsWithStats);
     } catch (error) {
@@ -84,12 +100,12 @@ export default function FundList() {
   const copySurveyLink = async (fundId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       const baseUrl = window.location.origin;
       const surveyUrl = `${baseUrl}/survey?fund_id=${fundId}`;
       await navigator.clipboard.writeText(surveyUrl);
-      
+
       setCopiedFundId(fundId);
       setTimeout(() => setCopiedFundId(null), 2000);
     } catch (error) {
@@ -103,14 +119,14 @@ export default function FundList() {
     setIsCreating(true);
     try {
       const supabase = createClient();
-      
+
       const { data, error } = await supabase
         .from('funds')
         .insert([
-          { 
+          {
             name: newFundName.trim(),
-            abbreviation: newFundAbbreviation.trim() || null
-          }
+            abbreviation: newFundAbbreviation.trim() || null,
+          },
         ])
         .select();
 
@@ -118,7 +134,7 @@ export default function FundList() {
 
       // 펀드 목록 새로고침
       await fetchFunds();
-      
+
       // 다이얼로그 닫기 및 폼 리셋
       setIsAddDialogOpen(false);
       setNewFundName('');
@@ -191,7 +207,7 @@ export default function FundList() {
                 <Input
                   id="fundName"
                   value={newFundName}
-                  onChange={(e) => setNewFundName(e.target.value)}
+                  onChange={e => setNewFundName(e.target.value)}
                   className="col-span-3"
                   placeholder="펀드 이름을 입력하세요"
                   required
@@ -204,10 +220,10 @@ export default function FundList() {
                 <Input
                   id="fundAbbreviation"
                   value={newFundAbbreviation}
-                  onChange={(e) => setNewFundAbbreviation(e.target.value)}
+                  onChange={e => setNewFundAbbreviation(e.target.value)}
                   className="col-span-3"
                   placeholder="펀드 약칭을 입력하세요 (예: 블라인드2호)"
-                  onKeyPress={(e) => {
+                  onKeyPress={e => {
                     if (e.key === 'Enter') {
                       handleCreateFund();
                     }
@@ -216,7 +232,11 @@ export default function FundList() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" onClick={handleCreateFund} disabled={isCreating || !newFundName.trim()}>
+              <Button
+                type="submit"
+                onClick={handleCreateFund}
+                disabled={isCreating || !newFundName.trim()}
+              >
                 {isCreating ? '생성 중...' : '펀드 생성'}
               </Button>
             </DialogFooter>
@@ -227,94 +247,94 @@ export default function FundList() {
       {/* 펀드 목록 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {funds.map(fund => (
-        <Card key={fund.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-          <Link href={`/admin/funds/${fund.id}`}>
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <Building className="h-6 w-6 text-indigo-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900">
-                      {fund.name}
-                    </CardTitle>
-                    <CardDescription className="text-sm text-gray-500">
-                      등록일: {new Date(fund.created_at).toLocaleDateString('ko-KR')}
-                    </CardDescription>
-                  </div>
-                </div>
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="space-y-4">
-                {/* 조합원 수 */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Users className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">총 조합원</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {fund.memberCount.toLocaleString()}명
-                  </span>
-                </div>
-
-                {/* 총 투자금액 */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">총 출자금액</span>
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(fund.totalInvestment)}
-                  </span>
-                </div>
-
-                {/* 가입 현황 */}
-                <div className="pt-3 border-t border-gray-100">
-                  <div className="grid grid-cols-2 gap-4 text-center mb-3">
-                    <div>
-                      <div className="text-sm font-semibold text-green-600">
-                        {fund.registeredMembers}
+          <Card key={fund.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Link href={`/admin/funds/${fund.id}`}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                        <Building className="h-6 w-6 text-indigo-600" />
                       </div>
-                      <div className="text-xs text-gray-500">가입완료</div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-yellow-600">
-                        {fund.surveyOnlyMembers}
-                      </div>
-                      <div className="text-xs text-gray-500">설문만</div>
+                      <CardTitle className="text-lg font-semibold text-gray-900">
+                        {fund.name}
+                      </CardTitle>
+                      <CardDescription className="text-sm text-gray-500">
+                        등록일: {new Date(fund.created_at).toLocaleDateString('ko-KR')}
+                      </CardDescription>
                     </div>
                   </div>
-                  
-                  {/* 설문조사 링크 복사 버튼 */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                    onClick={(e) => copySurveyLink(fund.id, e)}
-                  >
-                    {copiedFundId === fund.id ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        복사됨
-                      </>
-                    ) : (
-                      <>
-                        <Link2 className="h-4 w-4 mr-2" />
-                        설문조사 링크 복사
-                      </>
-                    )}
-                  </Button>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
                 </div>
-              </div>
-            </CardContent>
-          </Link>
-        </Card>
-      ))}
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-4">
+                  {/* 조합원 수 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">총 조합원</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {fund.memberCount.toLocaleString()}명
+                    </span>
+                  </div>
+
+                  {/* 총 출자금액 */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">총 출자금액</span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {formatCurrency(fund.totalInvestment)}
+                    </span>
+                  </div>
+
+                  {/* 가입 현황 */}
+                  <div className="pt-3 border-t border-gray-100">
+                    <div className="grid grid-cols-2 gap-4 text-center mb-3">
+                      <div>
+                        <div className="text-sm font-semibold text-green-600">
+                          {fund.registeredMembers}
+                        </div>
+                        <div className="text-xs text-gray-500">가입완료</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-yellow-600">
+                          {fund.surveyOnlyMembers}
+                        </div>
+                        <div className="text-xs text-gray-500">설문만</div>
+                      </div>
+                    </div>
+
+                    {/* 설문조사 링크 복사 버튼 */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={e => copySurveyLink(fund.id, e)}
+                    >
+                      {copiedFundId === fund.id ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          복사됨
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="h-4 w-4 mr-2" />
+                          설문조사 링크 복사
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Link>
+          </Card>
+        ))}
       </div>
     </div>
   );

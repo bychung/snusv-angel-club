@@ -107,7 +107,7 @@ export default function ExportControls() {
         row['전화번호'] = user.phone;
       }
 
-      // 투자 정보
+      // 출자 정보
       if (options.includeFields.investmentInfo && user.fund_members?.[0]) {
         const investment = user.fund_members[0];
         row['출자좌수'] = investment.investment_units;
@@ -115,7 +115,7 @@ export default function ExportControls() {
         // row['제출일'] = new Date(investment.created_at).toLocaleDateString('ko-KR');
 
         if (investment.created_at !== investment.updated_at) {
-          row['투자정보_최종수정일'] = new Date(investment.updated_at).toLocaleDateString('ko-KR');
+          row['출자정보_최종수정일'] = new Date(investment.updated_at).toLocaleDateString('ko-KR');
         }
       }
 
@@ -278,7 +278,7 @@ export default function ExportControls() {
                   updateIncludeFields('investmentInfo', checked as boolean)
                 }
               />
-              <Label htmlFor="investmentInfo">투자 정보 (출자좌수, 출자금액, 투자일)</Label>
+              <Label htmlFor="investmentInfo">출자 정보 (출자좌수, 출자금액, 출자일)</Label>
             </div>
 
             <div className="flex items-center space-x-2">

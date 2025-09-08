@@ -84,7 +84,7 @@ export default function EditMemberModal({
 
       if (profileError) throw profileError;
 
-      // 투자 정보 업데이트 (fund_members 테이블) - showInvestmentInfo가 true일 때만
+      // 출자 정보 업데이트 (fund_members 테이블) - showInvestmentInfo가 true일 때만
       if (showInvestmentInfo && member.fund_members && member.fund_members.length > 0) {
         const { error: fundMemberError } = await supabase
           .from('fund_members')
@@ -174,7 +174,7 @@ export default function EditMemberModal({
               </div>
             )}
 
-            {/* 투자 정보는 펀드 멤버 목록에서만 표시 */}
+            {/* 출자 정보는 펀드 멤버 목록에서만 표시 */}
             {showInvestmentInfo && (
               <div className="space-y-2">
                 <Label htmlFor="investment_units">출자좌수 *</Label>

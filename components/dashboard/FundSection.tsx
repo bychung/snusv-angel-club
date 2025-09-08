@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import type { FundMember } from '@/types/database';
-import { Building, Edit2, Save, TrendingUp, X, Calendar, DollarSign } from 'lucide-react';
+import { Building, Calendar, DollarSign, Edit2, Save, TrendingUp, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface FundMemberWithFund extends FundMember {
@@ -130,14 +130,16 @@ export default function FundSection() {
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-6">
           <TrendingUp className="h-6 w-6" />
-          <h3 className="text-xl font-semibold">펀드 투자 정보</h3>
+          <h3 className="text-xl font-semibold">펀드 출자 정보</h3>
         </div>
         <Card>
           <CardContent className="p-12">
             <div className="text-center">
               <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">투자 중인 펀드가 없습니다</h3>
-              <p className="text-gray-600">설문조사를 통해 펀드에 참여하시면 여기에 투자 정보가 표시됩니다.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">출자 중인 펀드가 없습니다</h3>
+              <p className="text-gray-600">
+                설문조사를 통해 펀드에 참여하시면 여기에 출자 정보가 표시됩니다.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -149,13 +151,13 @@ export default function FundSection() {
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <TrendingUp className="h-6 w-6" />
-        <h3 className="text-xl font-semibold">펀드 투자 정보</h3>
+        <h3 className="text-xl font-semibold">펀드 출자 정보</h3>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {fundInfos.map(fund => {
           const isEditing = editingFundId === fund.id;
-          
+
           return (
             <Card key={fund.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
@@ -171,11 +173,11 @@ export default function FundSection() {
                         {fund.funds?.name || '펀드명 불명'}
                       </CardTitle>
                       <CardDescription className="text-sm text-gray-500">
-                        내 투자 정보
+                        내 출자 정보
                       </CardDescription>
                     </div>
                   </div>
-                  
+
                   {!isEditing ? (
                     <Button onClick={() => handleEdit(fund)} variant="outline" size="sm">
                       <Edit2 className="h-4 w-4" />
@@ -192,10 +194,10 @@ export default function FundSection() {
                   )}
                 </div>
               </CardHeader>
-              
+
               <CardContent className="pt-0">
                 <div className="space-y-4">
-                  {/* 투자 금액 */}
+                  {/* 출자 금액 */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <DollarSign className="h-4 w-4 text-gray-500" />

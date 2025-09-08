@@ -178,15 +178,15 @@ export default function ViewMemberModal({
             </div>
           </div>
 
-          {/* 투자 정보 */}
+          {/* 출자 정보 */}
           {member.fund_members && member.fund_members.length > 0 && (
             <div className="bg-blue-50 p-6 rounded-lg">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Banknote className="h-5 w-5" />
-                투자 정보
+                출자 정보
               </h3>
               {showInvestmentInfo ? (
-                // 펀드 조합원 모드: 상세한 투자 정보
+                // 펀드 조합원 모드: 상세한 출자 정보
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">출자좌수</label>
@@ -201,14 +201,14 @@ export default function ViewMemberModal({
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700">투자 신청일</label>
+                    <label className="text-sm font-medium text-gray-700">출자 신청일</label>
                     <p className="mt-1 text-sm text-gray-900">
                       {formatDate(member.fund_members[0].created_at)}
                     </p>
                   </div>
                 </div>
               ) : (
-                // 사용자 관리 모드: 모든 펀드에 대한 간단한 투자 정보 리스트
+                // 사용자 관리 모드: 모든 펀드에 대한 간단한 출자 정보 리스트
                 <div className="space-y-3">
                   {member.fund_members.map((fundMember, index) => (
                     <div

@@ -64,10 +64,12 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
     // 특정 펀드의 조합원 데이터 조회
     let query = supabase
       .from('fund_members')
-      .select(`
+      .select(
+        `
         *,
         profile:profiles (*)
-      `)
+      `
+      )
       .eq('fund_id', fundId);
 
     const { data: fundMembers, error } = await query.order('created_at', { ascending: false });
@@ -113,14 +115,14 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
         row['전화번호'] = user.phone;
       }
 
-      // 투자 정보
+      // 출자 정보
       if (options.includeFields.investmentInfo) {
         row['출자좌수'] = fundMember.investment_units;
         row['출자금액'] = (fundMember.investment_units * 1000000).toLocaleString() + '원';
         row['펀드명'] = fundName;
 
         if (fundMember.created_at !== fundMember.updated_at) {
-          row['투자정보_최종수정일'] = new Date(fundMember.updated_at).toLocaleDateString('ko-KR');
+          row['출자정보_최종수정일'] = new Date(fundMember.updated_at).toLocaleDateString('ko-KR');
         }
       }
 
@@ -265,11 +267,9 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
             <Checkbox
               id="investmentInfo"
               checked={options.includeFields.investmentInfo}
-              onCheckedChange={checked =>
-                updateIncludeFields('investmentInfo', checked as boolean)
-              }
+              onCheckedChange={checked => updateIncludeFields('investmentInfo', checked as boolean)}
             />
-            <Label htmlFor="investmentInfo">투자 정보 (출자좌수, 출자금액, 펀드명)</Label>
+            <Label htmlFor="investmentInfo">출자 정보 (출자좌수, 출자금액, 펀드명)</Label>
           </div>
 
           <div className="flex items-center space-x-2">
