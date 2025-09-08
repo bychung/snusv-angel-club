@@ -258,21 +258,28 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white overflow-x-hidden">
       {/* Login Button - Top Right */}
-      <div className="fixed top-6 right-6 z-50">
+      <div
+        className={`fixed top-1 right-3 z-50 transition-all duration-500 ease-in-out ${
+          scrollY > 100
+            ? 'opacity-0 translate-y-[-20px] pointer-events-none'
+            : 'opacity-100 translate-y-0'
+        }`}
+      >
         <Link href="/login">
           <Button
             variant="outline"
-            className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm shadow-lg"
+            size="sm"
+            className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm shadow-lg text-xs px-3 py-1.5"
           >
-            출자자 전용 로그인
+            로그인
           </Button>
         </Link>
       </div>
 
       {/* Floating Navigation */}
-      <nav className="fixed right-8 top-1/2 transform -translate-y-1/2 z-50">
-        <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-2xl">
-          <div className="flex flex-col gap-1">
+      <nav className="fixed right-4 md:right-8 top-1/2 transform -translate-y-1/2 z-50">
+        <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-1 md:p-2 shadow-2xl">
+          <div className="flex flex-col gap-0.5 md:gap-1">
             {menuItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = activeSection === item.id;
@@ -280,7 +287,7 @@ export default function HomePage() {
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className={`group relative p-3 rounded-xl transition-all duration-300 ${
+                  className={`group relative p-2 md:p-3 rounded-xl transition-all duration-300 ${
                     isActive
                       ? 'bg-gradient-to-r from-cyan-500 to-purple-500 shadow-lg shadow-cyan-500/25'
                       : 'hover:bg-white/10'
@@ -288,7 +295,7 @@ export default function HomePage() {
                   title={item.label}
                 >
                   <Icon
-                    className={`w-5 h-5 ${
+                    className={`w-4 h-4 md:w-5 md:h-5 ${
                       isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
                     }`}
                   />
@@ -335,18 +342,6 @@ export default function HomePage() {
                 <br />
                 후배 스타트업을 지원하며 함께 미래를 만들어가는 투자 생태계를 구축합니다.
               </p>
-
-              <div className="flex justify-center">
-                <Link href="/survey?fund_id=550e8400-e29b-41d4-a716-446655440000">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white border-0 shadow-lg shadow-cyan-500/25"
-                  >
-                    SNUSV 2호 펀드 출자 신청하기
-                    <ChevronRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </Link>
-              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8 mt-20">
@@ -416,7 +411,7 @@ export default function HomePage() {
                   >
                     <CardContent className="p-8 text-center">
                       <div className="relative mb-6">
-                        <div className="w-32 h-32 mx-auto rounded-2xl overflow-hidden bg-gradient-to-r from-cyan-500 to-purple-500 p-1">
+                        <div className="w-44 h-44 mx-auto rounded-2xl overflow-hidden bg-gradient-to-r from-cyan-500 to-purple-500 p-1">
                           <img
                             src={member.image || '/placeholder.svg'}
                             alt={member.name}
@@ -583,7 +578,7 @@ export default function HomePage() {
         </section>
 
         {/* With Us Section */}
-        <section id="withus" className="min-h-screen py-20 px-8 relative overflow-hidden">
+        <section id="withus" className="min-h-screen py-20 px-8 relative overflow-hidden pb-24">
           {/* Background Effects */}
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-pink-500/20"></div>
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-black/50 to-black"></div>
@@ -699,6 +694,19 @@ export default function HomePage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Floating Bottom CTA Button */}
+      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+        <Link href="/survey?fund_id=550e8400-e29b-41d4-a716-446655440000">
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white border-0 shadow-2xl shadow-cyan-500/30 backdrop-blur-sm px-8 py-4 text-base font-semibold rounded-full hover:scale-105 transition-all duration-300"
+          >
+            SNUSV 2호 펀드 출자 신청하기
+            <ChevronRight className="w-5 h-5 ml-2" />
+          </Button>
+        </Link>
+      </div>
 
       {/* IR 문의 모달 */}
       <IRInquiryModal isOpen={isIRModalOpen} onClose={() => setIsIRModalOpen(false)} />
