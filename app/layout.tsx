@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SNUSV ANGEL CLUB - 펀드 출자 조합원 정보 수집',
-  description: '프로펠-SNUSV엔젤투자조합2호 출자 조합원 정보 수집 플랫폼',
+  title: 'SNUSV ANGEL CLUB',
+  description: '서울대 벤처창업동아리 SNUSV Alumni 기반의 엔젤클럽',
 };
 
 export default function RootLayout({
