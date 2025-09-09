@@ -631,7 +631,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         <div className="container max-w-2xl mx-auto px-4">
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-green-600">설문조사가 완료되었습니다!</CardTitle>
+              <CardTitle className="text-2xl text-green-600">
+                출자 의향 설문조사가 완료되었습니다!
+              </CardTitle>
               <CardDescription className="mt-4">
                 이 설문조사는 이미 제출이 완료되었습니다.
                 <br />
@@ -646,7 +648,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                       <b>{fundName}</b>에 대한{' '}
                     </>
                   )}
-                  출자 의향 조사가 성공적으로 제출되었습니다.
+                  출자 의향 설문조사가 성공적으로 제출되었습니다.
                 </p>
               </div>
 
@@ -693,7 +695,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <div className="text-lg text-gray-600">
-            {authLoading ? '사용자 정보를 확인하고 있습니다...' : '설문조사를 준비하고 있습니다...'}
+            {authLoading
+              ? '사용자 정보를 확인하고 있습니다...'
+              : '출자 의향 설문조사를 준비하고 있습니다...'}
           </div>
         </div>
       </div>

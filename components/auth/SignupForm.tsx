@@ -172,7 +172,7 @@ export default function SignupForm() {
                   />
                   {email ? (
                     <p className="text-xs text-gray-500">
-                      설문조사에서 입력한 이메일이 사용됩니다.
+                      출자 의향 설문조사에서 입력한 이메일이 사용됩니다.
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500">회원가입에 사용할 이메일을 입력하세요.</p>

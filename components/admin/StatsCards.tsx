@@ -64,7 +64,7 @@ export default function StatsCards() {
       title: '총 참여자 수',
       value: stats.totalUsers,
       icon: Users,
-      description: '설문조사 참여자 수',
+      description: '출자 의향 설문 참여자 수',
       color: 'text-blue-600',
     },
     {

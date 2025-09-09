@@ -68,9 +68,7 @@ export default function ProfileSection() {
               <User className="h-5 w-5" />
               개인정보
             </CardTitle>
-            <CardDescription>
-              설문조사에서 입력한 개인정보를 확인하고 수정할 수 있습니다.
-            </CardDescription>
+            <CardDescription>개인정보를 확인하고 수정할 수 있습니다.</CardDescription>
           </div>
 
           {!isEditing ? (

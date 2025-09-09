@@ -137,9 +137,7 @@ export default function FundSection() {
             <div className="text-center">
               <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">출자 중인 펀드가 없습니다</h3>
-              <p className="text-gray-600">
-                설문조사를 통해 펀드에 참여하시면 여기에 출자 정보가 표시됩니다.
-              </p>
+              <p className="text-gray-600">펀드에 출자하시면 여기에 출자 정보가 표시됩니다.</p>
             </div>
           </CardContent>
         </Card>

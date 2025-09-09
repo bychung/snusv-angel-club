@@ -45,7 +45,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
   // 변경사항 감지
   useEffect(() => {
     if (profile) {
-      const hasChanged = 
+      const hasChanged =
         editData.name !== profile.name ||
         editData.phone !== profile.phone ||
         editData.email !== profile.email ||
@@ -82,12 +82,9 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            내 정보 수정
+            <User className="h-5 w-5" />내 정보 수정
           </DialogTitle>
-          <DialogDescription>
-            설문조사에서 입력한 개인정보를 확인하고 수정할 수 있습니다.
-          </DialogDescription>
+          <DialogDescription>개인정보를 확인하고 수정할 수 있습니다.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -175,8 +172,8 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
           {/* 수정 불가 안내 */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
-              <strong>참고:</strong> 개인/법인 구분은 변경할 수 없습니다. 
-              변경이 필요한 경우 관리자에게 문의해 주세요.
+              <strong>참고:</strong> 개인/법인 구분은 변경할 수 없습니다. 변경이 필요한 경우
+              관리자에게 문의해 주세요.
             </p>
           </div>
         </div>
@@ -185,10 +182,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
           <Button onClick={handleCancel} variant="outline">
             취소
           </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={isLoading || !hasChanges}
-          >
+          <Button onClick={handleSave} disabled={isLoading || !hasChanges}>
             {isLoading ? '저장 중...' : '저장'}
           </Button>
         </DialogFooter>

@@ -325,7 +325,7 @@ export default function FundList() {
                       ) : (
                         <>
                           <Link2 className="h-4 w-4 mr-2" />
-                          설문조사 링크 복사
+                          출자 의향 설문 링크 복사
                         </>
                       )}
                     </Button>
