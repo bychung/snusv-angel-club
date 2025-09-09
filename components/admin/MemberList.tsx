@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 import type { FundMember, Profile } from '@/types/database';
-import { Building, Edit, Eye, Filter, Mail, Phone, Search, User } from 'lucide-react';
+import { Building, Edit, Eye, Filter, Mail, Phone, Plus, Search, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import AddMemberModal from './AddMemberModal';
 import EditMemberModal from './EditMemberModal';
 import ViewMemberModal from './ViewMemberModal';
 
@@ -39,6 +40,10 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
   // 상세 보기 모달 상태
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingMember, setViewingMember] = useState<MemberWithFund | null>(null);
+
+  // 조합원 추가 모달 상태
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -225,6 +230,16 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
 
   return (
     <div className="space-y-6">
+      {/* 조합원 추가 버튼 (펀드별 조합원 모드일 때만) */}
+      {mode === 'fund_members' && (
+        <div className="flex justify-end">
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            조합원 추가
+          </Button>
+        </div>
+      )}
+
       {/* 검색 및 필터 */}
       <Card>
         <CardHeader>
@@ -295,25 +310,31 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
                           <h3 className="text-sm font-medium text-gray-900 truncate">
                             {member.name}
                           </h3>
-                          {mode === 'fund_members' ? (
-                            // 펀드 조합원 모드: 출자금액 표시
-                            member.fund_members && member.fund_members.length > 0 && (
-                              <div className="text-sm font-medium text-blue-400">
-                                {formatCurrency(member.fund_members[0].investment_units)}
-                              </div>
-                            )
-                          ) : (
-                            // 사용자 관리 모드: 펀드 칩 표시
-                            member.fund_members && member.fund_members.length > 0 && (
-                              <div className="flex gap-1 flex-wrap">
-                                {member.fund_members.map((fundMember, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
-                                    {fundMember.fund?.abbreviation || fundMember.fund?.name || '펀드'}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )
-                          )}
+                          {mode === 'fund_members'
+                            ? // 펀드 조합원 모드: 출자금액 표시
+                              member.fund_members &&
+                              member.fund_members.length > 0 && (
+                                <div className="text-sm font-medium text-blue-400">
+                                  {formatCurrency(member.fund_members[0].investment_units)}
+                                </div>
+                              )
+                            : // 사용자 관리 모드: 펀드 칩 표시
+                              member.fund_members &&
+                              member.fund_members.length > 0 && (
+                                <div className="flex gap-1 flex-wrap">
+                                  {member.fund_members.map((fundMember, index) => (
+                                    <Badge
+                                      key={index}
+                                      variant="secondary"
+                                      className="text-xs bg-blue-100 text-blue-800"
+                                    >
+                                      {fundMember.fund?.abbreviation ||
+                                        fundMember.fund?.name ||
+                                        '펀드'}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
                           {mode === 'fund_members' && getStatusBadge(member.registration_status)}
                         </div>
                       </div>
@@ -327,21 +348,23 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
                           <Phone className="h-3 w-3" />
                           <span>{member.phone}</span>
                         </div>
-                        {mode === 'fund_members' && member.fund_members && member.fund_members.length > 0 && (
-                          <div className="text-xs text-gray-500">
-                            <span>
-                              {member.fund_members[0].investment_units.toLocaleString()}좌
-                            </span>
-                          </div>
-                        )}
+                        {mode === 'fund_members' &&
+                          member.fund_members &&
+                          member.fund_members.length > 0 && (
+                            <div className="text-xs text-gray-500">
+                              <span>
+                                {member.fund_members[0].investment_units.toLocaleString()}좌
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </div>
 
                     <div className="flex items-center space-x-2 ml-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={(e) => {
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={e => {
                           e.stopPropagation();
                           handleViewMember(member);
                         }}
@@ -349,10 +372,10 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
                         <Eye className="h-4 w-4 mr-1" />
                         상세
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={(e) => {
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={e => {
                           e.stopPropagation();
                           handleEditMember(member);
                         }}
@@ -373,22 +396,28 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
                       <Phone className="h-3 w-3" />
                       <span>{member.phone}</span>
                     </div>
-                    {mode === 'fund_members' && member.fund_members && member.fund_members.length > 0 && (
-                      <div className="flex gap-4 text-xs">
-                        <span>
-                          <span className="font-medium">출자좌수:</span>{' '}
-                          {member.fund_members[0].investment_units.toLocaleString()}좌
-                        </span>
-                        <span>
-                          <span className="font-medium">출자금액:</span>{' '}
-                          {formatCurrency(member.fund_members[0].investment_units)}
-                        </span>
-                      </div>
-                    )}
+                    {mode === 'fund_members' &&
+                      member.fund_members &&
+                      member.fund_members.length > 0 && (
+                        <div className="flex gap-4 text-xs">
+                          <span>
+                            <span className="font-medium">출자좌수:</span>{' '}
+                            {member.fund_members[0].investment_units.toLocaleString()}좌
+                          </span>
+                          <span>
+                            <span className="font-medium">출자금액:</span>{' '}
+                            {formatCurrency(member.fund_members[0].investment_units)}
+                          </span>
+                        </div>
+                      )}
                     {mode === 'users' && member.fund_members && member.fund_members.length > 0 && (
                       <div className="flex gap-1 flex-wrap">
                         {member.fund_members.map((fundMember, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                          <Badge
+                            key={index}
+                            variant="secondary"
+                            className="text-xs bg-blue-100 text-blue-800"
+                          >
                             {fundMember.fund?.abbreviation || fundMember.fund?.name || '펀드'}
                           </Badge>
                         ))}
@@ -425,6 +454,20 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
         onUpdate={handleUpdateSuccess}
         showInvestmentInfo={mode === 'fund_members'}
       />
+
+      {/* 조합원 추가 모달 */}
+      {mode === 'fund_members' && (
+        <AddMemberModal
+          isOpen={isAddModalOpen}
+          fundId={fundId!}
+          fundName={fundName!}
+          isAdding={isAdding}
+          onClose={() => {
+            setIsAddModalOpen(false);
+          }}
+          onAdd={handleUpdateSuccess}
+        />
+      )}
     </div>
   );
 }

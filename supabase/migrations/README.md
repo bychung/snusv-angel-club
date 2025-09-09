@@ -5,6 +5,10 @@
 ## 파일 구조
 
 - `001_initial_schema.sql` - 초기 데이터베이스 스키마 (profiles, funds, fund_members 테이블)
+- `002_inquiries_tables.sql` - 문의 관련 테이블 추가
+- `003_add_fund_abbreviation.sql` - 펀드 약칭 컬럼 추가
+- `004_check_email_duplicates_before_migration.sql` - email 중복 체크 (005 실행 전 안전장치)
+- `005_change_unique_constraint_to_email.sql` - profiles 테이블의 unique constraint를 phone에서 email로 변경
 
 ## 마이그레이션 실행
 
