@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -261,8 +262,13 @@ export default function FundList() {
                       <CardTitle className="text-lg font-semibold text-gray-900">
                         {fund.name}
                       </CardTitle>
-                      <CardDescription className="text-sm text-gray-500">
-                        등록일: {new Date(fund.created_at).toLocaleDateString('ko-KR')}
+                      <CardDescription className="text-sm text-gray-500 flex items-center gap-2">
+                        <span>등록일: {new Date(fund.created_at).toLocaleDateString('ko-KR')}</span>
+                        {fund.abbreviation && (
+                          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                            {fund.abbreviation}
+                          </Badge>
+                        )}
                       </CardDescription>
                     </div>
                   </div>
