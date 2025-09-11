@@ -311,11 +311,11 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         profile = result.data;
         profileError = result.error;
       } else {
-        // 비로그인 사용자인 경우 전화번호 기준으로 upsert
+        // 비로그인 사용자인 경우 이메일 기준으로 upsert
         const result = await supabase
           .from('profiles')
           .upsert(profileData as any, {
-            onConflict: 'phone',
+            onConflict: 'email',
           })
           .select()
           .single();
