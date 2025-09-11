@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 import type { FundMember, Profile } from '@/types/database';
-import { Building, Edit, Eye, Filter, Mail, Phone, Plus, Search, User } from 'lucide-react';
+import { Building, Edit, Eye, Filter, Mail, Phone, Plus, Search, Upload, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AddMemberModal from './AddMemberModal';
+import BulkUploadModal from './BulkUploadModal';
 import EditMemberModal from './EditMemberModal';
 import ViewMemberModal from './ViewMemberModal';
 
@@ -44,6 +45,9 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
   // 조합원 추가 모달 상태
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+
+  // 일괄 업로드 모달 상태
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -230,9 +234,13 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
 
   return (
     <div className="space-y-6">
-      {/* 조합원 추가 버튼 (펀드별 조합원 모드일 때만) */}
+      {/* 조합원 관리 버튼들 (펀드별 조합원 모드일 때만) */}
       {mode === 'fund_members' && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => setIsBulkUploadModalOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            일괄 업로드
+          </Button>
           <Button onClick={() => setIsAddModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             조합원 추가
@@ -466,6 +474,19 @@ export default function MemberList({ mode, fundId, fundName }: MemberListProps) 
             setIsAddModalOpen(false);
           }}
           onAdd={handleUpdateSuccess}
+        />
+      )}
+
+      {/* 일괄 업로드 모달 */}
+      {mode === 'fund_members' && (
+        <BulkUploadModal
+          isOpen={isBulkUploadModalOpen}
+          fundId={fundId!}
+          fundName={fundName!}
+          onClose={() => {
+            setIsBulkUploadModalOpen(false);
+          }}
+          onUploadComplete={handleUpdateSuccess}
         />
       )}
     </div>
