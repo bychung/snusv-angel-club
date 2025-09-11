@@ -1,5 +1,6 @@
 'use client';
 
+import BlynxLabChatWidget from '@/components/external/BlynxLabChatWidget';
 import AngelInquiryModal from '@/components/modals/AngelInquiryModal';
 import IRInquiryModal from '@/components/modals/IRInquiryModal';
 import { Badge } from '@/components/ui/badge';
@@ -257,6 +258,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white overflow-x-hidden">
+      <BlynxLabChatWidget slug="3um3" />
       {/* Login Button - Top Right */}
       <div
         className={`fixed top-1 right-3 z-50 transition-all duration-500 ease-in-out ${
