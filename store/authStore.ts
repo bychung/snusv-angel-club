@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
-import type { Database, Profile } from '@/types/database';
+import type { AccessibleProfile, Database, Profile } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
@@ -74,6 +74,13 @@ interface AuthStore {
   isProfileLoading: boolean;
   error: string | null;
 
+  // 멀티 계정 관련 상태
+  accessibleProfiles: AccessibleProfile[];
+  selectedProfileId: string | null;
+
+  // 관리자 상태
+  isAdminUser: boolean;
+
   // 액션
   signIn: (email: string, password: string) => Promise<void>;
   signInWithOAuth: (provider: 'google' | 'kakao') => Promise<void>;
@@ -88,6 +95,22 @@ interface AuthStore {
   resetState: () => void;
   setLoading: (loading: boolean) => void;
   getUserFunds: () => string[];
+
+  // 멀티 계정 관련 액션
+  fetchAccessibleProfiles: (userId?: string) => Promise<void>;
+  selectProfile: (profileId: string) => void;
+  addProfileAccess: (
+    profileId: string,
+    email: string,
+    permission: 'admin' | 'view'
+  ) => Promise<void>;
+  removeProfileAccess: (profileId: string, userId: string) => Promise<void>;
+  updateProfileAccess: (
+    profileId: string,
+    userId: string,
+    permissionType: 'admin' | 'view'
+  ) => Promise<void>;
+  getProfilePermission: (profileId: string) => 'owner' | 'admin' | 'view' | null;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -97,6 +120,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   isLoading: false,
   isProfileLoading: false,
   error: null,
+
+  // 멀티 계정 관련 초기 상태
+  accessibleProfiles: [],
+  selectedProfileId: null,
+
+  // 관리자 상태 초기값
+  isAdminUser: false,
 
   signIn: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
@@ -414,24 +444,56 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
 
       if (error) {
-        // 프로필이 없으면 에러를 던져서 redirect 페이지에서 처리하게 함
+        // 프로필이 없는 경우 - 공유받은 프로필이 있는지 먼저 확인
         if ((error as any).code === 'PGRST116') {
-          console.log('[authStore] No profile found, signing out unregistered user');
+          console.log('[authStore] No personal profile found, checking for shared profiles');
 
-          // 로그아웃 후 에러 던지기
-          // try {
-          //   // 스토어의 signOut을 호출하여 프로바이더까지 함께 로그아웃
-          //   await get().signOut();
-          //   console.log('[authStore] SignOut (with provider) completed');
-          // } catch (signOutError) {
-          //   console.error('[authStore] SignOut failed, continuing anyway:', signOutError);
-          // }
+          try {
+            // 공유받은 프로필이 있는지 확인
+            const { data: sharedAccess, error: sharedError } = await supabase
+              .from('profile_permissions')
+              .select('profile_id, permission_type')
+              .eq('user_id', targetUserId);
 
-          // 에러 메시지만 설정 (user 상태는 signOut()에서 처리)
-          set({
-            error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
-          });
-          throw new Error('PROFILE_NOT_FOUND');
+            if (sharedError) {
+              console.error('[authStore] Error checking shared profiles:', sharedError);
+            }
+
+            if (sharedAccess && sharedAccess.length > 0) {
+              console.log(
+                '[authStore] Found shared profiles, user is valid without personal profile'
+              );
+
+              // 개인 프로필은 없지만 공유받은 프로필이 있는 경우
+              // profile은 null로 설정하고 fetchAccessibleProfiles에서 공유 프로필들을 로드
+              set({
+                profile: null,
+                userFunds: [],
+                isAdminUser: false, // 개인 프로필이 없으므로 관리자가 될 수 없음
+              });
+
+              // 공유받은 프로필 목록 로드
+              await get().fetchAccessibleProfiles();
+
+              return; // 정상 처리 완료
+            } else {
+              console.log(
+                '[authStore] No shared profiles found either, user needs to complete signup'
+              );
+
+              // 개인 프로필도 없고 공유받은 프로필도 없는 경우
+              set({
+                error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
+              });
+              throw new Error('PROFILE_NOT_FOUND');
+            }
+          } catch (sharedCheckError) {
+            console.error('[authStore] Error during shared profile check:', sharedCheckError);
+            set({
+              error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
+            });
+            throw new Error('PROFILE_NOT_FOUND');
+          }
         }
         throw error;
       }
@@ -454,20 +516,34 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           // 에러가 있어도 빈 배열로 설정하여 survey에서 fallback DB 체크가 가능하도록 함
         }
 
+        // 관리자 권한 체크
+        const isAdminUser = profile.role === 'ADMIN';
+
         set({
           profile: profile as Profile,
           userFunds: userFunds,
+          isAdminUser: isAdminUser,
         });
 
         console.log('[authStore] Profile and userFunds set successfully');
+
+        // 접근 가능한 프로필 목록도 함께 로드
+        await get().fetchAccessibleProfiles(userId);
       } catch (fundFetchError) {
         console.warn('[authStore] Error fetching user funds:', fundFetchError);
+        // 관리자 권한 체크
+        const isAdminUser = profile.role === 'ADMIN';
+
         // 펀드 정보 로딩에 실패해도 프로필은 설정
         set({
           profile: profile as Profile,
           userFunds: [],
+          isAdminUser: isAdminUser,
         });
         console.log('[authStore] Profile set with empty userFunds due to fetch error');
+
+        // 접근 가능한 프로필 목록도 함께 로드
+        await get().fetchAccessibleProfiles();
       }
     } catch (error) {
       console.log('[authStore] fetchProfile error:', error);
@@ -505,6 +581,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       isLoading: false,
       isProfileLoading: false,
       error: null,
+      accessibleProfiles: [],
+      selectedProfileId: null,
+      isAdminUser: false,
     });
   },
 
@@ -546,5 +625,234 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   getUserFunds: () => {
     return get().userFunds;
+  },
+
+  // 멀티 계정 관련 함수들
+  fetchAccessibleProfiles: async (userId?: string) => {
+    const { user } = get();
+    if (!user && !userId) {
+      console.log('[authStore] fetchAccessibleProfiles: user not found');
+      set({ accessibleProfiles: [], selectedProfileId: null });
+      return;
+    }
+
+    const targetUserId = userId || user?.id;
+
+    try {
+      const supabase = createClient();
+
+      // 1. 내가 소유한 프로필들
+      const { data: ownedProfiles, error: ownedError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', targetUserId);
+
+      if (ownedError) throw ownedError;
+
+      // 2. 나에게 공유된 프로필들
+      const { data: sharedAccess, error: sharedError } = await supabase
+        .from('profile_permissions')
+        .select(
+          `
+          permission_type,
+          profiles!profile_permissions_profile_id_fkey(*),
+          granted_by_profile:profiles!profile_permissions_granted_by_fkey(name)
+        `
+        )
+        .eq('user_id', targetUserId);
+
+      if (sharedError) throw sharedError;
+
+      // 접근 가능한 프로필 목록 구성
+      const accessibleProfiles: AccessibleProfile[] = [
+        // 내가 소유한 프로필들
+        ...(ownedProfiles || []).map(profile => ({
+          profile,
+          permission: 'owner' as const,
+        })),
+        // 나에게 공유된 프로필들
+        ...(sharedAccess || []).map(access => ({
+          profile: (access as any).profiles,
+          permission: (access as any).permission_type as 'admin' | 'view',
+          grantedBy: (access as any).granted_by_profile?.name,
+        })),
+      ];
+
+      // 현재 선택된 프로필이 없거나 접근 불가한 경우, 첫 번째 프로필을 선택
+      const currentSelectedId = get().selectedProfileId;
+      let newSelectedId = currentSelectedId;
+
+      if (
+        !currentSelectedId ||
+        !accessibleProfiles.find(ap => ap.profile.id === currentSelectedId)
+      ) {
+        newSelectedId = accessibleProfiles.length > 0 ? accessibleProfiles[0].profile.id : null;
+      }
+
+      set({
+        accessibleProfiles,
+        selectedProfileId: newSelectedId,
+        profile: newSelectedId
+          ? accessibleProfiles.find(ap => ap.profile.id === newSelectedId)?.profile || null
+          : null,
+      });
+
+      console.log('[authStore] 접근 가능한 프로필 로드 완료:', accessibleProfiles.length);
+    } catch (error) {
+      console.error('[authStore] fetchAccessibleProfiles error:', error);
+      set({
+        error: error instanceof Error ? error.message : '프로필 목록을 불러오는데 실패했습니다.',
+        accessibleProfiles: [],
+        selectedProfileId: null,
+      });
+    }
+  },
+
+  selectProfile: (profileId: string) => {
+    const { accessibleProfiles } = get();
+    const selectedProfile = accessibleProfiles.find(ap => ap.profile.id === profileId);
+
+    if (selectedProfile) {
+      set({
+        selectedProfileId: profileId,
+        profile: selectedProfile.profile,
+      });
+      console.log('[authStore] 프로필 선택됨:', selectedProfile.profile.name);
+    } else {
+      console.warn('[authStore] 존재하지 않는 프로필 선택 시도:', profileId);
+    }
+  },
+
+  addProfileAccess: async (profileId: string, email: string, permission: 'admin' | 'view') => {
+    const { user } = get();
+    if (!user) throw new Error('로그인이 필요합니다.');
+
+    try {
+      const supabase = createClient();
+
+      // 1. 이메일로 사용자 검색
+      const targetProfile = await get().findProfileByEmail(email);
+      if (!targetProfile) {
+        throw new Error('해당 이메일의 사용자를 찾을 수 없습니다.');
+      }
+
+      if (!targetProfile.user_id) {
+        throw new Error('해당 사용자는 아직 계정을 생성하지 않았습니다.');
+      }
+
+      // 2. 내가 해당 프로필의 owner인지 확인
+      const { data: ownerProfile, error: ownerError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (ownerError || !ownerProfile) {
+        throw new Error('권한이 없습니다. 프로필 소유자만 접근 권한을 부여할 수 있습니다.');
+      }
+
+      // 3. 권한 부여
+      const { error: insertError } = await supabase.from('profile_permissions').insert({
+        profile_id: profileId,
+        user_id: targetProfile.user_id,
+        permission_type: permission,
+        granted_by: profileId,
+      });
+
+      if (insertError) {
+        if (insertError.code === '23505') {
+          throw new Error('이미 해당 사용자에게 권한이 부여되어 있습니다.');
+        }
+        throw insertError;
+      }
+
+      console.log('[authStore] 프로필 접근 권한 부여 완료:', { email, permission });
+    } catch (error) {
+      console.error('[authStore] addProfileAccess error:', error);
+      throw error;
+    }
+  },
+
+  removeProfileAccess: async (profileId: string, userId: string) => {
+    const { user } = get();
+    if (!user) throw new Error('로그인이 필요합니다.');
+
+    try {
+      const supabase = createClient();
+
+      // 1. 내가 해당 프로필의 owner인지 확인
+      const { data: ownerProfile, error: ownerError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', profileId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (ownerError || !ownerProfile) {
+        throw new Error('권한이 없습니다. 프로필 소유자만 접근 권한을 회수할 수 있습니다.');
+      }
+
+      // 2. 권한 삭제
+      const { error: deleteError } = await supabase
+        .from('profile_permissions')
+        .delete()
+        .eq('profile_id', profileId)
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      console.log('[authStore] 프로필 접근 권한 회수 완료:', { profileId, userId });
+    } catch (error) {
+      console.error('[authStore] removeProfileAccess error:', error);
+      throw error;
+    }
+  },
+
+  updateProfileAccess: async (
+    profileId: string,
+    userId: string,
+    permissionType: 'admin' | 'view'
+  ) => {
+    try {
+      console.log('[authStore] updateProfileAccess called:', { profileId, userId, permissionType });
+
+      const response = await fetch(`/api/profiles/${profileId}/permissions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          permissionType,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || '권한 업데이트에 실패했습니다.');
+      }
+
+      console.log('[authStore] updateProfileAccess successful:', result);
+
+      // 접근 가능한 프로필 목록 새로고침
+      await get().fetchAccessibleProfiles();
+    } catch (error) {
+      console.error('[authStore] updateProfileAccess error:', error);
+      throw error;
+    }
+  },
+
+  getProfilePermission: (profileId: string) => {
+    const { user, accessibleProfiles } = get();
+    console.log('[authStore] user:', user);
+    if (!user) return null;
+
+    const accessibleProfile = accessibleProfiles.find(ap => ap.profile.id === profileId);
+    console.log('[authStore] getProfilePermission:', accessibleProfile?.permission);
+    return accessibleProfile?.permission || null;
   },
 }));

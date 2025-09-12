@@ -10,16 +10,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/authStore';
-import { isAdmin } from '@/lib/auth/admin';
-import { ChevronDown, LogOut, Settings, User, UserCog } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, User, UserCog, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import AccountManageModal from './AccountManageModal';
 import ProfileEditModal from './ProfileEditModal';
 
 export default function ProfileDropdown() {
   const router = useRouter();
-  const { user, profile, signOut } = useAuthStore();
+  const { user, profile, signOut, selectedProfileId, getProfilePermission, isAdminUser } =
+    useAuthStore();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isAccountManageModalOpen, setIsAccountManageModalOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -79,12 +81,19 @@ export default function ProfileDropdown() {
 
           {/* 메뉴 항목들 */}
           <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
-            <UserCog className="h-4 w-4 mr-3" />
-            내 정보 수정
+            <UserCog className="h-4 w-4 mr-3" />내 정보 수정
           </DropdownMenuItem>
 
+          {/* 계정 관리 (프로필 소유자만 표시) */}
+          {selectedProfileId && getProfilePermission(selectedProfileId) === 'owner' && (
+            <DropdownMenuItem onClick={() => setIsAccountManageModalOpen(true)}>
+              <Users className="h-4 w-4 mr-3" />
+              계정 관리
+            </DropdownMenuItem>
+          )}
+
           {/* 관리자 전용 메뉴 */}
-          {isAdmin(user) && (
+          {isAdminUser && (
             <DropdownMenuItem onClick={handleAdminPage}>
               <Settings className="h-4 w-4 mr-3" />
               관리자 페이지
@@ -101,9 +110,12 @@ export default function ProfileDropdown() {
       </DropdownMenu>
 
       {/* 프로필 수정 모달 */}
-      <ProfileEditModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
+      <ProfileEditModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+
+      {/* 계정 관리 모달 */}
+      <AccountManageModal
+        isOpen={isAccountManageModalOpen}
+        onClose={() => setIsAccountManageModalOpen(false)}
       />
     </>
   );

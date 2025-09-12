@@ -1,96 +1,122 @@
-import { authenticateRequest } from '@/lib/auth/temp-token';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    const { email } = await request.json();
+
+    if (!email) {
+      return NextResponse.json({ error: '이메일이 필요합니다.' }, { status: 400 });
+    }
+
     const supabase = await createClient();
 
-    // 인증 확인 (Supabase 세션 또는 임시 토큰)
-    const authResult = await authenticateRequest(request, ['email-search']);
-    if (!authResult.isAuthenticated || !authResult.user) {
-      return NextResponse.json(
-        { error: authResult.error || '인증이 필요합니다.' },
-        { status: 401 }
-      );
+    // 현재 사용자 인증 확인
+    const {
+      data: { user: currentUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !currentUser) {
+      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
     }
 
-    const { user } = authResult;
-
-    const body = await request.json();
-    const { profileId } = body;
-
-    // 필수 필드 검증
-    if (!profileId || typeof profileId !== 'string') {
-      return NextResponse.json({ error: '프로필 ID가 필요합니다.' }, { status: 400 });
-    }
-
-    // 트랜잭션으로 안전하게 처리
-    const { data: existingProfile, error: fetchError } = await supabase
+    // 1. profiles 테이블에서 이메일로 검색
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, user_id, email, name')
-      .eq('id', profileId)
+      .select('*')
+      .eq('email', email)
       .single();
 
-    if (fetchError || !existingProfile) {
-      return NextResponse.json({ error: '프로필을 찾을 수 없습니다.' }, { status: 404 });
+    if (profileError && profileError.code !== 'PGRST116') {
+      return NextResponse.json({ error: '프로필 검색 중 오류가 발생했습니다.' }, { status: 500 });
     }
 
-    // 이미 다른 사용자와 연결되어 있는지 확인
-    if (existingProfile.user_id !== null) {
-      return NextResponse.json({ error: '이미 다른 계정과 연결된 프로필입니다.' }, { status: 409 });
-    }
+    // 2. 이메일을 가진 auth 사용자 검색 (admin API 사용)
+    try {
+      const { data: authUsers, error: authListError } = await supabase.auth.admin.listUsers();
 
-    // 현재 사용자가 이미 다른 프로필과 연결되어 있는지 확인
-    const { data: userProfiles, error: userProfileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', user.id)
-      .limit(1);
+      if (authListError) {
+        throw authListError;
+      }
 
-    if (userProfileError) {
-      console.error('사용자 프로필 확인 오류:', userProfileError);
+      const targetAuthUser = authUsers.users.find((user: any) => user.email === email);
+
+      if (!targetAuthUser) {
+        return NextResponse.json({
+          found: false,
+          message: '해당 이메일로 가입된 계정을 찾을 수 없습니다.',
+        });
+      }
+
+      // 3. 프로필이 있으면서 user_id가 null인 경우 → 연결
+      if (profile && !profile.user_id) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            user_id: targetAuthUser.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', profile.id);
+
+        if (updateError) {
+          return NextResponse.json({ error: '프로필 연결에 실패했습니다.' }, { status: 500 });
+        }
+
+        return NextResponse.json({
+          found: true,
+          linked: true,
+          profile: {
+            ...profile,
+            user_id: targetAuthUser.id,
+          },
+          message: '프로필과 계정이 성공적으로 연결되었습니다.',
+        });
+      }
+
+      // 4. 프로필이 이미 다른 계정과 연결된 경우
+      if (profile && profile.user_id && profile.user_id !== targetAuthUser.id) {
+        return NextResponse.json({
+          found: false,
+          message: '이미 다른 계정과 연결된 프로필입니다.',
+        });
+      }
+
+      // 5. 프로필이 있고 올바른 user_id와 연결된 경우
+      if (profile && profile.user_id === targetAuthUser.id) {
+        return NextResponse.json({
+          found: true,
+          linked: false,
+          profile: profile,
+          message: '이미 연결된 계정입니다.',
+        });
+      }
+
+      // 6. 프로필이 없는 경우 - 가장 일반적인 상황 (OAuth 가입 후 프로필 미생성)
+      // 이 경우에는 단순히 성공으로 처리 (profile_permissions에서 user_id로 직접 관리)
+      return NextResponse.json({
+        found: true,
+        linked: false, // 연결할 프로필이 애초에 없었음
+        user: {
+          id: targetAuthUser.id,
+          email: targetAuthUser.email,
+          created_at: targetAuthUser.created_at,
+        },
+        profile: null,
+        message: 'OAuth 계정 확인 완료. 권한 부여 준비됨.',
+      });
+    } catch (authError) {
+      console.error('Auth admin API error:', authError);
       return NextResponse.json(
-        { error: '프로필 연결 확인 중 오류가 발생했습니다.' },
+        {
+          found: false,
+          message: '계정 검색 중 오류가 발생했습니다. 관리자에게 문의해주세요.',
+        },
         { status: 500 }
       );
     }
-
-    if (userProfiles && userProfiles.length > 0) {
-      return NextResponse.json({ error: '이미 연결된 프로필이 있습니다.' }, { status: 409 });
-    }
-
-    // 프로필에 user_id 연결
-    const { data: updatedProfile, error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        user_id: user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', profileId)
-      .select('id, email, name')
-      .single();
-
-    if (updateError) {
-      console.error('프로필 연결 오류:', updateError);
-      return NextResponse.json({ error: '프로필 연결에 실패했습니다.' }, { status: 500 });
-    }
-
-    console.log(
-      `[프로필 연결 완료] User: ${user.id}, Profile: ${profileId}, Email: ${updatedProfile.email}`
-    );
-
-    return NextResponse.json({
-      success: true,
-      message: '프로필이 성공적으로 연결되었습니다.',
-      profile: {
-        id: updatedProfile.id,
-        email: updatedProfile.email,
-        name: updatedProfile.name,
-      },
-    });
   } catch (error) {
-    console.error('프로필 연결 API 오류:', error);
+    console.error('Link user API error:', error);
     return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }

@@ -30,6 +30,22 @@ export interface FundMember {
   updated_at: string;
 }
 
+export interface ProfilePermission {
+  id: string;
+  profile_id: string;
+  user_id: string;
+  permission_type: 'admin' | 'view';
+  granted_by: string;
+  granted_at: string;
+  created_at: string;
+}
+
+export interface AccessibleProfile {
+  profile: Profile;
+  permission: 'owner' | 'admin' | 'view';
+  grantedBy?: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -53,6 +69,11 @@ export interface Database {
         Update: Partial<Omit<FundMember, 'id' | 'total_amount' | 'created_at'>> & {
           updated_at?: string;
         };
+      };
+      profile_permissions: {
+        Row: ProfilePermission;
+        Insert: Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>;
+        Update: Partial<Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>>;
       };
     };
   };

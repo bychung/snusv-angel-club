@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ProfileDropdown from './ProfileDropdown';
+import ProfileSelector from './ProfileSelector';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -56,7 +57,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <span className="text-sm text-gray-500">대시보드</span>
             </div>
 
-            <ProfileDropdown />
+            <div className="flex items-center space-x-4">
+              <ProfileSelector />
+              <ProfileDropdown />
+            </div>
           </div>
         </div>
       </header>

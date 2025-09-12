@@ -22,9 +22,14 @@ interface ProfileEditModalProps {
 }
 
 export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
-  const { profile, updateProfile, isLoading } = useAuthStore();
+  const { profile, updateProfile, isLoading, selectedProfileId, getProfilePermission } =
+    useAuthStore();
   const [editData, setEditData] = useState<Partial<Profile>>({});
   const [hasChanges, setHasChanges] = useState(false);
+
+  // 현재 프로필에 대한 권한 확인
+  const currentPermission = selectedProfileId ? getProfilePermission(selectedProfileId) : null;
+  const isReadOnly = currentPermission === 'view';
 
   // 모달이 열릴 때마다 프로필 데이터로 초기화
   useEffect(() => {
@@ -82,9 +87,14 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />내 정보 수정
+            <User className="h-5 w-5" />
+            {isReadOnly ? '프로필 정보 조회' : '내 정보 수정'}
           </DialogTitle>
-          <DialogDescription>개인정보를 확인하고 수정할 수 있습니다.</DialogDescription>
+          <DialogDescription>
+            {isReadOnly
+              ? '프로필 정보를 조회할 수 있습니다. (수정 권한 없음)'
+              : '개인정보를 확인하고 수정할 수 있습니다.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -97,6 +107,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 value={editData.name || ''}
                 onChange={e => handleChange('name', e.target.value)}
                 placeholder="이름 또는 회사명"
+                disabled={isReadOnly}
               />
             </div>
 
@@ -108,6 +119,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 value={editData.phone || ''}
                 onChange={e => handleChange('phone', e.target.value)}
                 placeholder="010-0000-0000"
+                disabled={isReadOnly}
               />
             </div>
 
@@ -120,6 +132,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 value={editData.email || ''}
                 onChange={e => handleChange('email', e.target.value)}
                 placeholder="example@email.com"
+                disabled={isReadOnly}
               />
             </div>
 
@@ -140,6 +153,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                   type="date"
                   value={editData.birth_date || ''}
                   onChange={e => handleChange('birth_date', e.target.value)}
+                  disabled={isReadOnly}
                 />
               </div>
             )}
@@ -153,6 +167,7 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                   value={editData.business_number || ''}
                   onChange={e => handleChange('business_number', e.target.value)}
                   placeholder="000-00-00000"
+                  disabled={isReadOnly}
                 />
               </div>
             )}
@@ -166,25 +181,37 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
               value={editData.address || ''}
               onChange={e => handleChange('address', e.target.value)}
               placeholder="서울특별시 강남구..."
+              disabled={isReadOnly}
             />
           </div>
 
-          {/* 수정 불가 안내 */}
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-800">
-              <strong>참고:</strong> 개인/법인 구분은 변경할 수 없습니다. 변경이 필요한 경우
-              관리자에게 문의해 주세요.
-            </p>
-          </div>
+          {/* 권한별 안내 */}
+          {isReadOnly ? (
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <strong>알림:</strong> 현재 조회 권한만 있어서 정보를 수정할 수 없습니다. 수정이
+                필요한 경우 프로필 소유자에게 문의해 주세요.
+              </p>
+            </div>
+          ) : (
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>참고:</strong> 개인/법인 구분은 변경할 수 없습니다. 변경이 필요한 경우
+                관리자에게 문의해 주세요.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex gap-2">
           <Button onClick={handleCancel} variant="outline">
-            취소
+            {isReadOnly ? '닫기' : '취소'}
           </Button>
-          <Button onClick={handleSave} disabled={isLoading || !hasChanges}>
-            {isLoading ? '저장 중...' : '저장'}
-          </Button>
+          {!isReadOnly && (
+            <Button onClick={handleSave} disabled={isLoading || !hasChanges}>
+              {isLoading ? '저장 중...' : '저장'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
