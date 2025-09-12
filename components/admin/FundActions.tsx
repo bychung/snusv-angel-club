@@ -1,0 +1,166 @@
+'use client';
+
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { FundWithStats } from '@/lib/admin/funds';
+import { createClient } from '@/lib/supabase/client';
+import { Check, Link2, Plus } from 'lucide-react';
+import { useState } from 'react';
+
+interface FundActionsProps {
+  fund: FundWithStats;
+}
+
+export default function FundActions({ fund }: FundActionsProps) {
+  const [copiedFundId, setCopiedFundId] = useState<string | null>(null);
+
+  const copySurveyLink = async (fundId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const baseUrl = window.location.origin;
+      const surveyUrl = `${baseUrl}/survey?fund_id=${fundId}`;
+      await navigator.clipboard.writeText(surveyUrl);
+
+      setCopiedFundId(fundId);
+      setTimeout(() => setCopiedFundId(null), 2000);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full"
+      onClick={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        copySurveyLink(fund.id, e);
+      }}
+    >
+      {copiedFundId === fund.id ? (
+        <>
+          <Check className="h-4 w-4 mr-2" />
+          복사됨
+        </>
+      ) : (
+        <>
+          <Link2 className="h-4 w-4 mr-2" />
+          출자 의향 설문 링크 복사
+        </>
+      )}
+    </Button>
+  );
+}
+
+// 펀드 생성 컴포넌트 (별도 export)
+export function CreateFundDialog() {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newFundName, setNewFundName] = useState('');
+  const [newFundAbbreviation, setNewFundAbbreviation] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateFund = async () => {
+    if (!newFundName.trim()) return;
+
+    setIsCreating(true);
+    try {
+      const supabase = createClient();
+
+      const { data, error } = await supabase
+        .from('funds')
+        .insert([
+          {
+            name: newFundName.trim(),
+            abbreviation: newFundAbbreviation.trim() || null,
+          },
+        ])
+        .select();
+
+      if (error) throw error;
+
+      // 페이지 새로고침으로 새 펀드 반영
+      window.location.reload();
+
+      // 다이얼로그 닫기 및 폼 리셋
+      setIsAddDialogOpen(false);
+      setNewFundName('');
+      setNewFundAbbreviation('');
+    } catch (error) {
+      console.error('펀드 생성 실패:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="h-4 w-4 mr-2" />
+          펀드 추가
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>새 펀드 추가</DialogTitle>
+          <DialogDescription>새로운 펀드를 생성합니다. 펀드 정보를 입력해주세요.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="fundName" className="text-right">
+              펀드명 *
+            </Label>
+            <Input
+              id="fundName"
+              value={newFundName}
+              onChange={e => setNewFundName(e.target.value)}
+              className="col-span-3"
+              placeholder="펀드 이름을 입력하세요"
+              required
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="fundAbbreviation" className="text-right">
+              펀드 약칭
+            </Label>
+            <Input
+              id="fundAbbreviation"
+              value={newFundAbbreviation}
+              onChange={e => setNewFundAbbreviation(e.target.value)}
+              className="col-span-3"
+              placeholder="펀드 약칭을 입력하세요 (예: 블라인드2호)"
+              onKeyPress={e => {
+                if (e.key === 'Enter') {
+                  handleCreateFund();
+                }
+              }}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            type="submit"
+            onClick={handleCreateFund}
+            disabled={isCreating || !newFundName.trim()}
+          >
+            {isCreating ? '생성 중...' : '펀드 생성'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

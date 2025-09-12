@@ -1,64 +1,13 @@
-'use client';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/client';
+import type { Stats } from '@/lib/admin/dashboard';
 import { DollarSign, TrendingUp, UserCheck, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
 
-interface Stats {
-  totalUsers: number;
-  totalInvestment: number;
-  totalUnits: number;
-  registeredUsers: number;
+interface StatsCardsProps {
+  stats: Stats;
+  isLoading?: boolean;
 }
 
-export default function StatsCards() {
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0,
-    totalInvestment: 0,
-    totalUnits: 0,
-    registeredUsers: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const supabase = createClient();
-
-      // 전체 프로필 수
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      // 회원가입한 사용자 수 (user_id가 있는 경우)
-      const { count: registeredUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .not('user_id', 'is', null);
-
-      // 총 출자 정보
-      const { data: fundData } = await supabase.from('fund_members').select('investment_units');
-
-      const totalUnits = fundData?.reduce((sum, item) => sum + item.investment_units, 0) || 0;
-      const totalInvestment = totalUnits * 1000000; // 1좌당 100만원
-
-      setStats({
-        totalUsers: totalUsers || 0,
-        totalInvestment,
-        totalUnits,
-        registeredUsers: registeredUsers || 0,
-      });
-    } catch (error) {
-      console.error('통계 조회 실패:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+export default function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
   const cards = [
     {
       title: '총 참여자 수',

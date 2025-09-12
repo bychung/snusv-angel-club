@@ -1,8 +1,13 @@
 import AdminLayout from '@/components/admin/AdminLayout';
 import RecentActivity from '@/components/admin/RecentActivity';
 import StatsCards from '@/components/admin/StatsCards';
+import { getDashboardStats, getRecentActivity } from '@/lib/admin/dashboard';
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  // 서버에서 데이터 조회 (보안)
+  const stats = await getDashboardStats();
+  const activities = await getRecentActivity();
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -13,10 +18,10 @@ export default function AdminDashboard() {
         </div>
 
         {/* 통계 카드 */}
-        <StatsCards />
+        <StatsCards stats={stats} />
 
         {/* 최근 활동 */}
-        <RecentActivity />
+        <RecentActivity activities={activities} />
       </div>
     </AdminLayout>
   );

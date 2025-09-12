@@ -1,32 +1,39 @@
 import AdminLayout from '@/components/admin/AdminLayout';
-import MemberList from '@/components/admin/MemberList';
 import FundExportModal from '@/components/admin/FundExportModal';
+import MemberActionButtons from '@/components/admin/MemberActionButtons';
+import MemberSearchAndFilter from '@/components/admin/MemberSearchAndFilter';
+import MemberTable from '@/components/admin/MemberTable';
+import { Button } from '@/components/ui/button';
+import { getFundMembers } from '@/lib/admin/members';
 import { createClient } from '@/lib/supabase/server';
-import { notFound } from 'next/navigation';
 import { ArrowLeft, Building } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { notFound } from 'next/navigation';
 
 interface FundDetailPageProps {
   params: Promise<{
     fundId: string;
   }>;
+  searchParams: Promise<{
+    search?: string;
+    filter?: 'all' | 'registered' | 'survey_only';
+  }>;
 }
 
-export default async function FundDetailPage({ params }: FundDetailPageProps) {
+export default async function FundDetailPage({ params, searchParams }: FundDetailPageProps) {
   const { fundId } = await params;
+  const { search, filter } = await searchParams;
   const supabase = await createClient();
-  
-  // 펀드 정보 조회
-  const { data: fund, error } = await supabase
-    .from('funds')
-    .select('*')
-    .eq('id', fundId)
-    .single();
+
+  // 펀드 정보 조회 (서버에서만 실행)
+  const { data: fund, error } = await supabase.from('funds').select('*').eq('id', fundId).single();
 
   if (error || !fund) {
     notFound();
   }
+
+  // 조합원 목록 조회 (서버에서만 실행)
+  const members = await getFundMembers(fundId, { search, filter });
 
   return (
     <AdminLayout>
@@ -42,7 +49,7 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
             </Link>
             <FundExportModal fundId={fundId} fundName={fund.name} />
           </div>
-          
+
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0">
               <div className="h-16 w-16 bg-indigo-100 rounded-xl flex items-center justify-center">
@@ -51,9 +58,7 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">{fund.name}</h1>
-              <p className="mt-2 text-gray-600">
-                조합원을 관리할 수 있습니다.
-              </p>
+              <p className="mt-2 text-gray-600">조합원을 관리할 수 있습니다.</p>
               <p className="text-sm text-gray-500 mt-1">
                 등록일: {new Date(fund.created_at).toLocaleDateString('ko-KR')}
               </p>
@@ -61,8 +66,14 @@ export default async function FundDetailPage({ params }: FundDetailPageProps) {
           </div>
         </div>
 
+        {/* 조합원 관리 버튼들 */}
+        <MemberActionButtons fundId={fundId} fundName={fund.name} />
+
+        {/* 검색 및 필터 */}
+        <MemberSearchAndFilter mode="fund_members" />
+
         {/* 조합원 목록 */}
-        <MemberList mode="fund_members" fundId={fundId} fundName={fund.name} />
+        <MemberTable members={members} mode="fund_members" fundId={fundId} fundName={fund.name} />
       </div>
     </AdminLayout>
   );
