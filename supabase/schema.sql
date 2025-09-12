@@ -1,6 +1,9 @@
 -- Supabase Database Schema for SNUSV Angel Club
 -- 이 SQL을 Supabase Dashboard의 SQL Editor에서 실행하세요.
 
+-- Create user role enum
+CREATE TYPE user_role AS ENUM ('ADMIN', 'USER');
+
 -- profiles 테이블 생성 (전화번호를 unique key로)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -12,6 +15,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   birth_date DATE,
   business_number TEXT,
   address TEXT NOT NULL,
+  role user_role DEFAULT 'USER' NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -21,6 +25,9 @@ CREATE INDEX IF NOT EXISTS idx_profiles_phone ON profiles(phone);
 
 -- email 컬럼에 인덱스 생성 (검색 성능 향상)
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
+
+-- role 컬럼에 인덱스 생성 (admin 권한 확인 성능 향상)
+CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 
 -- funds 테이블 생성
 CREATE TABLE IF NOT EXISTS funds (
@@ -65,11 +72,6 @@ CREATE TRIGGER update_fund_members_updated_at
   BEFORE UPDATE ON fund_members
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
-
--- 초기 펀드 데이터 삽입
-INSERT INTO funds (id, name) 
-VALUES ('550e8400-e29b-41d4-a716-446655440000', '프로펠-SNUSV엔젤투자조합2호')
-ON CONFLICT DO NOTHING;
 
 -- 펀드 ID를 확인하는 쿼리
 -- SELECT id FROM funds WHERE name = '프로펠-SNUSV엔젤투자조합2호';

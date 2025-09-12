@@ -1,4 +1,8 @@
 -- 테이블만 생성하는 스크립트
+
+-- Create user role enum
+CREATE TYPE user_role AS ENUM ('ADMIN', 'USER');
+
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -9,6 +13,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   birth_date DATE,
   business_number TEXT,
   address TEXT NOT NULL,
+  role user_role DEFAULT 'USER' NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -8,6 +8,7 @@ export interface Profile {
   birth_date?: string | null;
   business_number?: string | null;
   address: string;
+  role: 'ADMIN' | 'USER';
   created_at: string;
   updated_at: string;
 }

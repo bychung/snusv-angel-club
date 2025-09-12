@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
 import type { FundMember, Profile } from '@/types/database';
+import { Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface MemberWithFund extends Profile {
@@ -45,6 +46,7 @@ export default function EditMemberModal({
     birth_date: '',
     business_number: '',
     investment_units: 0,
+    role: 'USER' as 'ADMIN' | 'USER',
   });
 
   useEffect(() => {
@@ -57,6 +59,7 @@ export default function EditMemberModal({
         birth_date: member.birth_date || '',
         business_number: member.business_number || '',
         investment_units: member.fund_members?.[0]?.investment_units || 0,
+        role: member.role,
       });
     }
   }, [member]);
@@ -68,7 +71,7 @@ export default function EditMemberModal({
     try {
       const supabase = createClient();
 
-      // 프로필 정보 업데이트
+      // 프로필 정보 업데이트 (role 포함)
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -78,6 +81,7 @@ export default function EditMemberModal({
           address: formData.address,
           birth_date: formData.birth_date || null,
           business_number: formData.business_number || null,
+          role: formData.role,
           updated_at: new Date().toISOString(),
         })
         .eq('id', member.id);
@@ -193,6 +197,31 @@ export default function EditMemberModal({
                 </p>
               </div>
             )}
+
+            {/* 권한 설정 */}
+            <div className="space-y-2">
+              <Label htmlFor="role">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  권한
+                </div>
+              </Label>
+              <select
+                value={formData.role}
+                onChange={e =>
+                  setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'USER' })
+                }
+                className="h-9 px-3 py-1 border rounded-md bg-transparent border-input w-full text-sm"
+              >
+                <option value="USER">일반 사용자</option>
+                <option value="ADMIN">관리자</option>
+              </select>
+              {formData.role !== member?.role && (
+                <p className="text-xs text-amber-600">
+                  ⚠️ 권한이 변경됩니다. 저장 후 즉시 반영됩니다.
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">

@@ -1,18 +1,30 @@
 import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
 
-// 관리자 이메일 목록 (환경변수로 관리)
-const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [
-  'admin@snusv.com',
-  'manager@snusv.com',
-];
-
 /**
- * 사용자가 관리자인지 확인
+ * 사용자가 관리자인지 확인 (DB 기반, 클라이언트용)
  */
-export function isAdmin(user: User | null): boolean {
+export async function isAdmin(user: User | null): Promise<boolean> {
   if (!user?.email) return false;
-  return ADMIN_EMAILS.includes(user.email);
+
+  try {
+    const supabase = createClient();
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('email', user.email)
+      .single();
+
+    if (error || !profile) {
+      console.error('Failed to check admin role:', error);
+      return false;
+    }
+
+    return profile.role === 'ADMIN';
+  } catch (error) {
+    console.error('Admin check failed:', error);
+    return false;
+  }
 }
 
 /**
@@ -30,8 +42,10 @@ export async function checkAdminAccess(): Promise<{ isAdmin: boolean; user: User
       return { isAdmin: false, user: null };
     }
 
+    const adminStatus = await isAdmin(user);
+
     return {
-      isAdmin: isAdmin(user),
+      isAdmin: adminStatus,
       user,
     };
   } catch (error) {

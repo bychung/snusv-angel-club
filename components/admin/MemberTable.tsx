@@ -1,8 +1,8 @@
+import MemberModals from '@/components/admin/MemberModals';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { FundMember, Profile } from '@/types/database';
-import { Building, Mail, Phone, User } from 'lucide-react';
-import MemberModals from './MemberModals';
+import { Building, Mail, Phone, Shield, User } from 'lucide-react';
 
 interface MemberWithFund extends Profile {
   fund_members?: (FundMember & { fund?: { name: string; abbreviation?: string | null } })[];
@@ -32,6 +32,18 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
           </Badge>
         );
     }
+  };
+
+  const getRoleBadge = (role: 'ADMIN' | 'USER') => {
+    if (role === 'ADMIN') {
+      return (
+        <Badge variant="destructive" className="bg-red-100 text-red-800 text-xs">
+          <Shield className="h-3 w-3 mr-1" />
+          관리자
+        </Badge>
+      );
+    }
+    return null;
   };
 
   const formatCurrency = (amount: number) => {
@@ -99,6 +111,7 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
                           <h3 className="text-sm font-medium text-gray-900 truncate">
                             {member.name}
                           </h3>
+                          {getRoleBadge(member.role)}
                           {mode === 'fund_members'
                             ? // 펀드 조합원 모드: 출자금액 표시
                               member.fund_members &&

@@ -1,4 +1,4 @@
-import { isAdmin } from '@/lib/auth/admin';
+import { isAdminServer } from '@/lib/auth/admin-server';
 import { ParsedMemberData } from '@/lib/excel-utils';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -37,7 +37,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fu
     }
 
     // 관리자 권한 확인
-    if (!isAdmin(user)) {
+    const adminAccess = await isAdminServer(user);
+    if (!adminAccess) {
       console.log('Admin access denied for user:', user.email);
       return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
