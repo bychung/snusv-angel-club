@@ -18,10 +18,12 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [urlSuccess, setUrlSuccess] = useState<string | null>(null);
 
   const {
     signIn,
     signInWithOAuth,
+    signOut,
     // isLoading: authLoading, // 전역 로딩 상태 사용하지 않음
     error,
     clearError,
@@ -77,6 +79,16 @@ export default function LoginForm() {
       router.replace(newUrl.pathname);
     }
 
+    // URL 파라미터에서 성공 메시지 읽기
+    const successParam = searchParams.get('success');
+    if (successParam) {
+      setUrlSuccess(decodeURIComponent(successParam));
+      // URL에서 success 파라미터 제거
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('success');
+      router.replace(newUrl.pathname);
+    }
+
     // 개발 환경에서 전역 초기화 함수 제공
     if (process.env.NODE_ENV === 'development') {
       (window as any).resetAuthState = handleCompleteReset;
@@ -103,6 +115,51 @@ export default function LoginForm() {
       router.push('/dashboard');
     } catch (error) {
       console.error('로그인 실패:', error);
+
+      // 프로필을 찾지 못한 경우 - 임시 토큰 발행 후 find-email로 이동
+      if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN') {
+        console.log('[LoginForm] 프로필 연결 실패 - 임시 토큰 발행 및 find-email로 이동');
+
+        try {
+          // 임시 토큰 발행
+          const tokenResponse = await fetch('/api/auth/temp-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              purpose: 'email-search',
+              email: email,
+              provider: 'email',
+            }),
+          });
+
+          if (!tokenResponse.ok) {
+            throw new Error('임시 토큰 발행에 실패했습니다.');
+          }
+
+          const { token } = await tokenResponse.json();
+
+          // 임시 토큰을 sessionStorage에 저장
+          sessionStorage.setItem('temp_auth_token', token);
+
+          // 세션 정리
+          await signOut();
+          resetState();
+
+          // find-email 페이지로 이동 (로그인 실패 상황이므로 account_created=false)
+          const redirectUrl = `/find-email?email=${encodeURIComponent(email)}&provider=email`;
+          router.push(redirectUrl);
+          return;
+        } catch (tokenError) {
+          console.error('[LoginForm] 임시 토큰 발행 실패:', tokenError);
+
+          // 임시 토큰 발행 실패 시 기본 에러 처리
+          setUrlError('프로필 연결에 실패했습니다. 다시 시도해주세요.');
+        }
+      }
+
+      // 기타 에러는 authStore의 에러 상태에 의해 처리됨
     } finally {
       setIsLoading(false);
     }
@@ -222,15 +279,12 @@ export default function LoginForm() {
             {(error || urlError) && (
               <div className="text-sm text-red-500 text-center bg-red-50 p-3 rounded-lg border border-red-200">
                 <p className="mb-2">{error || urlError}</p>
-                {/* {(error || urlError)?.includes('가입되지 않은 계정') && (
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
-                    onClick={() => router.push('/survey')}
-                  >
-                    지금 설문조사 참여하기 →
-                  </Button>
-                )} */}
+              </div>
+            )}
+
+            {urlSuccess && (
+              <div className="text-sm text-green-700 text-center bg-green-50 p-3 rounded-lg border border-green-200">
+                <p>{urlSuccess}</p>
               </div>
             )}
 

@@ -386,21 +386,70 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 );
               }
             } else {
-              // 설문조사 미완료 - 로그인 페이지로 에러와 함께 이동
+              // 설문조사 미완료 - find-email 페이지로 이동하여 이메일 검색/문의 가능하도록 함
               console.log(
-                '[AuthProvider] No profile and no survey completed, redirecting to login with error'
+                '[AuthProvider] No profile and no survey completed, redirecting to find-email'
               );
 
-              // 세션 정리
-              await signOut();
-              resetState();
+              const userEmail = session.user.email;
+              const provider = session.user.app_metadata?.provider || 'unknown';
 
-              routerNext.replace(
-                '/login?error=' +
-                  encodeURIComponent(
-                    '가입되지 않은 계정이거나 자동 가입이 불가능한 상황입니다. 관리자에게 문의해주세요.'
-                  )
-              );
+              if (userEmail) {
+                try {
+                  // 임시 토큰 발행
+                  const tokenResponse = await fetch('/api/auth/temp-token', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      purpose: 'email-search',
+                      email: userEmail,
+                      provider: provider,
+                    }),
+                  });
+
+                  if (!tokenResponse.ok) {
+                    throw new Error('임시 토큰 발행에 실패했습니다.');
+                  }
+
+                  const { token } = await tokenResponse.json();
+
+                  // 임시 토큰을 sessionStorage에 저장
+                  sessionStorage.setItem('temp_auth_token', token);
+
+                  // 세션 정리 후 find-email 페이지로 이동
+                  await signOut();
+                  resetState();
+
+                  const redirectUrl = `/find-email?email=${encodeURIComponent(
+                    userEmail
+                  )}&provider=${provider}`;
+                  routerNext.replace(redirectUrl);
+                } catch (tokenError) {
+                  console.error('[AuthProvider] 임시 토큰 발행 실패:', tokenError);
+
+                  // 임시 토큰 발행 실패 시 기존 방식으로 폴백
+                  await signOut();
+                  resetState();
+
+                  routerNext.replace(
+                    '/login?error=' +
+                      encodeURIComponent('임시 인증 토큰 발행에 실패했습니다. 다시 시도해주세요.')
+                  );
+                }
+              } else {
+                // 이메일 정보가 없는 경우에만 기존 에러 처리
+                await signOut();
+                resetState();
+
+                routerNext.replace(
+                  '/login?error=' +
+                    encodeURIComponent(
+                      '로그인 정보에 이메일이 포함되지 않았습니다. 관리자에게 문의해주세요.'
+                    )
+                );
+              }
             }
           } else {
             // 기타 에러

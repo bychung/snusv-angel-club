@@ -17,7 +17,14 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [signupMethod, setSignupMethod] = useState<'email' | 'oauth' | null>(null);
 
-  const { signUp, signInWithOAuth, isLoading: authLoading, error } = useAuthStore();
+  const {
+    signUp,
+    signInWithOAuth,
+    isLoading: authLoading,
+    error,
+    signOut,
+    resetState,
+  } = useAuthStore();
   const surveyStore = useSurveyStore();
 
   // 완료된 설문조사 데이터 찾기
@@ -79,6 +86,61 @@ export default function SignupForm() {
       router.push('/dashboard');
     } catch (error) {
       console.error('회원가입 실패:', error);
+
+      // 프로필을 찾지 못한 경우 - 이미 계정은 생성되었으므로 임시 토큰 발행 후 find-email로 이동
+      if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND_FOR_EMAIL') {
+        console.log(
+          '[SignupForm] 계정 생성 완료, 프로필 연결 실패 - 임시 토큰 발행 및 find-email로 이동'
+        );
+
+        try {
+          // 임시 토큰 발행
+          const tokenResponse = await fetch('/api/auth/temp-token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              purpose: 'email-search',
+              email: signupEmail,
+              provider: 'email',
+            }),
+          });
+
+          if (!tokenResponse.ok) {
+            throw new Error('임시 토큰 발행에 실패했습니다.');
+          }
+
+          const { token } = await tokenResponse.json();
+
+          // 임시 토큰을 sessionStorage에 저장
+          sessionStorage.setItem('temp_auth_token', token);
+
+          // 세션 정리
+          await signOut();
+          resetState();
+
+          // find-email 페이지로 이동 (계정 생성됨을 알리는 플래그 추가)
+          const redirectUrl = `/find-email?email=${encodeURIComponent(
+            signupEmail
+          )}&provider=email&account_created=true`;
+          router.push(redirectUrl);
+          return;
+        } catch (tokenError) {
+          console.error('[SignupForm] 임시 토큰 발행 실패:', tokenError);
+
+          // 임시 토큰 발행 실패 시 로그인 페이지로 폴백
+          const redirectUrl = `/login?error=${encodeURIComponent(
+            '계정은 생성되었지만 프로필 연결에 실패했습니다. 다시 로그인을 시도해주세요.'
+          )}`;
+          router.push(redirectUrl);
+          return;
+        }
+      }
+
+      // 기타 에러는 알럿으로 표시
+      const errorMessage = error instanceof Error ? error.message : '회원가입에 실패했습니다.';
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -212,7 +274,7 @@ export default function SignupForm() {
                   </div>
                 </div>
 
-                {error && (
+                {error && error !== 'PROFILE_NOT_FOUND_FOR_EMAIL' && (
                   <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded">
                     {error}
                   </div>
@@ -261,7 +323,7 @@ export default function SignupForm() {
                 </Button>
               </div>
 
-              {error && (
+              {error && error !== 'PROFILE_NOT_FOUND_FOR_EMAIL' && (
                 <div className="text-sm text-red-500 text-center bg-red-50 p-2 rounded">
                   {error}
                 </div>

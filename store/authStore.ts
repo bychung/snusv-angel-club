@@ -132,9 +132,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               // 기존 프로필에 user_id 연결
               const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ 
+                .update({
                   user_id: user.id,
-                  updated_at: new Date().toISOString()
+                  updated_at: new Date().toISOString(),
                 })
                 .eq('email', email);
 
@@ -146,11 +146,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               await get().fetchProfile();
               console.log('[authStore] 기존 프로필과 계정 연결 완료');
             } else {
-              throw new Error('가입되지 않은 계정입니다.');
+              // 기존 프로필을 찾지 못한 경우 - LoginForm에서 임시 토큰 발행하도록 특별한 에러 타입 던지기
+              throw new Error('PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN');
             }
           } catch (linkError) {
             console.error('[authStore] 프로필 연결 실패:', linkError);
-            throw new Error('가입되지 않은 계정입니다. 회원가입을 먼저 진행해주세요.');
+
+            // 프로필 연결 실패 시에도 PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN 에러로 통일
+            if (
+              linkError instanceof Error &&
+              linkError.message === 'PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN'
+            ) {
+              throw linkError; // 그대로 다시 throw
+            } else {
+              throw new Error('PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN');
+            }
           }
         } else {
           throw profileError;
@@ -205,7 +215,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       const supabase = createClient();
-      
+
       // 1. Supabase Auth 회원가입
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -226,14 +236,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       // 2. 기존 프로필이 있는지 확인하고 user_id 연결
       try {
         const existingProfile = await get().findProfileByEmail(email);
-        
+
         if (existingProfile && !existingProfile.user_id) {
           // 기존 프로필에 user_id 연결
           const { error: updateError } = await supabase
             .from('profiles')
-            .update({ 
+            .update({
               user_id: user.id,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             })
             .eq('email', email);
 
@@ -244,16 +254,32 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
           // 프로필 정보 다시 가져오기
           await get().fetchProfile();
-          
+
           console.log('[authStore] 기존 프로필과 계정 연결 완료');
+        } else if (!existingProfile) {
+          // 기존 프로필이 없는 경우 - find-email 페이지로 리디렉션하도록 에러 발생
+          throw new Error('PROFILE_NOT_FOUND_FOR_EMAIL');
+        } else if (existingProfile.user_id) {
+          // 이미 다른 계정과 연결된 프로필인 경우
+          throw new Error('이미 다른 계정과 연결된 이메일입니다.');
         }
       } catch (profileError) {
-        console.warn('[authStore] 프로필 연결 중 오류 (무시):', profileError);
-        // 프로필 연결 실패해도 회원가입 자체는 성공으로 처리
+        console.warn('[authStore] 프로필 연결 중 오류:', profileError);
+
+        // 특정 에러는 다시 throw하여 상위에서 처리하도록 함
+        if (
+          profileError instanceof Error &&
+          (profileError.message === 'PROFILE_NOT_FOUND_FOR_EMAIL' ||
+            profileError.message.includes('이미 다른 계정과 연결된'))
+        ) {
+          throw profileError;
+        }
+
+        // 기타 에러는 무시하고 진행
+        console.warn('[authStore] 기타 프로필 연결 오류 (무시):', profileError);
       }
 
       console.log('[authStore] 회원가입 완료');
-      
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : '회원가입에 실패했습니다.',
