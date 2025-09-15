@@ -17,7 +17,14 @@ export interface Fund {
   id: string;
   name: string;
   abbreviation?: string | null;
+  tax_number?: string | null;
+  gp_id?: string[] | null;
+  address?: string | null;
+  status: 'ready' | 'processing' | 'applied' | 'active' | 'closing' | 'closed';
+  account?: string | null;
+  account_bank?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface FundMember {
@@ -26,6 +33,19 @@ export interface FundMember {
   profile_id: string;
   investment_units: number;
   total_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Document {
+  id: string;
+  fund_id: string;
+  category: 'account' | 'tax' | 'registration' | 'agreement';
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+  uploaded_by?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -58,8 +78,12 @@ export interface Database {
       };
       funds: {
         Row: Fund;
-        Insert: Omit<Fund, 'id' | 'created_at'>;
-        Update: Partial<Omit<Fund, 'id' | 'created_at'>>;
+        Insert: Omit<Fund, 'id' | 'created_at' | 'updated_at'> & {
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Fund, 'id' | 'created_at' | 'updated_at'>> & {
+          updated_at?: string;
+        };
       };
       fund_members: {
         Row: FundMember;
@@ -74,6 +98,15 @@ export interface Database {
         Row: ProfilePermission;
         Insert: Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>;
         Update: Partial<Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>>;
+      };
+      documents: {
+        Row: Document;
+        Insert: Omit<Document, 'id' | 'created_at' | 'updated_at'> & {
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Document, 'id' | 'created_at' | 'updated_at'>> & {
+          updated_at?: string;
+        };
       };
     };
   };

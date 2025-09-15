@@ -4,6 +4,12 @@
 -- Create user role enum
 CREATE TYPE user_role AS ENUM ('ADMIN', 'USER');
 
+-- Create document category enum
+CREATE TYPE document_category AS ENUM ('account', 'tax', 'registration');
+
+-- Create fund status enum
+CREATE TYPE fund_status AS ENUM ('ready', 'processing', 'applied', 'active', 'closing', 'closed');
+
 -- profiles 테이블 생성 (전화번호를 unique key로)
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -29,11 +35,39 @@ CREATE INDEX IF NOT EXISTS idx_profiles_email ON profiles(email);
 -- role 컬럼에 인덱스 생성 (admin 권한 확인 성능 향상)
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
 
+-- documents 테이블 생성 (펀드 문서 관리 및 히스토리)
+CREATE TABLE IF NOT EXISTS documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  fund_id UUID REFERENCES funds(id) ON DELETE CASCADE NOT NULL,
+  category document_category NOT NULL,
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_url TEXT NOT NULL,
+  uploaded_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- documents에 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_documents_fund_id ON documents(fund_id);
+CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);
+CREATE INDEX IF NOT EXISTS idx_documents_fund_category ON documents(fund_id, category);
+CREATE INDEX IF NOT EXISTS idx_documents_uploaded_by ON documents(uploaded_by);
+
 -- funds 테이블 생성
 CREATE TABLE IF NOT EXISTS funds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  abbreviation TEXT,
+  tax_number TEXT,
+  gp_id UUID[],
+  address TEXT,
+  status fund_status DEFAULT 'ready' NOT NULL,
+  account TEXT,
+  account_bank TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- fund_members 테이블 생성
@@ -51,6 +85,10 @@ CREATE TABLE IF NOT EXISTS fund_members (
 
 -- fund_members에 복합 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_fund_members_fund_profile ON fund_members(fund_id, profile_id);
+
+-- funds 테이블 인덱스 생성
+CREATE INDEX IF NOT EXISTS idx_funds_status ON funds(status);
+CREATE INDEX IF NOT EXISTS idx_funds_gp_id ON funds USING gin(gp_id);
 
 -- updated_at 자동 업데이트 함수
 CREATE OR REPLACE FUNCTION update_updated_at()
@@ -70,6 +108,18 @@ CREATE TRIGGER update_profiles_updated_at
 -- fund_members 테이블 트리거
 CREATE TRIGGER update_fund_members_updated_at
   BEFORE UPDATE ON fund_members
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- funds 테이블 트리거
+CREATE TRIGGER update_funds_updated_at
+  BEFORE UPDATE ON funds
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at();
+
+-- documents 테이블 트리거
+CREATE TRIGGER update_documents_updated_at
+  BEFORE UPDATE ON documents
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at();
 

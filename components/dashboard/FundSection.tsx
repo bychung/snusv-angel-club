@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import type { FundMember } from '@/types/database';
-import { Building, Calendar, DollarSign, Edit2, Save, TrendingUp, X } from 'lucide-react';
+import { Building, Calendar, Edit2, Save, TrendingUp, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import FundDetailCard from './FundDetailCard';
 
 interface FundMemberWithFund extends FundMember {
   funds: {
@@ -156,6 +157,32 @@ export default function FundSection() {
         {fundInfos.map(fund => {
           const isEditing = editingFundId === fund.id;
 
+          // 편집 중이 아닐 때는 새로운 상세 카드 사용
+          if (!isEditing) {
+            return (
+              <div key={fund.id} className="relative">
+                <FundDetailCard
+                  fundId={fund.funds.id}
+                  fundName={fund.funds?.name || '펀드명 불명'}
+                  investmentInfo={{
+                    units: fund.investment_units,
+                    amount: fund.total_amount,
+                  }}
+                />
+                {/* 편집 버튼을 카드 위에 오버레이 */}
+                <Button
+                  onClick={() => handleEdit(fund)}
+                  variant="outline"
+                  size="sm"
+                  className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm hover:bg-white"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              </div>
+            );
+          }
+
+          // 편집 중일 때는 기존의 간단한 편집 카드 사용
           return (
             <Card key={fund.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
@@ -171,25 +198,19 @@ export default function FundSection() {
                         {fund.funds?.name || '펀드명 불명'}
                       </CardTitle>
                       <CardDescription className="text-sm text-gray-500">
-                        내 출자 정보
+                        출자 정보 수정 중
                       </CardDescription>
                     </div>
                   </div>
 
-                  {!isEditing ? (
-                    <Button onClick={() => handleEdit(fund)} variant="outline" size="sm">
-                      <Edit2 className="h-4 w-4" />
+                  <div className="flex gap-1">
+                    <Button onClick={handleSave} size="sm">
+                      <Save className="h-4 w-4" />
                     </Button>
-                  ) : (
-                    <div className="flex gap-1">
-                      <Button onClick={handleSave} size="sm">
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button onClick={handleCancel} variant="outline" size="sm">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                    <Button onClick={handleCancel} variant="outline" size="sm">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
 
@@ -198,30 +219,23 @@ export default function FundSection() {
                   {/* 출자 금액 */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4 text-gray-500" />
                       <span className="text-sm font-medium text-gray-700">출자금액</span>
                     </div>
                     <span className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(isEditing ? editUnits : fund.investment_units)}
+                      {formatCurrency(editUnits)}
                     </span>
                   </div>
 
                   {/* 출자좌수 */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">출자좌수</span>
-                    {isEditing ? (
-                      <Input
-                        type="number"
-                        value={editUnits}
-                        onChange={e => setEditUnits(Number(e.target.value))}
-                        className="w-20 h-8 text-sm text-right"
-                        min="1"
-                      />
-                    ) : (
-                      <span className="text-sm font-semibold text-gray-900">
-                        {fund.investment_units.toLocaleString()}좌
-                      </span>
-                    )}
+                    <Input
+                      type="number"
+                      value={editUnits}
+                      onChange={e => setEditUnits(Number(e.target.value))}
+                      className="w-24 h-8 text-sm text-right"
+                      min="1"
+                    />
                   </div>
 
                   {/* 출자 일시 */}
@@ -232,10 +246,6 @@ export default function FundSection() {
                         <span>출자일</span>
                       </div>
                       <span>{new Date(fund.created_at).toLocaleDateString('ko-KR')}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
-                      <span>최종수정</span>
-                      <span>{new Date(fund.updated_at).toLocaleDateString('ko-KR')}</span>
                     </div>
                   </div>
 

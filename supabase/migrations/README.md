@@ -9,6 +9,10 @@
 - `003_add_fund_abbreviation.sql` - 펀드 약칭 컬럼 추가
 - `004_check_email_duplicates_before_migration.sql` - email 중복 체크 (005 실행 전 안전장치)
 - `005_change_unique_constraint_to_email.sql` - profiles 테이블의 unique constraint를 phone에서 email로 변경
+- `006_add_role_to_profiles.sql` - 사용자 역할(role) 관리 기능 추가
+- `007_create_signup_inquiries.sql` - 가입 문의 테이블 생성
+- `008_create_profile_permissions.sql` - 프로필 권한 관리 테이블 생성
+- `009_expand_funds_table.sql` - 펀드 테이블 확장 및 문서 관리 시스템 추가
 
 ## 마이그레이션 실행
 

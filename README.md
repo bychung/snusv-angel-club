@@ -49,7 +49,7 @@ npm install
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-SUPABASE_SERVICE_KEY=your_supabase_service_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key_here
 ```
 
 ### 3. Supabase 데이터베이스 설정

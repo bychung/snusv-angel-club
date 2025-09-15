@@ -47,7 +47,15 @@ export default async function FundDetailPage({ params, searchParams }: FundDetai
                 펀드 목록으로
               </Button>
             </Link>
-            <FundExportModal fundId={fundId} fundName={fund.name} />
+            <div className="flex items-center gap-2">
+              <Link href={`/admin/funds/${fundId}/manage`}>
+                <Button variant="outline" size="sm">
+                  <Building className="h-4 w-4 mr-1" />
+                  펀드 상세 관리
+                </Button>
+              </Link>
+              <FundExportModal fundId={fundId} fundName={fund.name} />
+            </div>
           </div>
 
           <div className="flex items-start gap-4">
