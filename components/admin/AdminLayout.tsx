@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import {
   BarChart3,
   Building,
+  Home,
   LogOut,
   Mail,
   MessageSquare,
@@ -155,9 +156,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </nav>
           </div>
 
-          {/* 사용자 정보 */}
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-            <div className="flex items-center w-full">
+          {/* 하단 액션 버튼들 */}
+          <div className="flex-shrink-0 border-t border-gray-200">
+            {/* 대시보드로 이동 버튼 */}
+            <div className="p-2">
+              <Link href="/dashboard">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  대시보드로 이동
+                </Button>
+              </Link>
+            </div>
+
+            {/* 사용자 정보 */}
+            <div className="flex items-center p-4">
               <Avatar className="h-8 w-8">
                 <AvatarFallback>
                   <Shield className="h-4 w-4" />
