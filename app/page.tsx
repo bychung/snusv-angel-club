@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useAuthStore } from '@/store/authStore';
 import {
   ChevronRight,
   ExternalLink,
@@ -230,6 +231,9 @@ export default function HomePage() {
   const [isIRModalOpen, setIsIRModalOpen] = useState(false);
   const [isAngelModalOpen, setIsAngelModalOpen] = useState(false);
 
+  // 인증 상태 가져오기
+  const { user } = useAuthStore();
+
   const menuItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'members', label: 'Members', icon: Users },
@@ -272,7 +276,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white overflow-x-hidden">
       <BlynxLabChatWidget slug="3um3" />
-      {/* Login Button - Top Right */}
+      {/* Login/Dashboard Button - Top Right */}
       <div
         className={`fixed top-1 right-3 z-50 transition-all duration-500 ease-in-out ${
           scrollY > 100
@@ -280,13 +284,13 @@ export default function HomePage() {
             : 'opacity-100 translate-y-0'
         }`}
       >
-        <Link href="/login">
+        <Link href={user ? '/dashboard' : '/login'}>
           <Button
             variant="outline"
             size="sm"
             className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm shadow-lg text-xs px-3 py-1.5"
           >
-            로그인
+            {user ? '대시보드' : '로그인'}
           </Button>
         </Link>
       </div>
