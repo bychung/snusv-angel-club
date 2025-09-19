@@ -1,13 +1,8 @@
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { FundWithStats } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
+import { formatRegisteredDate } from '@/lib/utils';
 import { Building, Settings, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import FundActions from './FundActions';
@@ -109,30 +104,22 @@ export default function FundTable({ funds }: FundTableProps) {
           <Card key={fund.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 flex-1">
                   <div className="flex-shrink-0">
                     <div className="h-12 w-12 bg-indigo-100 rounded-lg flex items-center justify-center">
                       <Building className="h-6 w-6 text-indigo-600" />
                     </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900">
-                      {fund.name}
-                    </CardTitle>
-                    <CardDescription className="text-sm text-gray-500 flex items-center gap-2 mb-2">
+                  <div className="flex-1">
+                    <div className="text-lg font-semibold text-gray-900 flex justify-between items-baseline">
+                      <span>{fund.name}</span>
                       {fund.registered_at && (
-                        <span>등록일: {formatDate(fund.registered_at)}</span>
+                        <span className="text-xs text-gray-500 font-normal">
+                          {formatRegisteredDate(fund.registered_at)}
+                        </span>
                       )}
-                      {fund.abbreviation && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs bg-blue-100 text-blue-800"
-                        >
-                          {fund.abbreviation}
-                        </Badge>
-                      )}
-                    </CardDescription>
-                    <div className="flex items-center gap-2">
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
                       <Badge
                         className={
                           FUND_STATUS_CONFIG[fund.status as FundStatus]
@@ -142,6 +129,14 @@ export default function FundTable({ funds }: FundTableProps) {
                         {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
                           fund.status}
                       </Badge>
+                      {fund.abbreviation && (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-blue-100 text-blue-800"
+                        >
+                          {fund.abbreviation}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>

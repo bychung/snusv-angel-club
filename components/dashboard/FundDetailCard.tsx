@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
+import { formatRegisteredDate } from '@/lib/utils';
 import { DOCUMENT_CATEGORY_NAMES, DocumentCategory } from '@/types/documents';
 import {
   CheckCircle,
@@ -67,14 +68,6 @@ export default function FundDetailCard({
       month: 'short',
       day: 'numeric',
     });
-  };
-
-  const formatRegisteredDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const year = date.getFullYear().toString().slice(-2);
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}.${month}.${day} 등록`;
   };
 
   const handleDocumentDownload = async (category: string) => {
