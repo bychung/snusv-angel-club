@@ -22,6 +22,104 @@ import TextInput from './inputs/TextInput';
 import SurveyNavigation from './SurveyNavigation';
 import SurveyProgress from './SurveyProgress';
 
+// 만료된 출자 의향 설문조사 페이지 컴포넌트
+function ExpiredSurveyPage({
+  fundName,
+  expiredFundId,
+}: {
+  fundName: string | null;
+  expiredFundId: string | null;
+}) {
+  const router = useRouter();
+  const [countdown, setCountdown] = useState(5);
+  const store = useSurveyStore();
+
+  useEffect(() => {
+    // 5초 카운트다운 후 홈으로 이동
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // 만료된 특정 펀드의 설문 데이터만 삭제
+          if (expiredFundId) {
+            store.clearLocalStorage(expiredFundId);
+            // 현재 활성 펀드가 만료된 펀드와 같은 경우에만 activeFundId 초기화
+            if (store.activeFundId === expiredFundId) {
+              store.setActiveFundId(null);
+            }
+          }
+          // 홈페이지로 이동
+          router.push('/');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [router, store, expiredFundId]);
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+      <div className="container max-w-2xl mx-auto px-4">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl text-orange-600">
+              만료된 출자 의향 조사입니다
+            </CardTitle>
+            <CardDescription className="mt-4">
+              {fundName ? (
+                <>
+                  <b>{fundName}</b>에 대한 출자 의향 조사 기간이 종료되었습니다.
+                </>
+              ) : (
+                '이 출자 의향 조사 기간이 종료되었습니다.'
+              )}
+              <br />더 이상 설문조사에 참여하실 수 없습니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <p className="text-orange-800 font-medium">
+                출자 의향 조사가 종료되어 접근이 제한됩니다.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="text-lg font-semibold text-gray-700">
+                {countdown}초 후 홈페이지로 이동합니다...
+              </div>
+
+              <div className="flex justify-center space-x-2">
+                <Button
+                  onClick={() => {
+                    // 만료된 특정 펀드의 설문 데이터만 삭제
+                    if (expiredFundId) {
+                      store.clearLocalStorage(expiredFundId);
+                      // 현재 활성 펀드가 만료된 펀드와 같은 경우에만 activeFundId 초기화
+                      if (store.activeFundId === expiredFundId) {
+                        store.setActiveFundId(null);
+                      }
+                    }
+                    router.push('/');
+                  }}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  지금 홈으로 이동
+                </Button>
+              </div>
+
+              <div className="text-sm text-gray-500">
+                다른 출자 기회에 대한 정보는 홈페이지에서 확인하실 수 있습니다.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,13 +141,17 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   // 설문조사 완료 상태 확인
   const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
 
+  // 펀드 상태 확인 (만료된 설문조사인지 체크)
+  const [fundStatus, setFundStatus] = useState<string | null>(null);
+  const [isFundSurveyExpired, setIsFundSurveyExpired] = useState(false);
+
   // 펀드 정보 조회
   const fetchFundInfo = async (fundIdToFetch: string) => {
     try {
       const supabase = createClient();
       const { data: fund, error } = await supabase
         .from('funds')
-        .select('name')
+        .select('name, status')
         .eq('id', fundIdToFetch)
         .single();
 
@@ -58,17 +160,25 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         // 펀드가 존재하지 않더라도 계속 진행하도록 설정
         if (error.code === 'PGRST116') {
           store.setFundId(fundIdToFetch, '알 수 없는 펀드');
+          setIsFundSurveyExpired(true); // 존재하지 않는 펀드도 만료로 처리
         }
         return;
       }
 
       if (fund) {
         store.setFundId(fundIdToFetch, fund.name);
+        setFundStatus(fund.status);
+
+        // fund status가 ready 또는 processing이 아닌 경우 만료된 것으로 처리
+        const isExpired =
+          fund.status !== 'ready' && fund.status !== 'processing';
+        setIsFundSurveyExpired(isExpired);
       }
     } catch (error) {
       console.error('펀드 정보 조회 중 오류:', error);
       // 오류가 발생해도 기본값으로 진행
       store.setFundId(fundIdToFetch, '알 수 없는 펀드');
+      setIsFundSurveyExpired(true); // 오류 발생 시도 만료로 처리
     }
   };
 
@@ -623,6 +733,13 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         return null;
     }
   };
+
+  // 만료된 출자 의향 설문조사에 대한 안내 페이지
+  if (isFundSurveyExpired) {
+    return (
+      <ExpiredSurveyPage fundName={fundName} expiredFundId={activeFundId} />
+    );
+  }
 
   // 이미 제출된 설문조사에 대한 안내 페이지
   if (isAlreadySubmitted && !isLoggedInUser) {

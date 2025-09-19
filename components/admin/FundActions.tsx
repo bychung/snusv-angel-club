@@ -40,6 +40,14 @@ export default function FundActions({ fund }: FundActionsProps) {
     }
   };
 
+  // fund status가 ready 또는 processing이 아닌 경우 출자 의향 설문 링크 복사 버튼 숨기기
+  const canShowSurveyLink =
+    fund.status === 'ready' || fund.status === 'processing';
+
+  if (!canShowSurveyLink) {
+    return null;
+  }
+
   return (
     <Button
       variant="outline"
