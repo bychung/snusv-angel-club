@@ -83,7 +83,7 @@ export async function POST(
     }
 
     // 파일 검증
-    const validation = validateFile(file);
+    const validation = validateFile(file, 30 * 1024 * 1024); // admin용 30MB
     if (!validation.valid) {
       return Response.json({ error: validation.error }, { status: 400 });
     }

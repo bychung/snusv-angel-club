@@ -43,8 +43,8 @@ export default function DocumentUpload({
 
       const file = files[0]; // 한 번에 하나의 파일만 업로드
 
-      // 파일 검증
-      const maxSize = 10 * 1024 * 1024; // 10MB
+      // 파일 검증 (관리자용 - 30MB)
+      const maxSize = 30 * 1024 * 1024; // 30MB
       const allowedTypes = [
         'application/pdf',
         'image/jpeg',
@@ -221,7 +221,7 @@ export default function DocumentUpload({
                         : '파일을 드래그하거나 클릭하여 선택'}
                     </p>
                     <p className="text-sm text-gray-500">
-                      지원 형식: PDF, JPEG, PNG, WebP (최대 10MB)
+                      지원 형식: PDF, JPEG, PNG, WebP (최대 30MB)
                     </p>
                   </div>
                   <Button variant="outline" className="mt-4">

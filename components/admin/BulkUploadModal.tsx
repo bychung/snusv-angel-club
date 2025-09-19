@@ -111,9 +111,9 @@ export default function BulkUploadModal({
       return;
     }
 
-    // 파일 크기 검증 (10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('파일 크기는 10MB 이하여야 합니다.');
+    // 파일 크기 검증 (30MB)
+    if (file.size > 30 * 1024 * 1024) {
+      setError('파일 크기는 30MB 이하여야 합니다.');
       return;
     }
 
@@ -335,7 +335,7 @@ export default function BulkUploadModal({
                       </label>
                     </div>
                     <p className="text-sm text-gray-500">
-                      지원 형식: .xlsx, .xls (최대 10MB, 1,000행)
+                      지원 형식: .xlsx, .xls (최대 30MB, 1,000행)
                     </p>
                   </div>
                 )}
