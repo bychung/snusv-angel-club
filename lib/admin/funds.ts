@@ -21,12 +21,11 @@ export interface DocumentStatus {
 }
 
 export interface FundDetailsResponse {
-  fund: Fund & { gp_info: FundMemberInfo[] };
+  fund: Fund & { gp_info: FundMemberInfo[]; totalInvestment: number };
   documents_status: {
-    account: DocumentStatus;
-    tax: DocumentStatus;
-    registration: DocumentStatus;
     agreement: DocumentStatus;
+    tax: DocumentStatus;
+    account: DocumentStatus;
   };
   user_permission: 'user' | 'admin';
 }
@@ -124,7 +123,16 @@ export async function getFundDetails(
       })) || [];
   }
 
-  // 3. 사용자가 해당 펀드에 참여하는지 확인
+  // 3. 펀드 멤버 정보 조회 (전체 결성 금액 계산용)
+  const { data: fundMembers } = await supabase
+    .from('fund_members')
+    .select('total_amount')
+    .eq('fund_id', fundId);
+
+  const totalInvestment =
+    fundMembers?.reduce((sum, member) => sum + member.total_amount, 0) || 0;
+
+  // 4. 사용자가 해당 펀드에 참여하는지 확인
   let isParticipant = false;
   if (userId && !isAdmin) {
     const { data: userProfile } = await supabase
@@ -144,13 +152,8 @@ export async function getFundDetails(
     }
   }
 
-  // 4. 문서 상태 조회
-  const documentCategories = [
-    'account',
-    'tax',
-    'registration',
-    'agreement',
-  ] as const;
+  // 5. 문서 상태 조회
+  const documentCategories = ['agreement', 'tax', 'account'] as const;
   const documents_status = {} as FundDetailsResponse['documents_status'];
 
   for (const category of documentCategories) {
@@ -174,7 +177,7 @@ export async function getFundDetails(
   }
 
   return {
-    fund: { ...fund, gp_info },
+    fund: { ...fund, gp_info, totalInvestment },
     documents_status,
     user_permission: isAdmin ? 'admin' : 'user',
   };

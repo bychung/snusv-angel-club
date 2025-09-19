@@ -40,7 +40,7 @@ export interface FundMember {
 export interface Document {
   id: string;
   fund_id: string;
-  category: 'account' | 'tax' | 'registration' | 'agreement';
+  category: 'agreement' | 'tax' | 'account';
   file_name: string;
   file_type: string;
   file_size: number;

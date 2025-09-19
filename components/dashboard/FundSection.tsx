@@ -9,6 +9,8 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import type { FundDetailsResponse } from '@/lib/admin/funds';
+import type { FundStatus } from '@/lib/fund-status';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import type { FundMember } from '@/types/database';
@@ -26,6 +28,9 @@ interface FundMemberWithFund extends FundMember {
 export default function FundSection() {
   const { profile, isLoading: authLoading } = useAuthStore();
   const [fundInfos, setFundInfos] = useState<FundMemberWithFund[]>([]);
+  const [fundStatuses, setFundStatuses] = useState<Record<string, FundStatus>>(
+    {}
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [editingFundId, setEditingFundId] = useState<string | null>(null);
   const [editUnits, setEditUnits] = useState(0);
@@ -60,7 +65,33 @@ export default function FundSection() {
         throw error;
       }
 
-      setFundInfos(data || []);
+      const fundInfosData = data || [];
+      setFundInfos(fundInfosData);
+
+      // 각 펀드의 상태 정보를 가져오기
+      const statusPromises = fundInfosData.map(async fund => {
+        try {
+          const response = await fetch(`/api/funds/${fund.funds.id}/details`);
+          if (response.ok) {
+            const fundDetails: FundDetailsResponse = await response.json();
+            return {
+              fundId: fund.funds.id,
+              status: fundDetails.fund.status as FundStatus,
+            };
+          }
+        } catch (error) {
+          console.error(`펀드 ${fund.funds.id} 상태 조회 실패:`, error);
+        }
+        return { fundId: fund.funds.id, status: 'ready' as FundStatus }; // 기본값
+      });
+
+      const statusResults = await Promise.all(statusPromises);
+      const statusMap = statusResults.reduce((acc, { fundId, status }) => {
+        acc[fundId] = status;
+        return acc;
+      }, {} as Record<string, FundStatus>);
+
+      setFundStatuses(statusMap);
     } catch (error) {
       console.error('펀드 정보 조회 실패:', error);
     } finally {
@@ -166,6 +197,8 @@ export default function FundSection() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {fundInfos.map(fund => {
           const isEditing = editingFundId === fund.id;
+          const fundStatus = fundStatuses[fund.funds.id];
+          const canEdit = fundStatus === 'ready' || fundStatus === 'processing';
 
           // 편집 중이 아닐 때는 새로운 상세 카드 사용
           if (!isEditing) {
@@ -179,15 +212,17 @@ export default function FundSection() {
                     amount: fund.total_amount,
                   }}
                 />
-                {/* 편집 버튼을 카드 위에 오버레이 */}
-                <Button
-                  onClick={() => handleEdit(fund)}
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm hover:bg-white"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </Button>
+                {/* 편집 버튼을 카드 위에 오버레이 - ready 또는 processing 상태일 때만 표시 */}
+                {canEdit && (
+                  <Button
+                    onClick={() => handleEdit(fund)}
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm hover:bg-white"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             );
           }

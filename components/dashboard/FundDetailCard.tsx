@@ -1,7 +1,6 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
@@ -13,7 +12,6 @@ import {
   Download,
   FileText,
   Hash,
-  MapPin,
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -141,28 +139,21 @@ export default function FundDetailCard({
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-3">
+      <CardHeader>
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
+          <div className="flex items-center gap-2">
             <CardTitle className="text-lg font-semibold text-gray-900">
               {fundName}
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  FUND_STATUS_CONFIG[fund.status as FundStatus]?.badgeVariant ||
-                  'secondary'
-                }
-              >
-                {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
-                  fund.status}
-              </Badge>
-              {fund.abbreviation && (
-                <span className="text-sm text-gray-500">
-                  ({fund.abbreviation})
-                </span>
-              )}
-            </div>
+            <Badge
+              variant={
+                FUND_STATUS_CONFIG[fund.status as FundStatus]?.badgeVariant ||
+                'secondary'
+              }
+            >
+              {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
+                fund.status}
+            </Badge>
           </div>
         </div>
       </CardHeader>
@@ -184,23 +175,40 @@ export default function FundDetailCard({
                 {investmentInfo.amount.toLocaleString()}원
               </span>
             </div>
+            {fund.status !== 'ready' && (
+              <>
+                {' '}
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-700">
+                    {fund.status === 'processing'
+                      ? '예상 결성 금액'
+                      : '전체 결성 금액'}
+                  </span>
+                  <span className="font-mono font-medium">
+                    {fund.totalInvestment.toLocaleString()}원
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-700">
+                    {fund.status === 'processing'
+                      ? '예상 출자지분율'
+                      : '출자지분율'}
+                  </span>
+                  <span className="font-mono font-medium">
+                    {(
+                      (investmentInfo.amount / fund.totalInvestment) *
+                      100
+                    ).toFixed(2)}
+                    %
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* 펀드 기본 정보 */}
-        <div className="space-y-3">
-          {fund.address && (
-            <div className="flex items-start gap-3">
-              <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-600">펀드 소재지</p>
-                <p className="text-sm font-medium text-gray-900 break-all">
-                  {fund.address}
-                </p>
-              </div>
-            </div>
-          )}
-
+        <div className="grid grid-cols-2 gap-4">
           {fund.gp_info && fund.gp_info.length > 0 && (
             <div className="flex items-start gap-3">
               <Users className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
@@ -212,7 +220,6 @@ export default function FundDetailCard({
               </div>
             </div>
           )}
-
           {fund.tax_number && (
             <div className="flex items-start gap-3">
               <Hash className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
@@ -224,9 +231,8 @@ export default function FundDetailCard({
               </div>
             </div>
           )}
-
           {fund.account && (
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 col-span-2">
               <CreditCard className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-600">계좌 정보</p>
@@ -238,74 +244,83 @@ export default function FundDetailCard({
           )}
         </div>
 
-        <Separator />
-
         {/* 관련 문서 */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-gray-400" />
-            <h4 className="font-medium text-gray-900">관련 문서</h4>
-          </div>
+        {fund.status !== 'ready' && (
+          <>
+            <Separator />
 
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries(documents_status).map(([category, status]) => {
-              const categoryNames = {
-                account: '계좌사본',
-                tax: '고유번호증',
-                registration: '등록원부',
-                agreement: '계약서',
-              };
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-gray-400" />
+                <h4 className="font-medium text-gray-900">관련 문서</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(documents_status).map(([category, status]) => {
+                  const categoryNames = {
+                    agreement: '규약',
+                    tax: '고유번호증',
+                    account: '계좌사본',
+                  };
 
-              const categoryName =
-                categoryNames[category as keyof typeof categoryNames];
+                  const categoryName =
+                    categoryNames[category as keyof typeof categoryNames];
 
-              return (
-                <div
-                  key={category}
-                  className={`p-3 rounded-lg border ${
-                    status.exists
-                      ? 'border-green-200 bg-green-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    {status.exists ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Clock className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span className="text-sm font-medium text-gray-900">
-                      {categoryName}
-                    </span>
-                  </div>
+                  const isDownloadable = status.exists && status.downloadable;
 
-                  {status.exists ? (
-                    <div className="space-y-1">
-                      <p className="text-xs text-green-700">
-                        {status.latest_upload &&
-                          formatDate(status.latest_upload)}{' '}
-                        업로드
-                      </p>
-                      {status.downloadable && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-xs px-2 text-green-700 hover:text-green-800"
-                          onClick={() => handleDocumentDownload(category)}
-                        >
-                          <Download className="h-3 w-3 mr-1" />
-                          다운로드
-                        </Button>
+                  return (
+                    <button
+                      key={category}
+                      onClick={
+                        isDownloadable
+                          ? () => handleDocumentDownload(category)
+                          : undefined
+                      }
+                      disabled={!isDownloadable}
+                      className={`py-1 px-3 rounded-lg border text-left transition-all min-h-14 ${
+                        status.exists
+                          ? 'border-green-200 bg-green-50'
+                          : 'border-gray-200 bg-gray-50'
+                      } ${
+                        isDownloadable
+                          ? 'hover:bg-green-100 cursor-pointer'
+                          : 'cursor-default'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {status.exists ? (
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Clock className="h-4 w-4 text-gray-400" />
+                          )}
+                          <span
+                            className={`text-sm font-medium ${
+                              isDownloadable
+                                ? 'text-gray-900'
+                                : status.exists
+                                ? 'text-gray-700'
+                                : 'text-gray-500'
+                            }`}
+                          >
+                            {categoryName}
+                          </span>
+                        </div>
+                        {isDownloadable && (
+                          <Download className="h-4 w-4 text-green-600" />
+                        )}
+                      </div>
+                      {!status.exists && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          업로드 대기중
+                        </p>
                       )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-500">업로드 대기중</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

@@ -33,10 +33,10 @@ interface FundDetailManagerProps {
 const statusOptions = getFundStatusOptions();
 
 const documentCategories = [
-  { key: 'account', name: '계좌사본', description: '펀드 계좌 사본' },
-  { key: 'tax', name: '고유번호증', description: '사업자 고유번호증' },
-  { key: 'registration', name: '등록원부', description: '펀드 등록원부' },
   { key: 'agreement', name: '계약서', description: '조합원 계약서' },
+  { key: 'tax', name: '고유번호증', description: '사업자 고유번호증' },
+  { key: 'account', name: '계좌사본', description: '펀드 계좌 사본' },
+  { key: 'registration', name: '등록원부', description: '펀드 등록원부' },
 ] as const;
 
 export default function FundDetailManager({ fundId }: FundDetailManagerProps) {

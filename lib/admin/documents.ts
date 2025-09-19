@@ -151,13 +151,13 @@ export async function deleteDocument(documentId: string): Promise<void> {
  * 특정 펀드의 모든 카테고리별 최신 문서 상태 조회
  */
 export async function getFundDocumentStatus(fundId: string): Promise<{
-  [key in 'account' | 'tax' | 'registration' | 'agreement']: {
+  [key in 'agreement' | 'tax' | 'account']: {
     exists: boolean;
     latest_document?: DocumentWithUploader;
     document_count: number;
   };
 }> {
-  const categories = ['account', 'tax', 'registration', 'agreement'] as const;
+  const categories = ['agreement', 'tax', 'account'] as const;
   const result = {} as any;
 
   for (const category of categories) {
@@ -177,7 +177,7 @@ export async function getFundDocumentStatus(fundId: string): Promise<{
  * 문서 다운로드 권한 확인
  */
 export function canDownloadDocument(
-  category: 'account' | 'tax' | 'registration' | 'agreement',
+  category: 'agreement' | 'tax' | 'account',
   userRole: string,
   isParticipant: boolean
 ): boolean {
