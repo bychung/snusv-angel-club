@@ -146,9 +146,9 @@ export default function FundDetailCard({
               {fundName}
             </CardTitle>
             <Badge
-              variant={
-                FUND_STATUS_CONFIG[fund.status as FundStatus]?.badgeVariant ||
-                'secondary'
+              className={
+                FUND_STATUS_CONFIG[fund.status as FundStatus]?.colorClasses ||
+                'bg-gray-100 text-gray-800'
               }
             >
               {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||

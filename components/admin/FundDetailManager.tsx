@@ -176,8 +176,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           </h1>
           <div className="flex items-center gap-2 mt-2">
             <Badge
-              variant={
-                FUND_STATUS_CONFIG[formData.status]?.badgeVariant || 'secondary'
+              className={
+                FUND_STATUS_CONFIG[formData.status]?.colorClasses ||
+                'bg-gray-100 text-gray-800'
               }
             >
               {FUND_STATUS_CONFIG[formData.status]?.label || formData.status}

@@ -132,9 +132,9 @@ export default function FundTable({ funds }: FundTableProps) {
                     </CardDescription>
                     <div className="flex items-center gap-2">
                       <Badge
-                        variant={
+                        className={
                           FUND_STATUS_CONFIG[fund.status as FundStatus]
-                            ?.badgeVariant || 'secondary'
+                            ?.colorClasses || 'bg-gray-100 text-gray-800'
                         }
                       >
                         {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
