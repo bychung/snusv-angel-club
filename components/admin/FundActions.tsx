@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FundWithStats } from '@/lib/admin/funds';
+import { canShowSurveyLink } from '@/lib/fund-status';
 import { createClient } from '@/lib/supabase/client';
 import { Check, Link2, Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -40,11 +41,8 @@ export default function FundActions({ fund }: FundActionsProps) {
     }
   };
 
-  // fund status가 ready 또는 processing이 아닌 경우 출자 의향 설문 링크 복사 버튼 숨기기
-  const canShowSurveyLink =
-    fund.status === 'ready' || fund.status === 'processing';
-
-  if (!canShowSurveyLink) {
+  // 통일된 함수를 사용하여 설문 링크 표시 여부 결정
+  if (!canShowSurveyLink(fund.status)) {
     return null;
   }
 

@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import type { FundWithStats } from '@/lib/admin/funds';
+import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
 import { Building, Settings, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import FundActions from './FundActions';
@@ -118,7 +119,7 @@ export default function FundTable({ funds }: FundTableProps) {
                     <CardTitle className="text-lg font-semibold text-gray-900">
                       {fund.name}
                     </CardTitle>
-                    <CardDescription className="text-sm text-gray-500 flex items-center gap-2">
+                    <CardDescription className="text-sm text-gray-500 flex items-center gap-2 mb-2">
                       <span>등록일: {formatDate(fund.created_at)}</span>
                       {fund.abbreviation && (
                         <Badge
@@ -129,6 +130,17 @@ export default function FundTable({ funds }: FundTableProps) {
                         </Badge>
                       )}
                     </CardDescription>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={
+                          FUND_STATUS_CONFIG[fund.status as FundStatus]
+                            ?.badgeVariant || 'secondary'
+                        }
+                      >
+                        {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
+                          fund.status}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
+import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
 import {
   CheckCircle,
   Clock,
@@ -60,23 +61,6 @@ export default function FundDetailCard({
 
     fetchFundDetails();
   }, [fundId]);
-
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      ready: { label: '결성준비중', variant: 'secondary' as const },
-      processing: { label: '결성진행중', variant: 'default' as const },
-      applied: { label: '등록대기중', variant: 'outline' as const },
-      active: { label: '운용중', variant: 'default' as const },
-      closing: { label: '해산중', variant: 'destructive' as const },
-      closed: { label: '청산완료', variant: 'destructive' as const },
-    };
-
-    const statusInfo = statusMap[status as keyof typeof statusMap] || {
-      label: status,
-      variant: 'secondary' as const,
-    };
-    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
@@ -164,7 +148,15 @@ export default function FundDetailCard({
               {fundName}
             </CardTitle>
             <div className="flex items-center gap-2">
-              {getStatusBadge(fund.status)}
+              <Badge
+                variant={
+                  FUND_STATUS_CONFIG[fund.status as FundStatus]?.badgeVariant ||
+                  'secondary'
+                }
+              >
+                {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
+                  fund.status}
+              </Badge>
               {fund.abbreviation && (
                 <span className="text-sm text-gray-500">
                   ({fund.abbreviation})

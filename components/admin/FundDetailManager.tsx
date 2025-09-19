@@ -15,6 +15,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import type { FundDetailsResponse, FundMemberInfo } from '@/lib/admin/funds';
+import {
+  FUND_STATUS_CONFIG,
+  getFundStatusOptions,
+  type FundStatus,
+} from '@/lib/fund-status';
 import { Building2, FileText, RefreshCw, Save, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DocumentHistory from './DocumentHistory';
@@ -24,18 +29,8 @@ interface FundDetailManagerProps {
   fundId: string;
 }
 
-const statusOptions = [
-  { value: 'ready', label: '준비중', color: 'bg-gray-100 text-gray-800' },
-  { value: 'processing', label: '진행중', color: 'bg-blue-100 text-blue-800' },
-  {
-    value: 'applied',
-    label: '신청완료',
-    color: 'bg-yellow-100 text-yellow-800',
-  },
-  { value: 'active', label: '운용중', color: 'bg-green-100 text-green-800' },
-  { value: 'closing', label: '청산중', color: 'bg-orange-100 text-orange-800' },
-  { value: 'closed', label: '청산완료', color: 'bg-red-100 text-red-800' },
-];
+// 통일된 상태 시스템 사용
+const statusOptions = getFundStatusOptions();
 
 const documentCategories = [
   { key: 'account', name: '계좌사본', description: '펀드 계좌 사본' },
@@ -61,13 +56,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     tax_number: '',
     gp_id: [] as string[],
     address: '',
-    status: 'ready' as
-      | 'ready'
-      | 'processing'
-      | 'applied'
-      | 'active'
-      | 'closing'
-      | 'closed',
+    status: 'ready' as FundStatus,
     account: '',
     account_bank: '',
   });
@@ -177,10 +166,6 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
   if (!fundDetails) return null;
 
-  const currentStatus = statusOptions.find(
-    opt => opt.value === formData.status
-  );
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* 헤더 */}
@@ -190,8 +175,12 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
             {fundDetails.fund.name}
           </h1>
           <div className="flex items-center gap-2 mt-2">
-            <Badge variant="secondary" className={currentStatus?.color}>
-              {currentStatus?.label}
+            <Badge
+              variant={
+                FUND_STATUS_CONFIG[formData.status]?.badgeVariant || 'secondary'
+              }
+            >
+              {FUND_STATUS_CONFIG[formData.status]?.label || formData.status}
             </Badge>
             {fundDetails.fund.abbreviation && (
               <span className="text-sm text-gray-500">
@@ -280,6 +269,11 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                     <SelectContent>
                       {statusOptions.map(option => (
                         <SelectItem key={option.value} value={option.value}>
+                          <span
+                            className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                              option.colorClasses.split(' ')[0]
+                            }`}
+                          ></span>
                           {option.label}
                         </SelectItem>
                       ))}
