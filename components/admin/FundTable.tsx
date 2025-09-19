@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import type { FundWithStats } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
-import { formatRegisteredDate } from '@/lib/utils';
+import { calculateFundTerm, formatRegisteredDate } from '@/lib/utils';
 import { Building, Settings, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import FundActions from './FundActions';
@@ -129,6 +129,20 @@ export default function FundTable({ funds }: FundTableProps) {
                         {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
                           fund.status}
                       </Badge>
+                      {calculateFundTerm(
+                        fund.registered_at,
+                        fund.dissolved_at
+                      ) && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+                        >
+                          {calculateFundTerm(
+                            fund.registered_at,
+                            fund.dissolved_at
+                          )}
+                        </Badge>
+                      )}
                       {fund.abbreviation && (
                         <Badge
                           variant="secondary"

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
-import { formatRegisteredDate } from '@/lib/utils';
+import { calculateFundTerm, formatRegisteredDate } from '@/lib/utils';
 import { DOCUMENT_CATEGORY_NAMES, DocumentCategory } from '@/types/documents';
 import {
   CheckCircle,
@@ -156,6 +156,14 @@ export default function FundDetailCard({
               {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
                 fund.status}
             </Badge>
+            {calculateFundTerm(fund.registered_at, fund.dissolved_at) && (
+              <Badge
+                variant="outline"
+                className="text-xs bg-orange-50 text-orange-700 border-orange-200"
+              >
+                {calculateFundTerm(fund.registered_at, fund.dissolved_at)}
+              </Badge>
+            )}
           </div>
           {fund.registered_at && (
             <span className="text-xs text-gray-500 ml-auto">

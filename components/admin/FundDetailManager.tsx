@@ -59,6 +59,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     account_bank: '',
     closed_at: '',
     registered_at: '',
+    dissolved_at: '',
   });
 
   // 데이터 초기 로드
@@ -98,6 +99,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           account_bank: fundData.fund.account_bank || '',
           closed_at: fundData.fund.closed_at || '',
           registered_at: fundData.fund.registered_at || '',
+          dissolved_at: fundData.fund.dissolved_at || '',
         });
       } catch (err) {
         setError(
@@ -320,7 +322,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="closed_at">결성일</Label>
                   <Input
@@ -356,6 +358,26 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                       handleInputChange('registered_at', value);
                     }}
                     placeholder="펀드 등록일을 선택하세요"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dissolved_at">만기일</Label>
+                  <Input
+                    id="dissolved_at"
+                    type="date"
+                    value={
+                      formData.dissolved_at
+                        ? formData.dissolved_at.split('T')[0]
+                        : ''
+                    }
+                    onChange={e => {
+                      const value = e.target.value
+                        ? `${e.target.value}T00:00:00.000Z`
+                        : '';
+                      handleInputChange('dissolved_at', value);
+                    }}
+                    placeholder="펀드 만기일을 선택하세요"
                   />
                 </div>
               </div>

@@ -46,6 +46,7 @@ export async function PUT(
       account_bank,
       closed_at,
       registered_at,
+      dissolved_at,
     } = requestBody;
 
     // status 값 검증
@@ -89,6 +90,7 @@ export async function PUT(
       account_bank,
       closed_at,
       registered_at,
+      dissolved_at,
     });
 
     return Response.json({

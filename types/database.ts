@@ -25,6 +25,7 @@ export interface Fund {
   account_bank?: string | null;
   closed_at?: string | null; // 결성일
   registered_at?: string | null; // 등록일
+  dissolved_at?: string | null; // 만기일
   created_at: string;
   updated_at: string;
 }

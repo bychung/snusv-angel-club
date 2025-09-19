@@ -245,6 +245,7 @@ export async function updateFundDetails(
     account_bank?: string;
     closed_at?: string;
     registered_at?: string;
+    dissolved_at?: string;
   }
 ): Promise<Fund> {
   const supabase = await createClient();
