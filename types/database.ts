@@ -37,10 +37,12 @@ export interface FundMember {
   updated_at: string;
 }
 
+import { DocumentCategory } from './documents';
+
 export interface Document {
   id: string;
   fund_id: string;
-  category: 'agreement' | 'tax' | 'account';
+  category: DocumentCategory;
   file_name: string;
   file_type: string;
   file_size: number;

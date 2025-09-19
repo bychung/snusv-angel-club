@@ -1,11 +1,14 @@
 import { isAdminServer } from '@/lib/auth/admin-server';
 import { createClient } from '@/lib/supabase/server';
+import { DocumentCategory, isValidDocumentCategory } from '@/types/documents';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ fundId: string; category: string }> }
+  {
+    params,
+  }: { params: Promise<{ fundId: string; category: DocumentCategory }> }
 ) {
   const { fundId, category } = await params;
 
@@ -21,8 +24,7 @@ export async function GET(
   }
 
   // 카테고리 검증
-  const validCategories = ['account', 'tax', 'registration', 'agreement'];
-  if (!validCategories.includes(category)) {
+  if (!isValidDocumentCategory(category)) {
     return Response.json(
       { error: '유효하지 않은 문서 카테고리입니다' },
       { status: 400 }
@@ -46,8 +48,11 @@ export async function GET(
 
     // 권한 확인: 관리자가 아닌 경우 특정 카테고리만 다운로드 가능
     if (!isAdmin) {
-      const downloadableCategories = ['account', 'agreement'];
-      if (!downloadableCategories.includes(category)) {
+      const downloadableCategories = [
+        DocumentCategory.ACCOUNT,
+        DocumentCategory.AGREEMENT,
+      ];
+      if (!downloadableCategories.includes(category as DocumentCategory)) {
         return Response.json(
           {
             error: '해당 문서를 다운로드할 권한이 없습니다',
@@ -166,7 +171,9 @@ export async function GET(
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': document.file_type,
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(document.file_name)}"`,
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(
+          document.file_name
+        )}"`,
         'Content-Length': buffer.byteLength.toString(),
       },
     });

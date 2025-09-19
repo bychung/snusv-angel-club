@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Fund } from '@/types/database';
+import { DocumentCategory } from '@/types/documents';
 
 export interface FundWithStats extends Fund {
   memberCount: number;
@@ -153,7 +154,11 @@ export async function getFundDetails(
   }
 
   // 5. 문서 상태 조회
-  const documentCategories = ['agreement', 'tax', 'account'] as const;
+  const documentCategories = [
+    DocumentCategory.AGREEMENT,
+    DocumentCategory.TAX,
+    DocumentCategory.ACCOUNT,
+  ] as const;
   const documents_status = {} as FundDetailsResponse['documents_status'];
 
   for (const category of documentCategories) {

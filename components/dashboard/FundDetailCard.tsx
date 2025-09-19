@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
+import { DOCUMENT_CATEGORY_NAMES, DocumentCategory } from '@/types/documents';
 import {
   CheckCircle,
   Clock,
@@ -256,14 +257,8 @@ export default function FundDetailCard({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(documents_status).map(([category, status]) => {
-                  const categoryNames = {
-                    agreement: '규약',
-                    tax: '고유번호증',
-                    account: '계좌사본',
-                  };
-
                   const categoryName =
-                    categoryNames[category as keyof typeof categoryNames];
+                    DOCUMENT_CATEGORY_NAMES[category as DocumentCategory];
 
                   const isDownloadable = status.exists && status.downloadable;
 

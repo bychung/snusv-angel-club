@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { formatFileSize } from '@/lib/storage/utils';
+import { DOCUMENT_CATEGORY_NAMES, DocumentCategory } from '@/types/documents';
 import {
   AlertTriangle,
   Calendar,
@@ -51,16 +52,9 @@ interface DocumentWithUploader {
 
 interface DocumentHistoryProps {
   fundId: string;
-  category: 'account' | 'tax' | 'registration' | 'agreement';
+  category: DocumentCategory;
   onDocumentDeleted: () => void;
 }
-
-const categoryNames = {
-  account: '계좌사본',
-  tax: '고유번호증',
-  registration: '등록원부',
-  agreement: '계약서',
-};
 
 const getFileTypeColor = (fileType: string) => {
   if (fileType.includes('pdf')) return 'text-red-600 bg-red-50';
@@ -190,7 +184,7 @@ export default function DocumentHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            {categoryNames[category]} 히스토리
+            {DOCUMENT_CATEGORY_NAMES[category]} 히스토리
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -209,7 +203,7 @@ export default function DocumentHistory({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            {categoryNames[category]} 히스토리
+            {DOCUMENT_CATEGORY_NAMES[category]} 히스토리
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -238,7 +232,7 @@ export default function DocumentHistory({
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              {categoryNames[category]} 히스토리
+              {DOCUMENT_CATEGORY_NAMES[category]} 히스토리
             </CardTitle>
             <CardDescription>
               {documents.length > 0
@@ -287,7 +281,9 @@ export default function DocumentHistory({
                       )}
                       <Badge
                         variant="outline"
-                        className={`text-xs ${getFileTypeColor(document.file_type)}`}
+                        className={`text-xs ${getFileTypeColor(
+                          document.file_type
+                        )}`}
                       >
                         {document.file_type.split('/')[1]?.toUpperCase() ||
                           'FILE'}

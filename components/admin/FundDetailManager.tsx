@@ -20,6 +20,11 @@ import {
   getFundStatusOptions,
   type FundStatus,
 } from '@/lib/fund-status';
+import {
+  DOCUMENT_CATEGORY_DESCRIPTIONS,
+  DOCUMENT_CATEGORY_NAMES,
+  DocumentCategory,
+} from '@/types/documents';
 import { Building2, FileText, RefreshCw, Save, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DocumentHistory from './DocumentHistory';
@@ -31,13 +36,6 @@ interface FundDetailManagerProps {
 
 // 통일된 상태 시스템 사용
 const statusOptions = getFundStatusOptions();
-
-const documentCategories = [
-  { key: 'agreement', name: '계약서', description: '조합원 계약서' },
-  { key: 'tax', name: '고유번호증', description: '사업자 고유번호증' },
-  { key: 'account', name: '계좌사본', description: '펀드 계좌 사본' },
-  { key: 'registration', name: '등록원부', description: '펀드 등록원부' },
-] as const;
 
 export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
   const [fundDetails, setFundDetails] = useState<FundDetailsResponse | null>(
@@ -375,27 +373,29 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
         {/* 문서 관리 탭 */}
         <TabsContent value="documents" className="space-y-6">
-          {documentCategories.map(category => (
-            <div key={category.key} className="space-y-4">
+          {Object.values(DocumentCategory).map(category => (
+            <div key={category} className="space-y-4">
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-gray-500" />
-                <h3 className="text-lg font-semibold">{category.name}</h3>
+                <h3 className="text-lg font-semibold">
+                  {DOCUMENT_CATEGORY_NAMES[category]}
+                </h3>
                 <span className="text-sm text-gray-500">
-                  - {category.description}
+                  - {DOCUMENT_CATEGORY_DESCRIPTIONS[category]}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DocumentUpload
                   fundId={fundId}
-                  category={category.key}
+                  category={category}
                   onUploadComplete={handleDocumentAction}
                   onUploadError={error => setError(error)}
                 />
 
                 <DocumentHistory
                   fundId={fundId}
-                  category={category.key}
+                  category={category}
                   onDocumentDeleted={handleDocumentAction}
                 />
               </div>

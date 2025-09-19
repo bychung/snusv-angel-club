@@ -1,6 +1,7 @@
 import { deleteFile, uploadFile } from '@/lib/storage/server';
 import { createClient } from '@/lib/supabase/server';
 import type { Document } from '@/types/database';
+import { DocumentCategory } from '@/types/documents';
 
 export interface DocumentWithUploader extends Document {
   uploader?: {
@@ -14,7 +15,7 @@ export interface DocumentWithUploader extends Document {
  */
 export async function getDocumentHistory(
   fundId: string,
-  category: 'account' | 'tax' | 'registration' | 'agreement'
+  category: DocumentCategory
 ): Promise<DocumentWithUploader[]> {
   const supabase = await createClient();
 
@@ -55,7 +56,7 @@ export async function getDocumentHistory(
 export async function uploadDocument(
   file: File,
   fundId: string,
-  category: 'account' | 'tax' | 'registration' | 'agreement',
+  category: DocumentCategory,
   uploadedBy: string // profile ID
 ): Promise<Document> {
   try {
@@ -151,13 +152,17 @@ export async function deleteDocument(documentId: string): Promise<void> {
  * 특정 펀드의 모든 카테고리별 최신 문서 상태 조회
  */
 export async function getFundDocumentStatus(fundId: string): Promise<{
-  [key in 'agreement' | 'tax' | 'account']: {
+  [key in DocumentCategory]: {
     exists: boolean;
     latest_document?: DocumentWithUploader;
     document_count: number;
   };
 }> {
-  const categories = ['agreement', 'tax', 'account'] as const;
+  const categories = [
+    DocumentCategory.AGREEMENT,
+    DocumentCategory.TAX,
+    DocumentCategory.ACCOUNT,
+  ] as const;
   const result = {} as any;
 
   for (const category of categories) {
@@ -177,7 +182,7 @@ export async function getFundDocumentStatus(fundId: string): Promise<{
  * 문서 다운로드 권한 확인
  */
 export function canDownloadDocument(
-  category: 'agreement' | 'tax' | 'account',
+  category: DocumentCategory,
   userRole: string,
   isParticipant: boolean
 ): boolean {
@@ -185,7 +190,10 @@ export function canDownloadDocument(
   if (userRole === 'ADMIN') return true;
 
   // 일반 유저는 참여 펀드의 특정 카테고리만
-  if (isParticipant && ['account', 'agreement'].includes(category)) {
+  if (
+    isParticipant &&
+    [DocumentCategory.ACCOUNT, DocumentCategory.AGREEMENT].includes(category)
+  ) {
     return true;
   }
 

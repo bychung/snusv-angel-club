@@ -3,13 +3,14 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { DOCUMENT_CATEGORY_NAMES, DocumentCategory } from '@/types/documents';
 import { AlertCircle, CheckCircle, FileText, Upload, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 
 interface DocumentUploadProps {
   fundId: string;
-  category: 'account' | 'tax' | 'registration' | 'agreement';
+  category: DocumentCategory;
   onUploadComplete: () => void;
   onUploadError: (error: string) => void;
   disabled?: boolean;
@@ -21,13 +22,6 @@ interface UploadState {
   error: string | null;
   success: boolean;
 }
-
-const categoryNames = {
-  account: '계좌사본',
-  tax: '고유번호증',
-  registration: '등록원부',
-  agreement: '계약서',
-};
 
 export default function DocumentUpload({
   fundId,
@@ -172,7 +166,7 @@ export default function DocumentUpload({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">
-          {categoryNames[category]} 업로드
+          {DOCUMENT_CATEGORY_NAMES[category]} 업로드
         </h3>
         {uploadState.success && (
           <Button variant="outline" size="sm" onClick={resetState}>
@@ -190,8 +184,16 @@ export default function DocumentUpload({
               className={`
                 flex flex-col items-center justify-center min-h-[200px] cursor-pointer
                 transition-colors rounded-lg p-6
-                ${isDragActive ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-50'}
-                ${disabled || uploadState.uploading ? 'cursor-not-allowed opacity-50' : ''}
+                ${
+                  isDragActive
+                    ? 'bg-blue-50 border-blue-300'
+                    : 'hover:bg-gray-50'
+                }
+                ${
+                  disabled || uploadState.uploading
+                    ? 'cursor-not-allowed opacity-50'
+                    : ''
+                }
               `}
             >
               <input {...getInputProps()} />
