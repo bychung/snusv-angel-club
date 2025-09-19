@@ -71,7 +71,9 @@ export interface Database {
     Tables: {
       profiles: {
         Row: Profile;
-        Insert: Omit<Profile, 'id' | 'created_at' | 'updated_at'> & { updated_at?: string };
+        Insert: Omit<Profile, 'id' | 'created_at' | 'updated_at'> & {
+          updated_at?: string;
+        };
         Update: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>> & {
           updated_at?: string;
         };
@@ -87,17 +89,24 @@ export interface Database {
       };
       fund_members: {
         Row: FundMember;
-        Insert: Omit<FundMember, 'id' | 'total_amount' | 'created_at' | 'updated_at'> & {
+        Insert: Omit<
+          FundMember,
+          'id' | 'total_amount' | 'created_at' | 'updated_at'
+        > & {
           updated_at?: string;
         };
-        Update: Partial<Omit<FundMember, 'id' | 'total_amount' | 'created_at'>> & {
+        Update: Partial<
+          Omit<FundMember, 'id' | 'total_amount' | 'created_at'>
+        > & {
           updated_at?: string;
         };
       };
       profile_permissions: {
         Row: ProfilePermission;
         Insert: Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>;
-        Update: Partial<Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>>;
+        Update: Partial<
+          Omit<ProfilePermission, 'id' | 'granted_at' | 'created_at'>
+        >;
       };
       documents: {
         Row: Document;

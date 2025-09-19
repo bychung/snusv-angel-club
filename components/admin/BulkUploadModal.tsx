@@ -3,7 +3,12 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import {
   downloadExcelTemplate,
@@ -247,8 +252,9 @@ export default function BulkUploadModal({
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-600 mb-4">
-                아래 버튼을 클릭하여 조합원 정보 입력용 엑셀 템플릿을 다운로드하세요. 템플릿에는
-                샘플 데이터와 입력 형식이 포함되어 있습니다.
+                아래 버튼을 클릭하여 조합원 정보 입력용 엑셀 템플릿을
+                다운로드하세요. 템플릿에는 샘플 데이터와 입력 형식이 포함되어
+                있습니다.
               </p>
               <Button onClick={handleDownloadTemplate} variant="outline">
                 <Download className="h-4 w-4 mr-2" />
@@ -280,7 +286,9 @@ export default function BulkUploadModal({
                 {uploadState.isProcessing ? (
                   <div className="flex flex-col items-center gap-4">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-                    <p className="text-sm text-gray-600">파일을 처리하고 있습니다...</p>
+                    <p className="text-sm text-gray-600">
+                      파일을 처리하고 있습니다...
+                    </p>
                   </div>
                 ) : uploadState.file ? (
                   <div className="flex flex-col items-center gap-4">
@@ -295,7 +303,11 @@ export default function BulkUploadModal({
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        setUploadState(prev => ({ ...prev, file: null, showResults: false }))
+                        setUploadState(prev => ({
+                          ...prev,
+                          file: null,
+                          showResults: false,
+                        }))
                       }
                     >
                       다른 파일 선택
@@ -305,7 +317,9 @@ export default function BulkUploadModal({
                   <div className="space-y-4">
                     <Upload className="h-12 w-12 text-gray-400 mx-auto" />
                     <div>
-                      <p className="text-lg font-medium">파일을 드래그하여 놓거나</p>
+                      <p className="text-lg font-medium">
+                        파일을 드래그하여 놓거나
+                      </p>
                       <label className="mt-2">
                         <Button variant="outline" asChild>
                           <span>
@@ -347,15 +361,21 @@ export default function BulkUploadModal({
                       return (
                         <>
                           <div className="text-center p-4 bg-gray-50 rounded-lg">
-                            <div className="text-2xl font-bold text-gray-700">{total}</div>
+                            <div className="text-2xl font-bold text-gray-700">
+                              {total}
+                            </div>
                             <div className="text-sm text-gray-600">전체</div>
                           </div>
                           <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">{valid}</div>
+                            <div className="text-2xl font-bold text-green-600">
+                              {valid}
+                            </div>
                             <div className="text-sm text-green-600">성공</div>
                           </div>
                           <div className="text-center p-4 bg-red-50 rounded-lg">
-                            <div className="text-2xl font-bold text-red-600">{invalid}</div>
+                            <div className="text-2xl font-bold text-red-600">
+                              {invalid}
+                            </div>
                             <div className="text-sm text-red-600">오류</div>
                           </div>
                         </>
@@ -374,8 +394,13 @@ export default function BulkUploadModal({
                         {uploadState.validationResults
                           .filter(result => !result.isValid)
                           .map((result, index) => (
-                            <div key={index} className="p-3 border-b last:border-b-0">
-                              <div className="font-medium text-sm">{result.rowIndex}행:</div>
+                            <div
+                              key={index}
+                              className="p-3 border-b last:border-b-0"
+                            >
+                              <div className="font-medium text-sm">
+                                {result.rowIndex}행:
+                              </div>
                               <ul className="mt-1 text-sm text-red-600 list-disc list-inside">
                                 {result.errors.map((error, errorIndex) => (
                                   <li key={errorIndex}>{error}</li>
@@ -417,11 +442,19 @@ export default function BulkUploadModal({
 
         {/* 액션 버튼 */}
         <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={handleClose} disabled={uploadState.isUploading}>
+          <Button
+            variant="outline"
+            onClick={handleClose}
+            disabled={uploadState.isUploading}
+          >
             취소
           </Button>
           {uploadState.showResults && getValidationSummary().valid > 0 && (
-            <Button onClick={handleUpload} disabled={uploadState.isUploading} variant="default">
+            <Button
+              onClick={handleUpload}
+              disabled={uploadState.isUploading}
+              variant="default"
+            >
               {uploadState.isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

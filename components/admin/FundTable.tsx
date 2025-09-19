@@ -1,5 +1,11 @@
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import type { FundWithStats } from '@/lib/admin/funds';
 import { Building, Settings, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -39,7 +45,9 @@ export default function FundTable({ funds }: FundTableProps) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center py-8 text-gray-500">등록된 펀드가 없습니다.</div>
+          <div className="text-center py-8 text-gray-500">
+            등록된 펀드가 없습니다.
+          </div>
         </CardContent>
       </Card>
     );
@@ -55,7 +63,9 @@ export default function FundTable({ funds }: FundTableProps) {
               <Building className="h-6 w-6 text-blue-500" />
               <div className="ml-2">
                 <p className="text-xs font-medium text-gray-500">총 펀드 수</p>
-                <p className="text-lg font-bold text-gray-900">{stats.totalFunds}</p>
+                <p className="text-lg font-bold text-gray-900">
+                  {stats.totalFunds}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -66,8 +76,12 @@ export default function FundTable({ funds }: FundTableProps) {
             <div className="flex items-center">
               <Users className="h-6 w-6 text-green-500" />
               <div className="ml-2">
-                <p className="text-xs font-medium text-gray-500">총 조합원 수</p>
-                <p className="text-lg font-bold text-gray-900">{stats.totalMembers}</p>
+                <p className="text-xs font-medium text-gray-500">
+                  총 조합원 수
+                </p>
+                <p className="text-lg font-bold text-gray-900">
+                  {stats.totalMembers}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -107,7 +121,10 @@ export default function FundTable({ funds }: FundTableProps) {
                     <CardDescription className="text-sm text-gray-500 flex items-center gap-2">
                       <span>등록일: {formatDate(fund.created_at)}</span>
                       {fund.abbreviation && (
-                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs bg-blue-100 text-blue-800"
+                        >
                           {fund.abbreviation}
                         </Badge>
                       )}
@@ -122,7 +139,9 @@ export default function FundTable({ funds }: FundTableProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">총 조합원</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      총 조합원
+                    </span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
                     {fund.memberCount.toLocaleString()}명
@@ -133,7 +152,9 @@ export default function FundTable({ funds }: FundTableProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">총 출자금액</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      총 출자금액
+                    </span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">
                     {formatCurrency(fund.totalInvestment)}

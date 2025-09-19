@@ -116,7 +116,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {/* 로고 */}
             <div className="flex items-center flex-shrink-0 px-4">
               <Shield className="h-8 w-8 text-indigo-600 mr-2" />
-              <h1 className="text-lg font-semibold text-gray-900">관리자 패널</h1>
+              <h1 className="text-lg font-semibold text-gray-900">
+                관리자 패널
+              </h1>
             </div>
 
             {/* 네비게이션 */}
@@ -165,7 +167,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <p className="text-sm font-medium text-gray-700">관리자</p>
                 <p className="text-xs text-gray-500 truncate">{user?.email}</p>
               </div>
-              <Button onClick={handleSignOut} variant="ghost" size="sm" className="ml-2">
+              <Button
+                onClick={handleSignOut}
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+              >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -182,7 +189,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Shield className="h-6 w-6 text-indigo-600 mr-2" />
               <h1 className="text-lg font-semibold text-gray-900">관리자</h1>
             </div>
-            <Button onClick={handleSignOut} variant="ghost" size="sm" className="mr-4">
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="mr-4"
+            >
               <LogOut className="h-4 w-4" />
             </Button>
           </div>
@@ -191,7 +203,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* 페이지 컨텐츠 */}
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
           <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">{children}</div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+              {children}
+            </div>
           </div>
         </main>
       </div>

@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
@@ -137,8 +143,12 @@ export default function FundSection() {
           <CardContent className="p-12">
             <div className="text-center">
               <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">출자 중인 펀드가 없습니다</h3>
-              <p className="text-gray-600">펀드에 출자하시면 여기에 출자 정보가 표시됩니다.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                출자 중인 펀드가 없습니다
+              </h3>
+              <p className="text-gray-600">
+                펀드에 출자하시면 여기에 출자 정보가 표시됩니다.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -219,7 +229,9 @@ export default function FundSection() {
                   {/* 출자 금액 */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-700">출자금액</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        출자금액
+                      </span>
                     </div>
                     <span className="text-lg font-semibold text-gray-900">
                       {formatCurrency(editUnits)}
@@ -228,7 +240,9 @@ export default function FundSection() {
 
                   {/* 출자좌수 */}
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">출자좌수</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      출자좌수
+                    </span>
                     <Input
                       type="number"
                       value={editUnits}
@@ -245,15 +259,21 @@ export default function FundSection() {
                         <Calendar className="h-3 w-3" />
                         <span>출자일</span>
                       </div>
-                      <span>{new Date(fund.created_at).toLocaleDateString('ko-KR')}</span>
+                      <span>
+                        {new Date(fund.created_at).toLocaleDateString('ko-KR')}
+                      </span>
                     </div>
                   </div>
 
                   {/* 1좌당 금액 안내 */}
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <div className="text-center">
-                      <div className="text-xs text-gray-500 mb-1">1좌당 금액</div>
-                      <div className="text-sm font-medium text-gray-700">1,000,000원</div>
+                      <div className="text-xs text-gray-500 mb-1">
+                        1좌당 금액
+                      </div>
+                      <div className="text-sm font-medium text-gray-700">
+                        1,000,000원
+                      </div>
                     </div>
                   </div>
                 </div>

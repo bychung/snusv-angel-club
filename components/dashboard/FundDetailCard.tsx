@@ -26,8 +26,14 @@ interface FundDetailCardProps {
   };
 }
 
-export default function FundDetailCard({ fundId, fundName, investmentInfo }: FundDetailCardProps) {
-  const [fundDetails, setFundDetails] = useState<FundDetailsResponse | null>(null);
+export default function FundDetailCard({
+  fundId,
+  fundName,
+  investmentInfo,
+}: FundDetailCardProps) {
+  const [fundDetails, setFundDetails] = useState<FundDetailsResponse | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +50,9 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
         const data = await response.json();
         setFundDetails(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다');
+        setError(
+          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다'
+        );
       } finally {
         setLoading(false);
       }
@@ -80,7 +88,9 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
 
   const handleDocumentDownload = async (category: string) => {
     try {
-      const response = await fetch(`/api/funds/${fundId}/documents/${category}/download`);
+      const response = await fetch(
+        `/api/funds/${fundId}/documents/${category}/download`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -135,7 +145,9 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
     return (
       <Card className="hover:shadow-lg transition-shadow border-red-200">
         <CardContent className="p-6">
-          <p className="text-red-600 text-sm">{error || '펀드 정보를 불러올 수 없습니다'}</p>
+          <p className="text-red-600 text-sm">
+            {error || '펀드 정보를 불러올 수 없습니다'}
+          </p>
         </CardContent>
       </Card>
     );
@@ -148,11 +160,15 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold text-gray-900">{fundName}</CardTitle>
+            <CardTitle className="text-lg font-semibold text-gray-900">
+              {fundName}
+            </CardTitle>
             <div className="flex items-center gap-2">
               {getStatusBadge(fund.status)}
               {fund.abbreviation && (
-                <span className="text-sm text-gray-500">({fund.abbreviation})</span>
+                <span className="text-sm text-gray-500">
+                  ({fund.abbreviation})
+                </span>
               )}
             </div>
           </div>
@@ -186,7 +202,9 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
               <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-600">펀드 소재지</p>
-                <p className="text-sm font-medium text-gray-900 break-all">{fund.address}</p>
+                <p className="text-sm font-medium text-gray-900 break-all">
+                  {fund.address}
+                </p>
               </div>
             </div>
           )}
@@ -208,7 +226,9 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
               <Hash className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-600">고유번호</p>
-                <p className="text-sm font-mono font-medium text-gray-900">{fund.tax_number}</p>
+                <p className="text-sm font-mono font-medium text-gray-900">
+                  {fund.tax_number}
+                </p>
               </div>
             </div>
           )}
@@ -244,13 +264,16 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
                 agreement: '계약서',
               };
 
-              const categoryName = categoryNames[category as keyof typeof categoryNames];
+              const categoryName =
+                categoryNames[category as keyof typeof categoryNames];
 
               return (
                 <div
                   key={category}
                   className={`p-3 rounded-lg border ${
-                    status.exists ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'
+                    status.exists
+                      ? 'border-green-200 bg-green-50'
+                      : 'border-gray-200 bg-gray-50'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -259,13 +282,17 @@ export default function FundDetailCard({ fundId, fundName, investmentInfo }: Fun
                     ) : (
                       <Clock className="h-4 w-4 text-gray-400" />
                     )}
-                    <span className="text-sm font-medium text-gray-900">{categoryName}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {categoryName}
+                    </span>
                   </div>
 
                   {status.exists ? (
                     <div className="space-y-1">
                       <p className="text-xs text-green-700">
-                        {status.latest_upload && formatDate(status.latest_upload)} 업로드
+                        {status.latest_upload &&
+                          formatDate(status.latest_upload)}{' '}
+                        업로드
                       </p>
                       {status.downloadable && (
                         <Button

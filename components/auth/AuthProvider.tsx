@@ -10,7 +10,11 @@ import { useEffect, useRef } from 'react';
 
 const supabase = createClient();
 
-export default function AuthProvider({ children }: { children: React.ReactNode }) {
+export default function AuthProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const {
     setUser,
     fetchProfile,
@@ -31,7 +35,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   const isProcessingRef = useRef(false);
 
   // 공통 라우팅 로직 함수
-  const handleAuthenticatedUserRouting = async (user: any, isInitialLoad = false) => {
+  const handleAuthenticatedUserRouting = async (
+    user: any,
+    isInitialLoad = false
+  ) => {
     console.log('[AuthProvider] handleAuthenticatedUserRouting called:', {
       userId: user.id,
       currentPath: window.location.pathname,
@@ -47,7 +54,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     // /survey 페이지 접근 시 펀드 참여 여부 확인
     if (currentPath.startsWith('/survey')) {
-      console.log('[AuthProvider] Survey page access detected, checking fund participation');
+      console.log(
+        '[AuthProvider] Survey page access detected, checking fund participation'
+      );
 
       try {
         // 프로필 확인
@@ -58,7 +67,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const fundId = urlParams.get('fund_id');
 
         if (fundId) {
-          console.log('[AuthProvider] Checking participation for fund:', fundId);
+          console.log(
+            '[AuthProvider] Checking participation for fund:',
+            fundId
+          );
 
           // 프로필 정보 가져와서 펀드 참여 여부 확인
           const userFunds = getUserFunds();
@@ -67,17 +79,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             const hasParticipated = userFunds.includes(fundId);
 
             if (hasParticipated) {
-              console.log('[AuthProvider] Fund participation found, redirecting to dashboard');
+              console.log(
+                '[AuthProvider] Fund participation found, redirecting to dashboard'
+              );
               // 리다이렉트 실행 (상태 플래그 없이)
               routerNext.replace('/dashboard');
 
               return 'redirected-to-dashboard';
             } else {
-              console.log('[AuthProvider] No fund participation found, continuing with survey');
+              console.log(
+                '[AuthProvider] No fund participation found, continuing with survey'
+              );
               return 'continue-survey';
             }
           } else {
-            console.log('[AuthProvider] No user funds available, continuing with survey');
+            console.log(
+              '[AuthProvider] No user funds available, continuing with survey'
+            );
             return 'continue-survey';
           }
         }
@@ -93,15 +111,24 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     if (isInitialLoad) {
       try {
         await fetchProfile(user.id);
-        console.log('[AuthProvider] Profile loaded successfully for:', currentPath);
+        console.log(
+          '[AuthProvider] Profile loaded successfully for:',
+          currentPath
+        );
         return 'profile-loaded';
       } catch (error) {
-        console.log('[AuthProvider] Profile loading failed for:', currentPath, error);
+        console.log(
+          '[AuthProvider] Profile loading failed for:',
+          currentPath,
+          error
+        );
 
         // 프로필이 없으면 로그인 페이지로 리다이렉트
         if ((error as any)?.message === 'PROFILE_NOT_FOUND') {
           console.log('[AuthProvider] No profile found, redirecting to login');
-          routerNext.replace('/login?error=' + encodeURIComponent('가입되지 않은 계정입니다.'));
+          routerNext.replace(
+            '/login?error=' + encodeURIComponent('가입되지 않은 계정입니다.')
+          );
 
           return 'redirected-to-login';
         }
@@ -127,7 +154,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       } = await supabase.auth.getUser();
       console.log('[AuthProvider] handleInitialSessionEvent:getUser:', user);
       if (!user) {
-        console.log('[AuthProvider] handleInitialSessionEvent:getUser: user is null, ignoring...');
+        console.log(
+          '[AuthProvider] handleInitialSessionEvent:getUser: user is null, ignoring...'
+        );
         return;
       }
       await fetchProfile(user.id);
@@ -174,7 +203,11 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setLoading(false);
     } else {
       // 미가입 유저 혹은 로그아웃 상태
-      if (currentPath.startsWith('/survey') || currentPath === '/' || currentPath === '/signup') {
+      if (
+        currentPath.startsWith('/survey') ||
+        currentPath === '/' ||
+        currentPath === '/signup'
+      ) {
         setLoading(false);
       } else {
         routerNext.replace('/login');
@@ -199,14 +232,18 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     // 중복 처리 방지 - 동일한 토큰이면 무시
     if (currentToken && lastProcessedTokenRef.current === currentToken) {
-      console.log('[AuthProvider] 중복 SIGNED_IN 이벤트가 감지되어 무시합니다.');
+      console.log(
+        '[AuthProvider] 중복 SIGNED_IN 이벤트가 감지되어 무시합니다.'
+      );
       return;
     }
     lastProcessedTokenRef.current = currentToken;
 
     // 이미 처리 중이면 무시
     if (isProcessingRef.current) {
-      console.log('[AuthProvider] 이미 처리 중인 SIGNED_IN 이벤트가 감지되어 무시합니다.');
+      console.log(
+        '[AuthProvider] 이미 처리 중인 SIGNED_IN 이벤트가 감지되어 무시합니다.'
+      );
       return;
     }
     isProcessingRef.current = true;
@@ -223,19 +260,26 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
     // redirect 페이지에서 SIGNED_IN 이벤트가 감지된 경우 OAuth 콜백 처리
     if (currentPath === '/redirect') {
-      console.log('[AuthProvider] OAuth callback - handling all login flow logic');
+      console.log(
+        '[AuthProvider] OAuth callback - handling all login flow logic'
+      );
 
       // fetchProfile() 호출하여 프로필 존재 확인
       console.log('[AuthProvider] Fetching profile...');
       fetchProfile(session.user.id)
         .then(() => {
           // 프로필이 있으면 원래 페이지로 돌아가거나 대시보드로 이동
-          console.log('[AuthProvider] Profile found, checking redirect destination');
+          console.log(
+            '[AuthProvider] Profile found, checking redirect destination'
+          );
 
           // sessionStorage에서 원래 URL 확인
           const originalUrl = sessionStorage.getItem('redirectAfterAuth');
           if (originalUrl && originalUrl.startsWith('/survey')) {
-            console.log('[AuthProvider] Returning to survey page:', originalUrl);
+            console.log(
+              '[AuthProvider] Returning to survey page:',
+              originalUrl
+            );
             sessionStorage.removeItem('redirectAfterAuth');
             routerNext.replace(originalUrl);
           } else {
@@ -251,33 +295,45 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
             // 1) 먼저 OAuth 로그인 사용자의 이메일로 기존 프로필 검색
             const userEmail = session.user.email;
-            console.log('[AuthProvider] Searching for existing profile with email:', userEmail);
+            console.log(
+              '[AuthProvider] Searching for existing profile with email:',
+              userEmail
+            );
 
             let existingProfile = null;
             if (userEmail) {
               try {
                 existingProfile = await findProfileByEmail(userEmail);
-                console.log('[AuthProvider] Existing profile search result:', !!existingProfile);
+                console.log(
+                  '[AuthProvider] Existing profile search result:',
+                  !!existingProfile
+                );
               } catch (emailSearchError) {
-                console.error('[AuthProvider] Error searching profile by email:', emailSearchError);
+                console.error(
+                  '[AuthProvider] Error searching profile by email:',
+                  emailSearchError
+                );
               }
             }
 
             if (existingProfile) {
               // 이메일로 기존 프로필을 찾은 경우 - OAuth 계정과 연동
-              console.log('[AuthProvider] Found existing profile, linking OAuth account...');
+              console.log(
+                '[AuthProvider] Found existing profile, linking OAuth account...'
+              );
 
               try {
                 // 기존 프로필에 user_id 직접 연결 (ID로 업데이트)
-                const { data: updatedProfile, error: updateError } = await supabase
-                  .from('profiles')
-                  .update({
-                    user_id: session.user.id,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', existingProfile.id)
-                  .select()
-                  .single();
+                const { data: updatedProfile, error: updateError } =
+                  await supabase
+                    .from('profiles')
+                    .update({
+                      user_id: session.user.id,
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', existingProfile.id)
+                    .select()
+                    .single();
 
                 if (updateError) {
                   throw new Error(`프로필 연동 실패: ${updateError.message}`);
@@ -289,7 +345,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 console.log('[AuthProvider] Loading linked profile data...');
                 fetchProfile(session.user.id)
                   .then(() => {
-                    console.log('[AuthProvider] Profile data loaded, redirecting to dashboard');
+                    console.log(
+                      '[AuthProvider] Profile data loaded, redirecting to dashboard'
+                    );
                     routerNext.replace('/dashboard');
                   })
                   .catch(profileFetchError => {
@@ -303,7 +361,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                 return; // 여기서 종료
               } catch (linkError: any) {
-                console.error('[AuthProvider] Profile linking failed:', linkError);
+                console.error(
+                  '[AuthProvider] Profile linking failed:',
+                  linkError
+                );
 
                 // 세션 정리
                 await signOut();
@@ -311,42 +372,54 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                 routerNext.replace(
                   '/login?error=' +
-                    encodeURIComponent('계정 연동에 실패했습니다. 다시 시도해주세요.')
+                    encodeURIComponent(
+                      '계정 연동에 실패했습니다. 다시 시도해주세요.'
+                    )
                 );
                 return;
               }
             }
 
             // 2) 기존 프로필이 없으면 설문조사 완료 여부 확인
-            const completedFundId = surveyStore.getActiveFundIdFromLocalStorage() || '';
+            const completedFundId =
+              surveyStore.getActiveFundIdFromLocalStorage() || '';
             surveyStore.loadFromLocalStorage(completedFundId);
-            const completedProfileId = surveyStore.getProfileId(completedFundId);
+            const completedProfileId =
+              surveyStore.getProfileId(completedFundId);
 
             const isSignupFlow = !!completedProfileId;
-            console.log('[AuthProvider] Profile not found, checking signup flow:', {
-              isSignupFlow,
-              completedFundId,
-              completedProfileId,
-            });
+            console.log(
+              '[AuthProvider] Profile not found, checking signup flow:',
+              {
+                isSignupFlow,
+                completedFundId,
+                completedProfileId,
+              }
+            );
 
             if (isSignupFlow) {
               // 설문조사 완료된 회원가입 플로우 - 프로필 업데이트
-              console.log('[AuthProvider] Signup flow detected, updating profile...');
+              console.log(
+                '[AuthProvider] Signup flow detected, updating profile...'
+              );
 
               try {
                 // 설문조사로 생성된 프로필에 user_id 연결
-                const { data: updatedProfile, error: updateError } = await supabase
-                  .from('profiles')
-                  .update({
-                    user_id: session.user.id,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', completedProfileId)
-                  .select()
-                  .single();
+                const { data: updatedProfile, error: updateError } =
+                  await supabase
+                    .from('profiles')
+                    .update({
+                      user_id: session.user.id,
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', completedProfileId)
+                    .select()
+                    .single();
 
                 if (updateError) {
-                  throw new Error(`프로필 업데이트 실패: ${updateError.message}`);
+                  throw new Error(
+                    `프로필 업데이트 실패: ${updateError.message}`
+                  );
                 }
 
                 console.log('[AuthProvider] Profile updated successfully');
@@ -362,7 +435,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                 console.log('[AuthProvider] Loading updated profile data...');
                 fetchProfile(session.user.id)
                   .then(() => {
-                    console.log('[AuthProvider] Profile data loaded, redirecting to dashboard');
+                    console.log(
+                      '[AuthProvider] Profile data loaded, redirecting to dashboard'
+                    );
                     routerNext.replace('/dashboard');
                   })
                   .catch(profileFetchError => {
@@ -374,7 +449,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                     routerNext.replace('/dashboard');
                   });
               } catch (signupError: any) {
-                console.error('[AuthProvider] Signup flow failed:', signupError);
+                console.error(
+                  '[AuthProvider] Signup flow failed:',
+                  signupError
+                );
 
                 // 세션 정리
                 await signOut();
@@ -382,7 +460,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                 routerNext.replace(
                   '/survey?error=' +
-                    encodeURIComponent('회원가입에 실패했습니다. 다시 시도해주세요.')
+                    encodeURIComponent(
+                      '회원가입에 실패했습니다. 다시 시도해주세요.'
+                    )
                 );
               }
             } else {
@@ -427,7 +507,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
                   )}&provider=${provider}`;
                   routerNext.replace(redirectUrl);
                 } catch (tokenError) {
-                  console.error('[AuthProvider] 임시 토큰 발행 실패:', tokenError);
+                  console.error(
+                    '[AuthProvider] 임시 토큰 발행 실패:',
+                    tokenError
+                  );
 
                   // 임시 토큰 발행 실패 시 기존 방식으로 폴백
                   await signOut();
@@ -435,7 +518,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
                   routerNext.replace(
                     '/login?error=' +
-                      encodeURIComponent('임시 인증 토큰 발행에 실패했습니다. 다시 시도해주세요.')
+                      encodeURIComponent(
+                        '임시 인증 토큰 발행에 실패했습니다. 다시 시도해주세요.'
+                      )
                   );
                 }
               } else {
@@ -453,10 +538,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             }
           } else {
             // 기타 에러
-            console.error('[AuthProvider] Unexpected profile fetch error:', error);
+            console.error(
+              '[AuthProvider] Unexpected profile fetch error:',
+              error
+            );
             routerNext.replace(
               '/login?error=' +
-                encodeURIComponent('프로필을 가져오는데 실패했습니다. 다시 로그인해주세요.')
+                encodeURIComponent(
+                  '프로필을 가져오는데 실패했습니다. 다시 로그인해주세요.'
+                )
             );
           }
         })
@@ -504,7 +594,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         const fundId = urlParams.get('fund_id');
 
         if (fundId) {
-          console.log('[AuthProvider] Checking participation for fund:', fundId);
+          console.log(
+            '[AuthProvider] Checking participation for fund:',
+            fundId
+          );
 
           // 프로필 정보 가져와서 펀드 참여 여부 확인
           const userFunds = getUserFunds();
@@ -513,17 +606,23 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
             const hasParticipated = userFunds.includes(fundId);
 
             if (hasParticipated) {
-              console.log('[AuthProvider] Fund participation found, redirecting to dashboard');
+              console.log(
+                '[AuthProvider] Fund participation found, redirecting to dashboard'
+              );
               // 리다이렉트 실행 (상태 플래그 없이)
               routerNext.replace('/dashboard');
 
               return 'redirected-to-dashboard';
             } else {
-              console.log('[AuthProvider] No fund participation found, continuing with survey');
+              console.log(
+                '[AuthProvider] No fund participation found, continuing with survey'
+              );
               return 'continue-survey';
             }
           } else {
-            console.log('[AuthProvider] No user funds available, continuing with survey');
+            console.log(
+              '[AuthProvider] No user funds available, continuing with survey'
+            );
             return 'continue-survey';
           }
         }
@@ -541,10 +640,13 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AuthProvider] registerAuthStateChangeListener:onAuthStateChange:', {
-        event,
-        hasUser: !!session?.user,
-      });
+      console.log(
+        '[AuthProvider] registerAuthStateChangeListener:onAuthStateChange:',
+        {
+          event,
+          hasUser: !!session?.user,
+        }
+      );
 
       if (event === 'INITIAL_SESSION') {
         handleInitialSessionEvent(session);

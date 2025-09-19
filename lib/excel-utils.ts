@@ -51,7 +51,16 @@ export const downloadExcelTemplate = (fundName: string) => {
   // 헤더 및 샘플 데이터
   const templateData = [
     // 헤더
-    ['이름', '전화번호', '이메일', '개인/법인', '생년월일', '사업자등록번호', '주소', '출자좌수'],
+    [
+      '이름',
+      '전화번호',
+      '이메일',
+      '개인/법인',
+      '생년월일',
+      '사업자등록번호',
+      '주소',
+      '출자좌수',
+    ],
     // 샘플 데이터 (개인)
     [
       '김철수',
@@ -121,10 +130,13 @@ export const parseExcelFile = (file: File): Promise<ExcelRowData[]> => {
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
 
         // JSON 형태로 변환 (첫 번째 행을 헤더로 사용)
-        const jsonData = XLSX.utils.sheet_to_json<(string | number)[]>(firstSheet, {
-          header: 1,
-          defval: '',
-        });
+        const jsonData = XLSX.utils.sheet_to_json<(string | number)[]>(
+          firstSheet,
+          {
+            header: 1,
+            defval: '',
+          }
+        );
 
         if (jsonData.length === 0) {
           reject(new Error('엑셀 파일이 비어있습니다.'));
@@ -148,10 +160,16 @@ export const parseExcelFile = (file: File): Promise<ExcelRowData[]> => {
           '주소',
           '출자좌수',
         ];
-        const headerMismatch = expectedHeaders.some(expected => !headers.includes(expected));
+        const headerMismatch = expectedHeaders.some(
+          expected => !headers.includes(expected)
+        );
 
         if (headerMismatch) {
-          reject(new Error(`엑셀 헤더가 올바르지 않습니다. 예상: ${expectedHeaders.join(', ')}`));
+          reject(
+            new Error(
+              `엑셀 헤더가 올바르지 않습니다. 예상: ${expectedHeaders.join(', ')}`
+            )
+          );
           return;
         }
 
@@ -225,7 +243,10 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
       errors.push('전화번호는 필수입니다.');
     } else {
       const normalizedPhone = normalizePhoneNumber(row.전화번호);
-      if (normalizedPhone === row.전화번호 && !/^\d{2,3}-\d{3,4}-\d{4}$/.test(normalizedPhone)) {
+      if (
+        normalizedPhone === row.전화번호 &&
+        !/^\d{2,3}-\d{3,4}-\d{4}$/.test(normalizedPhone)
+      ) {
         errors.push('전화번호 형식이 올바르지 않습니다.');
       }
 
@@ -251,7 +272,11 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
       errors.push('주소는 필수입니다.');
     }
 
-    if (!row.출자좌수 || isNaN(Number(row.출자좌수)) || Number(row.출자좌수) < 1) {
+    if (
+      !row.출자좌수 ||
+      isNaN(Number(row.출자좌수)) ||
+      Number(row.출자좌수) < 1
+    ) {
       errors.push('출자좌수는 1 이상의 숫자여야 합니다.');
     }
 

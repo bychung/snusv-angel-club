@@ -8,7 +8,9 @@ import EditMemberModal from './EditMemberModal';
 import ViewMemberModal from './ViewMemberModal';
 
 interface MemberWithFund extends Profile {
-  fund_members?: (FundMember & { fund?: { name: string; abbreviation?: string | null } })[];
+  fund_members?: (FundMember & {
+    fund?: { name: string; abbreviation?: string | null };
+  })[];
   registration_status: 'registered' | 'survey_only';
 }
 
@@ -20,11 +22,15 @@ interface MemberModalsProps {
 export default function MemberModals({ member, mode }: MemberModalsProps) {
   // 상세 보기 모달 상태
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewingMember, setViewingMember] = useState<MemberWithFund | null>(null);
+  const [viewingMember, setViewingMember] = useState<MemberWithFund | null>(
+    null
+  );
 
   // 수정 모달 상태
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<MemberWithFund | null>(null);
+  const [editingMember, setEditingMember] = useState<MemberWithFund | null>(
+    null
+  );
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleViewMember = (member: MemberWithFund) => {

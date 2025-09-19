@@ -2,7 +2,9 @@ import { createClient } from '@/lib/supabase/server';
 import type { FundMember, Profile } from '@/types/database';
 
 export interface MemberWithFund extends Profile {
-  fund_members?: (FundMember & { fund?: { name: string; abbreviation?: string | null } })[];
+  fund_members?: (FundMember & {
+    fund?: { name: string; abbreviation?: string | null };
+  })[];
   registration_status: 'registered' | 'survey_only';
 }
 
@@ -51,7 +53,9 @@ export async function getFundMembers(
     fundMembers?.map(fundMember => ({
       ...fundMember.profile,
       fund_members: [fundMember],
-      registration_status: fundMember.profile?.user_id ? 'registered' : 'survey_only',
+      registration_status: fundMember.profile?.user_id
+        ? 'registered'
+        : 'survey_only',
     })) || [];
 
   // 상태 필터
@@ -67,7 +71,9 @@ export async function getFundMembers(
 /**
  * 모든 사용자 목록을 조회합니다 (서버에서만 실행)
  */
-export async function getAllUsers(filters: MemberFilters = {}): Promise<MemberWithFund[]> {
+export async function getAllUsers(
+  filters: MemberFilters = {}
+): Promise<MemberWithFund[]> {
   const supabase = await createClient();
 
   let query = supabase

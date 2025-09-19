@@ -3,7 +3,10 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     const supabase = await createClient();
@@ -15,12 +18,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { error: '인증이 필요합니다.' },
+        { status: 401 }
+      );
     }
 
     const adminAccess = await isAdminServer(user);
     if (!adminAccess) {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
+      return NextResponse.json(
+        { error: '관리자 권한이 필요합니다.' },
+        { status: 403 }
+      );
     }
 
     // 문의 정보 조회
@@ -31,11 +40,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (inquiryError || !inquiry) {
-      return NextResponse.json({ error: '문의를 찾을 수 없습니다.' }, { status: 404 });
+      return NextResponse.json(
+        { error: '문의를 찾을 수 없습니다.' },
+        { status: 404 }
+      );
     }
 
     if (!inquiry.ir_deck_url) {
-      return NextResponse.json({ error: 'IR 덱 파일이 없습니다.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'IR 덱 파일이 없습니다.' },
+        { status: 404 }
+      );
     }
 
     // 저장된 경로 확인 및 처리
@@ -71,11 +86,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     if (downloadError) {
       console.error('파일 다운로드 오류:', downloadError);
-      return NextResponse.json({ error: '파일 다운로드에 실패했습니다.' }, { status: 500 });
+      return NextResponse.json(
+        { error: '파일 다운로드에 실패했습니다.' },
+        { status: 500 }
+      );
     }
 
     if (!fileData) {
-      return NextResponse.json({ error: '파일을 찾을 수 없습니다.' }, { status: 404 });
+      return NextResponse.json(
+        { error: '파일을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
     }
 
     // 파일을 Buffer로 변환
@@ -93,6 +114,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (error) {
     console.error('IR 덱 다운로드 오류:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

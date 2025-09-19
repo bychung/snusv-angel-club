@@ -13,9 +13,23 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { formatFileSize } from '@/lib/storage/utils';
-import { AlertTriangle, Calendar, Download, FileText, RefreshCw, Trash2, User } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  Download,
+  FileText,
+  RefreshCw,
+  Trash2,
+  User,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface DocumentWithUploader {
@@ -73,7 +87,9 @@ export default function DocumentHistory({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/admin/funds/${fundId}/documents/${category}`);
+      const response = await fetch(
+        `/api/admin/funds/${fundId}/documents/${category}`
+      );
 
       if (!response.ok) {
         throw new Error('문서 히스토리를 불러올 수 없습니다');
@@ -82,7 +98,9 @@ export default function DocumentHistory({
       const data = await response.json();
       setDocuments(data.documents || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다');
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다'
+      );
     } finally {
       setLoading(false);
     }
@@ -94,7 +112,9 @@ export default function DocumentHistory({
 
   const handleDownload = async (doc: DocumentWithUploader) => {
     try {
-      const response = await fetch(`/api/funds/${fundId}/documents/${category}/download`);
+      const response = await fetch(
+        `/api/funds/${fundId}/documents/${category}/download`
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -196,7 +216,12 @@ export default function DocumentHistory({
           <div className="flex items-center justify-center py-8">
             <AlertTriangle className="h-6 w-6 text-red-500" />
             <span className="ml-2 text-red-600">{error}</span>
-            <Button variant="outline" size="sm" onClick={fetchDocuments} className="ml-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchDocuments}
+              className="ml-4"
+            >
               <RefreshCw className="h-4 w-4 mr-1" />
               다시 시도
             </Button>
@@ -264,7 +289,8 @@ export default function DocumentHistory({
                         variant="outline"
                         className={`text-xs ${getFileTypeColor(document.file_type)}`}
                       >
-                        {document.file_type.split('/')[1]?.toUpperCase() || 'FILE'}
+                        {document.file_type.split('/')[1]?.toUpperCase() ||
+                          'FILE'}
                       </Badge>
                     </div>
 
@@ -286,7 +312,11 @@ export default function DocumentHistory({
                   </div>
 
                   <div className="flex items-center gap-2 ml-4">
-                    <Button variant="outline" size="sm" onClick={() => handleDownload(document)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(document)}
+                    >
                       <Download className="h-4 w-4 mr-1" />
                       다운로드
                     </Button>
@@ -305,10 +335,14 @@ export default function DocumentHistory({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>문서를 삭제하시겠습니까?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            문서를 삭제하시겠습니까?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            <span className="font-medium">{document.file_name}</span>을(를)
-                            삭제하시겠습니까?
+                            <span className="font-medium">
+                              {document.file_name}
+                            </span>
+                            을(를) 삭제하시겠습니까?
                             <br />
                             삭제된 문서는 복구할 수 없습니다.
                           </AlertDialogDescription>

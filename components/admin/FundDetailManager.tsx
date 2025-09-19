@@ -27,7 +27,11 @@ interface FundDetailManagerProps {
 const statusOptions = [
   { value: 'ready', label: '준비중', color: 'bg-gray-100 text-gray-800' },
   { value: 'processing', label: '진행중', color: 'bg-blue-100 text-blue-800' },
-  { value: 'applied', label: '신청완료', color: 'bg-yellow-100 text-yellow-800' },
+  {
+    value: 'applied',
+    label: '신청완료',
+    color: 'bg-yellow-100 text-yellow-800',
+  },
   { value: 'active', label: '운용중', color: 'bg-green-100 text-green-800' },
   { value: 'closing', label: '청산중', color: 'bg-orange-100 text-orange-800' },
   { value: 'closed', label: '청산완료', color: 'bg-red-100 text-red-800' },
@@ -41,7 +45,9 @@ const documentCategories = [
 ] as const;
 
 export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
-  const [fundDetails, setFundDetails] = useState<FundDetailsResponse | null>(null);
+  const [fundDetails, setFundDetails] = useState<FundDetailsResponse | null>(
+    null
+  );
   const [members, setMembers] = useState<FundMemberInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,7 +61,13 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     tax_number: '',
     gp_id: [] as string[],
     address: '',
-    status: 'ready' as 'ready' | 'processing' | 'applied' | 'active' | 'closing' | 'closed',
+    status: 'ready' as
+      | 'ready'
+      | 'processing'
+      | 'applied'
+      | 'active'
+      | 'closing'
+      | 'closed',
     account: '',
     account_bank: '',
   });
@@ -97,7 +109,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           account_bank: fundData.fund.account_bank || '',
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다');
+        setError(
+          err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다'
+        );
       } finally {
         setLoading(false);
       }
@@ -131,7 +145,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
       // 데이터 다시 로드
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다');
+      setError(
+        err instanceof Error ? err.message : '저장 중 오류가 발생했습니다'
+      );
     } finally {
       setSaving(false);
     }
@@ -161,20 +177,26 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
   if (!fundDetails) return null;
 
-  const currentStatus = statusOptions.find(opt => opt.value === formData.status);
+  const currentStatus = statusOptions.find(
+    opt => opt.value === formData.status
+  );
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{fundDetails.fund.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {fundDetails.fund.name}
+          </h1>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="secondary" className={currentStatus?.color}>
               {currentStatus?.label}
             </Badge>
             {fundDetails.fund.abbreviation && (
-              <span className="text-sm text-gray-500">({fundDetails.fund.abbreviation})</span>
+              <span className="text-sm text-gray-500">
+                ({fundDetails.fund.abbreviation})
+              </span>
             )}
           </div>
         </div>
@@ -188,7 +210,11 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         </Card>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="info" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -223,7 +249,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                   <Input
                     id="abbreviation"
                     value={formData.abbreviation}
-                    onChange={e => handleInputChange('abbreviation', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('abbreviation', e.target.value)
+                    }
                     placeholder="펀드 약칭을 입력하세요"
                   />
                 </div>
@@ -233,7 +261,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                   <Input
                     id="tax_number"
                     value={formData.tax_number}
-                    onChange={e => handleInputChange('tax_number', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('tax_number', e.target.value)
+                    }
                     placeholder="123-45-67890"
                   />
                 </div>
@@ -285,7 +315,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                   <Input
                     id="account_bank"
                     value={formData.account_bank}
-                    onChange={e => handleInputChange('account_bank', e.target.value)}
+                    onChange={e =>
+                      handleInputChange('account_bank', e.target.value)
+                    }
                     placeholder="우리은행"
                   />
                 </div>
@@ -330,7 +362,10 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => window.location.reload()}>
+                <Button
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   새로고침
                 </Button>
@@ -350,7 +385,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               <div className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-gray-500" />
                 <h3 className="text-lg font-semibold">{category.name}</h3>
-                <span className="text-sm text-gray-500">- {category.description}</span>
+                <span className="text-sm text-gray-500">
+                  - {category.description}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

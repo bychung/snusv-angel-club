@@ -28,7 +28,10 @@ interface FormData {
   irDeck: File | null;
 }
 
-export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps) {
+export default function IRInquiryModal({
+  isOpen,
+  onClose,
+}: IRInquiryModalProps) {
   const [formData, setFormData] = useState<FormData>({
     companyName: '',
     contactPerson: '',
@@ -126,7 +129,9 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
       onClose();
 
       // 성공 메시지 (간단한 alert, 나중에 toast로 개선 가능)
-      alert('IR 문의가 성공적으로 제출되었습니다. 5영업일 내에 회신드리겠습니다.');
+      alert(
+        'IR 문의가 성공적으로 제출되었습니다. 5영업일 내에 회신드리겠습니다.'
+      );
     } catch (error) {
       console.error('IR 문의 제출 오류:', error);
       alert('문의 제출 중 오류가 발생했습니다. 다시 시도해주세요.');
@@ -153,7 +158,9 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">스타트업 IR 문의</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            스타트업 IR 문의
+          </DialogTitle>
           <DialogDescription>
             아래 양식을 입력해서 제출해주시면, 5영업일 내에 회신을 드리겠습니다.
           </DialogDescription>
@@ -169,7 +176,9 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
               placeholder="회사 이름을 입력해주세요"
               disabled={isSubmitting}
             />
-            {errors.companyName && <p className="text-sm text-red-500">{errors.companyName}</p>}
+            {errors.companyName && (
+              <p className="text-sm text-red-500">{errors.companyName}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -181,7 +190,9 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
               placeholder="담당자 이름을 입력해주세요"
               disabled={isSubmitting}
             />
-            {errors.contactPerson && <p className="text-sm text-red-500">{errors.contactPerson}</p>}
+            {errors.contactPerson && (
+              <p className="text-sm text-red-500">{errors.contactPerson}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -193,7 +204,9 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
               placeholder="담당자 직위를 입력해주세요"
               disabled={isSubmitting}
             />
-            {errors.position && <p className="text-sm text-red-500">{errors.position}</p>}
+            {errors.position && (
+              <p className="text-sm text-red-500">{errors.position}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -201,13 +214,17 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
             <Textarea
               id="companyDescription"
               value={formData.companyDescription}
-              onChange={e => handleInputChange('companyDescription', e.target.value)}
+              onChange={e =>
+                handleInputChange('companyDescription', e.target.value)
+              }
               placeholder="회사와 사업에 대해 간단히 소개해주세요"
               rows={3}
               disabled={isSubmitting}
             />
             {errors.companyDescription && (
-              <p className="text-sm text-red-500">{errors.companyDescription}</p>
+              <p className="text-sm text-red-500">
+                {errors.companyDescription}
+              </p>
             )}
           </div>
 
@@ -230,12 +247,21 @@ export default function IRInquiryModal({ isOpen, onClose }: IRInquiryModalProps)
                 </div>
               )} */}
             </div>
-            {errors.irDeck && <p className="text-sm text-red-500">{String(errors.irDeck)}</p>}
-            <p className="text-xs text-gray-500">PDF 파일만 업로드 가능 (최대 10MB)</p>
+            {errors.irDeck && (
+              <p className="text-sm text-red-500">{String(errors.irDeck)}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              PDF 파일만 업로드 가능 (최대 10MB)
+            </p>
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
               취소
             </Button>
             <Button

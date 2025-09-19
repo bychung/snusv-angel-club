@@ -54,7 +54,9 @@ export async function authenticateRequest(
       };
     }
   } catch (supabaseError) {
-    console.log('[authenticateRequest] Supabase 인증 실패, 임시 토큰 확인 시도');
+    console.log(
+      '[authenticateRequest] Supabase 인증 실패, 임시 토큰 확인 시도'
+    );
   }
 
   // 2. 임시 토큰 인증 시도
@@ -72,7 +74,9 @@ export async function authenticateRequest(
   try {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error('[authenticateRequest] JWT_SECRET 환경변수가 설정되지 않았습니다.');
+      console.error(
+        '[authenticateRequest] JWT_SECRET 환경변수가 설정되지 않았습니다.'
+      );
       return {
         isAuthenticated: false,
         authType: 'none',
@@ -83,7 +87,10 @@ export async function authenticateRequest(
     const payload = jwt.verify(token, jwtSecret) as TempTokenPayload;
 
     // 용도 검증
-    if (allowedPurposes.length > 0 && !allowedPurposes.includes(payload.purpose)) {
+    if (
+      allowedPurposes.length > 0 &&
+      !allowedPurposes.includes(payload.purpose)
+    ) {
       return {
         isAuthenticated: false,
         authType: 'none',

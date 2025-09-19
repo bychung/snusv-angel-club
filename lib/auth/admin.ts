@@ -30,7 +30,10 @@ export async function isAdmin(user: User | null): Promise<boolean> {
 /**
  * 관리자 권한 확인 (클라이언트)
  */
-export async function checkAdminAccess(): Promise<{ isAdmin: boolean; user: User | null }> {
+export async function checkAdminAccess(): Promise<{
+  isAdmin: boolean;
+  user: User | null;
+}> {
   try {
     const supabase = createClient();
     const {
@@ -59,7 +62,9 @@ export async function checkAdminAccess(): Promise<{ isAdmin: boolean; user: User
  * 실제 구현에서는 AdminLayout 컴포넌트에서 권한 체크를 수행합니다.
  * 이 함수는 향후 확장을 위한 플레이스홀더입니다.
  */
-export function withAdminAuth<T extends object>(WrappedComponent: React.ComponentType<T>) {
+export function withAdminAuth<T extends object>(
+  WrappedComponent: React.ComponentType<T>
+) {
   return function AdminProtectedComponent(props: T) {
     // AdminLayout 컴포넌트에서 실제 권한 체크를 수행하므로
     // 여기서는 단순히 컴포넌트를 반환합니다.

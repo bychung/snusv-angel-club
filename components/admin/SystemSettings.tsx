@@ -2,7 +2,13 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -125,7 +131,9 @@ export default function SystemSettings() {
       const supabase = createClient();
 
       const { data: profiles } = await supabase.from('profiles').select('*');
-      const { data: fundMembers } = await supabase.from('fund_members').select('*');
+      const { data: fundMembers } = await supabase
+        .from('fund_members')
+        .select('*');
 
       const backupData = {
         timestamp: new Date().toISOString(),
@@ -152,7 +160,11 @@ export default function SystemSettings() {
   };
 
   const handleDataCleanup = async () => {
-    if (!confirm('정말로 오래된 데이터를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+    if (
+      !confirm(
+        '정말로 오래된 데이터를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.'
+      )
+    ) {
       return;
     }
 
@@ -175,21 +187,29 @@ export default function SystemSettings() {
             <Settings className="h-5 w-5" />
             시스템 상태
           </CardTitle>
-          <CardDescription>현재 시스템의 전반적인 상태를 확인할 수 있습니다.</CardDescription>
+          <CardDescription>
+            현재 시스템의 전반적인 상태를 확인할 수 있습니다.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">{stats.totalUsers}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {stats.totalUsers}
+              </div>
               <div className="text-sm text-green-700">총 사용자 수</div>
             </div>
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{stats.totalData}MB</div>
+              <div className="text-2xl font-bold text-blue-600">
+                {stats.totalData}MB
+              </div>
               <div className="text-sm text-blue-700">데이터 크기</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <div className="text-2xl font-bold text-purple-600">
-                {stats.lastBackup ? stats.lastBackup.toLocaleDateString('ko-KR') : 'N/A'}
+                {stats.lastBackup
+                  ? stats.lastBackup.toLocaleDateString('ko-KR')
+                  : 'N/A'}
               </div>
               <div className="text-sm text-purple-700">마지막 백업</div>
             </div>
@@ -201,13 +221,17 @@ export default function SystemSettings() {
       <Card>
         <CardHeader>
           <CardTitle>기능 제어</CardTitle>
-          <CardDescription>시스템의 주요 기능을 활성화/비활성화할 수 있습니다.</CardDescription>
+          <CardDescription>
+            시스템의 주요 기능을 활성화/비활성화할 수 있습니다.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <Label>유지보수 모드</Label>
-              <p className="text-sm text-gray-500">활성화 시 일반 사용자 접근이 제한됩니다.</p>
+              <p className="text-sm text-gray-500">
+                활성화 시 일반 사용자 접근이 제한됩니다.
+              </p>
             </div>
             <Switch
               checked={config.maintenance_mode}
@@ -220,18 +244,24 @@ export default function SystemSettings() {
           <div className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <Label>설문조사 기능</Label>
-              <p className="text-sm text-gray-500">새로운 설문조사 제출을 허용합니다.</p>
+              <p className="text-sm text-gray-500">
+                새로운 설문조사 제출을 허용합니다.
+              </p>
             </div>
             <Switch
               checked={config.survey_enabled}
-              onCheckedChange={checked => setConfig(prev => ({ ...prev, survey_enabled: checked }))}
+              onCheckedChange={checked =>
+                setConfig(prev => ({ ...prev, survey_enabled: checked }))
+              }
             />
           </div>
 
           <div className="flex items-center justify-between p-3 border rounded-lg">
             <div>
               <Label>회원가입 기능</Label>
-              <p className="text-sm text-gray-500">새로운 회원가입을 허용합니다.</p>
+              <p className="text-sm text-gray-500">
+                새로운 회원가입을 허용합니다.
+              </p>
             </div>
             <Switch
               checked={config.registration_enabled}
@@ -250,7 +280,9 @@ export default function SystemSettings() {
             <Shield className="h-5 w-5" />
             관리자 계정
           </CardTitle>
-          <CardDescription>관리자 권한을 가진 이메일 계정을 관리합니다.</CardDescription>
+          <CardDescription>
+            관리자 권한을 가진 이메일 계정을 관리합니다.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
@@ -268,7 +300,10 @@ export default function SystemSettings() {
 
           <div className="space-y-2">
             {config.admin_emails.map(email => (
-              <div key={email} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <div
+                key={email}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded"
+              >
                 <Badge variant="secondary" className="flex items-center gap-2">
                   <Shield className="h-3 w-3" />
                   {email}
@@ -299,7 +334,9 @@ export default function SystemSettings() {
             <Input
               id="fund-name"
               value={config.fund_name}
-              onChange={e => setConfig(prev => ({ ...prev, fund_name: e.target.value }))}
+              onChange={e =>
+                setConfig(prev => ({ ...prev, fund_name: e.target.value }))
+              }
             />
           </div>
 
@@ -310,7 +347,10 @@ export default function SystemSettings() {
               type="number"
               value={config.fund_unit_price}
               onChange={e =>
-                setConfig(prev => ({ ...prev, fund_unit_price: Number(e.target.value) }))
+                setConfig(prev => ({
+                  ...prev,
+                  fund_unit_price: Number(e.target.value),
+                }))
               }
             />
           </div>
@@ -324,11 +364,17 @@ export default function SystemSettings() {
             <Database className="h-5 w-5" />
             데이터 관리
           </CardTitle>
-          <CardDescription>시스템 데이터를 백업하고 관리합니다.</CardDescription>
+          <CardDescription>
+            시스템 데이터를 백업하고 관리합니다.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button onClick={handleDataBackup} variant="outline" className="w-full">
+            <Button
+              onClick={handleDataBackup}
+              variant="outline"
+              className="w-full"
+            >
               <RefreshCw className="mr-2 h-4 w-4" />
               데이터 백업
             </Button>
@@ -347,7 +393,10 @@ export default function SystemSettings() {
             <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
             <div className="text-sm text-yellow-800">
               <p className="font-medium">주의사항</p>
-              <p>데이터 정리는 되돌릴 수 없는 작업입니다. 백업을 먼저 수행하는 것을 권장합니다.</p>
+              <p>
+                데이터 정리는 되돌릴 수 없는 작업입니다. 백업을 먼저 수행하는
+                것을 권장합니다.
+              </p>
             </div>
           </div>
         </CardContent>

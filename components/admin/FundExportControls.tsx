@@ -25,7 +25,10 @@ interface FundExportControlsProps {
   fundName: string;
 }
 
-export default function FundExportControls({ fundId, fundName }: FundExportControlsProps) {
+export default function FundExportControls({
+  fundId,
+  fundName,
+}: FundExportControlsProps) {
   const [options, setOptions] = useState<ExportOptions>({
     format: 'excel',
     includeFields: {
@@ -72,7 +75,9 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
       )
       .eq('fund_id', fundId);
 
-    const { data: fundMembers, error } = await query.order('created_at', { ascending: false });
+    const { data: fundMembers, error } = await query.order('created_at', {
+      ascending: false,
+    });
 
     if (error) throw error;
 
@@ -101,7 +106,9 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
         row['주소'] = user.address;
 
         if (user.entity_type === 'individual' && user.birth_date) {
-          row['생년월일'] = new Date(user.birth_date).toLocaleDateString('ko-KR');
+          row['생년월일'] = new Date(user.birth_date).toLocaleDateString(
+            'ko-KR'
+          );
         }
 
         if (user.entity_type === 'corporate' && user.business_number) {
@@ -118,21 +125,28 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
       // 출자 정보
       if (options.includeFields.investmentInfo) {
         row['출자좌수'] = fundMember.investment_units;
-        row['출자금액'] = (fundMember.investment_units * 1000000).toLocaleString() + '원';
+        row['출자금액'] =
+          (fundMember.investment_units * 1000000).toLocaleString() + '원';
         row['펀드명'] = fundName;
 
         if (fundMember.created_at !== fundMember.updated_at) {
-          row['출자정보_최종수정일'] = new Date(fundMember.updated_at).toLocaleDateString('ko-KR');
+          row['출자정보_최종수정일'] = new Date(
+            fundMember.updated_at
+          ).toLocaleDateString('ko-KR');
         }
       }
 
       // 가입 정보
       if (options.includeFields.registrationInfo) {
         row['가입상태'] = user.user_id ? '가입완료' : '설문만';
-        row['설문참여일'] = new Date(user.created_at).toLocaleDateString('ko-KR');
+        row['설문참여일'] = new Date(user.created_at).toLocaleDateString(
+          'ko-KR'
+        );
 
         if (user.created_at !== user.updated_at) {
-          row['정보_최종수정일'] = new Date(user.updated_at).toLocaleDateString('ko-KR');
+          row['정보_최종수정일'] = new Date(user.updated_at).toLocaleDateString(
+            'ko-KR'
+          );
         }
       }
 
@@ -177,7 +191,10 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
     document.body.removeChild(link);
   };
 
-  const updateIncludeFields = (field: keyof ExportOptions['includeFields'], checked: boolean) => {
+  const updateIncludeFields = (
+    field: keyof ExportOptions['includeFields'],
+    checked: boolean
+  ) => {
     setOptions(prev => ({
       ...prev,
       includeFields: {
@@ -192,7 +209,9 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 내보내기 형식 */}
         <div>
-          <h4 className="text-sm font-medium text-gray-900 mb-3">내보내기 형식</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-3">
+            내보내기 형식
+          </h4>
           <RadioGroup
             value={options.format}
             onValueChange={(value: 'excel' | 'csv') =>
@@ -201,7 +220,10 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="excel" id="excel" />
-              <Label htmlFor="excel" className="flex items-center cursor-pointer">
+              <Label
+                htmlFor="excel"
+                className="flex items-center cursor-pointer"
+              >
                 <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
                 Excel (.xlsx)
               </Label>
@@ -218,7 +240,9 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
 
         {/* 조합원 필터 */}
         <div>
-          <h4 className="text-sm font-medium text-gray-900 mb-3">조합원 필터</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-3">
+            조합원 필터
+          </h4>
           <RadioGroup
             value={options.userFilter}
             onValueChange={(value: 'all' | 'registered' | 'survey_only') =>
@@ -249,16 +273,22 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
             <Checkbox
               id="basicInfo"
               checked={options.includeFields.basicInfo}
-              onCheckedChange={checked => updateIncludeFields('basicInfo', checked as boolean)}
+              onCheckedChange={checked =>
+                updateIncludeFields('basicInfo', checked as boolean)
+              }
             />
-            <Label htmlFor="basicInfo">기본 정보 (이름, 구분, 주소, 생년월일/사업자번호)</Label>
+            <Label htmlFor="basicInfo">
+              기본 정보 (이름, 구분, 주소, 생년월일/사업자번호)
+            </Label>
           </div>
 
           <div className="flex items-center space-x-2">
             <Checkbox
               id="contactInfo"
               checked={options.includeFields.contactInfo}
-              onCheckedChange={checked => updateIncludeFields('contactInfo', checked as boolean)}
+              onCheckedChange={checked =>
+                updateIncludeFields('contactInfo', checked as boolean)
+              }
             />
             <Label htmlFor="contactInfo">연락처 정보 (이메일, 전화번호)</Label>
           </div>
@@ -267,9 +297,13 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
             <Checkbox
               id="investmentInfo"
               checked={options.includeFields.investmentInfo}
-              onCheckedChange={checked => updateIncludeFields('investmentInfo', checked as boolean)}
+              onCheckedChange={checked =>
+                updateIncludeFields('investmentInfo', checked as boolean)
+              }
             />
-            <Label htmlFor="investmentInfo">출자 정보 (출자좌수, 출자금액, 펀드명)</Label>
+            <Label htmlFor="investmentInfo">
+              출자 정보 (출자좌수, 출자금액, 펀드명)
+            </Label>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -280,7 +314,9 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
                 updateIncludeFields('registrationInfo', checked as boolean)
               }
             />
-            <Label htmlFor="registrationInfo">가입 정보 (가입상태, 참여일, 수정일)</Label>
+            <Label htmlFor="registrationInfo">
+              가입 정보 (가입상태, 참여일, 수정일)
+            </Label>
           </div>
         </div>
       </div>
@@ -288,7 +324,8 @@ export default function FundExportControls({ fundId, fundName }: FundExportContr
       {/* 내보내기 버튼 */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200">
         <div className="text-sm text-gray-600">
-          {fundName}의 조합원 데이터를 {options.format.toUpperCase()} 파일로 내보냅니다.
+          {fundName}의 조합원 데이터를 {options.format.toUpperCase()} 파일로
+          내보냅니다.
         </div>
         <Button
           onClick={handleExport}

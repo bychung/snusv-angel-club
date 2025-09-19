@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/store/authStore';
@@ -68,7 +74,9 @@ export default function ProfileSection() {
               <User className="h-5 w-5" />
               개인정보
             </CardTitle>
-            <CardDescription>개인정보를 확인하고 수정할 수 있습니다.</CardDescription>
+            <CardDescription>
+              개인정보를 확인하고 수정할 수 있습니다.
+            </CardDescription>
           </div>
 
           {!isEditing ? (
@@ -171,11 +179,15 @@ export default function ProfileSection() {
               {isEditing ? (
                 <Input
                   value={editData.business_number || ''}
-                  onChange={e => handleChange('business_number', e.target.value)}
+                  onChange={e =>
+                    handleChange('business_number', e.target.value)
+                  }
                   placeholder="000-00-00000"
                 />
               ) : (
-                <div className="p-3 bg-gray-50 rounded-md">{profile.business_number || '-'}</div>
+                <div className="p-3 bg-gray-50 rounded-md">
+                  {profile.business_number || '-'}
+                </div>
               )}
             </div>
           )}

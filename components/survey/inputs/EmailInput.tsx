@@ -56,7 +56,9 @@ export default function EmailInput({
       />
       {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
       {!error && !isValidEmail && value && (
-        <p className="text-sm text-red-500 mt-1">올바른 이메일 형식이 아닙니다.</p>
+        <p className="text-sm text-red-500 mt-1">
+          올바른 이메일 형식이 아닙니다.
+        </p>
       )}
     </div>
   );

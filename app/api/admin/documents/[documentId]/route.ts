@@ -28,7 +28,10 @@ export async function DELETE(
 
     const isAdmin = await isAdminServer(user);
     if (!canDeleteDocument(isAdmin ? 'ADMIN' : 'USER')) {
-      return Response.json({ error: '문서 삭제 권한이 없습니다' }, { status: 403 });
+      return Response.json(
+        { error: '문서 삭제 권한이 없습니다' },
+        { status: 403 }
+      );
     }
 
     // 문서 삭제 (Storage + DB)
@@ -41,7 +44,10 @@ export async function DELETE(
     console.error('문서 삭제 실패:', error);
     return Response.json(
       {
-        error: error instanceof Error ? error.message : '내부 서버 오류가 발생했습니다',
+        error:
+          error instanceof Error
+            ? error.message
+            : '내부 서버 오류가 발생했습니다',
       },
       { status: 500 }
     );
@@ -73,7 +79,10 @@ export async function GET(
 
     const isAdmin = await isAdminServer(user);
     if (!isAdmin) {
-      return Response.json({ error: '관리자 권한이 필요합니다' }, { status: 403 });
+      return Response.json(
+        { error: '관리자 권한이 필요합니다' },
+        { status: 403 }
+      );
     }
 
     // 문서 정보 조회
@@ -96,7 +105,10 @@ export async function GET(
       .single();
 
     if (error || !document) {
-      return Response.json({ error: '문서를 찾을 수 없습니다' }, { status: 404 });
+      return Response.json(
+        { error: '문서를 찾을 수 없습니다' },
+        { status: 404 }
+      );
     }
 
     return Response.json({ document });
@@ -104,7 +116,10 @@ export async function GET(
     console.error('문서 조회 실패:', error);
     return Response.json(
       {
-        error: error instanceof Error ? error.message : '내부 서버 오류가 발생했습니다',
+        error:
+          error instanceof Error
+            ? error.message
+            : '내부 서버 오류가 발생했습니다',
       },
       { status: 500 }
     );

@@ -27,7 +27,10 @@ export async function GET(
 
     const isAdmin = await isAdminServer(user);
     if (!isAdmin) {
-      return Response.json({ error: '관리자 권한이 필요합니다' }, { status: 403 });
+      return Response.json(
+        { error: '관리자 권한이 필요합니다' },
+        { status: 403 }
+      );
     }
 
     // 펀드 조합원 목록 조회
@@ -38,7 +41,10 @@ export async function GET(
     console.error('펀드 조합원 목록 조회 실패:', error);
     return Response.json(
       {
-        error: error instanceof Error ? error.message : '내부 서버 오류가 발생했습니다',
+        error:
+          error instanceof Error
+            ? error.message
+            : '내부 서버 오류가 발생했습니다',
       },
       { status: 500 }
     );

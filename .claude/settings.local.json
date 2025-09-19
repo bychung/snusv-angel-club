@@ -1,8 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(npx shadcn@latest add:*)"
-    ],
+    "allow": ["Bash(npx shadcn@latest add:*)"],
     "deny": [],
     "ask": []
   }

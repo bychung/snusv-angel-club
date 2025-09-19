@@ -89,7 +89,11 @@ export default function SignupInquiryModal({
       }, 5000);
     } catch (error) {
       console.error('문의 제출 오류:', error);
-      setError(error instanceof Error ? error.message : '문의 제출 중 오류가 발생했습니다.');
+      setError(
+        error instanceof Error
+          ? error.message
+          : '문의 제출 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -113,8 +117,8 @@ export default function SignupInquiryModal({
           </DialogTitle>
           {!isSubmitted && (
             <DialogDescription>
-              등록된 이메일을 찾을 수 없습니다. 관리자에게 문의를 남겨주시면 확인 후
-              처리해드리겠습니다.
+              등록된 이메일을 찾을 수 없습니다. 관리자에게 문의를 남겨주시면
+              확인 후 처리해드리겠습니다.
             </DialogDescription>
           )}
         </DialogHeader>
@@ -125,7 +129,9 @@ export default function SignupInquiryModal({
               <CheckCircle className="w-12 h-12 text-green-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-green-800 mb-2">문의가 접수되었습니다!</h3>
+              <h3 className="text-lg font-semibold text-green-800 mb-2">
+                문의가 접수되었습니다!
+              </h3>
               <p className="text-sm text-gray-600">
                 관리자가 확인 후 처리해드리겠습니다.
                 <br />
@@ -146,19 +152,25 @@ export default function SignupInquiryModal({
             {/* 시도한 이메일 정보 */}
             <div className="p-3 bg-blue-50 rounded-lg space-y-1">
               <div>
-                <span className="text-sm font-medium text-blue-700">로그인 시도 이메일:</span>
+                <span className="text-sm font-medium text-blue-700">
+                  로그인 시도 이메일:
+                </span>
                 <p className="text-blue-900">{attemptedEmail}</p>
               </div>
 
               {searchedEmail && (
                 <div>
-                  <span className="text-sm font-medium text-blue-700">검색한 이메일:</span>
+                  <span className="text-sm font-medium text-blue-700">
+                    검색한 이메일:
+                  </span>
                   <p className="text-blue-900">{searchedEmail}</p>
                 </div>
               )}
 
               <div>
-                <span className="text-sm font-medium text-blue-700">로그인 방식:</span>
+                <span className="text-sm font-medium text-blue-700">
+                  로그인 방식:
+                </span>
                 <p className="text-blue-900 capitalize">{provider}</p>
               </div>
             </div>
@@ -181,7 +193,9 @@ export default function SignupInquiryModal({
                   disabled={isSubmitting}
                   maxLength={1000}
                 />
-                <p className="text-xs text-gray-500 mt-1">{inquiryMessage.length}/1000자</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {inquiryMessage.length}/1000자
+                </p>
               </div>
 
               {/* 버튼들 */}
@@ -195,7 +209,11 @@ export default function SignupInquiryModal({
                 >
                   취소
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="flex-1">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
                   {isSubmitting ? (
                     <>
                       <Send className="w-4 h-4 mr-2 animate-pulse" />

@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -26,11 +32,20 @@ export default function SignupCompletePage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <Button onClick={() => router.push('/dashboard')} className="w-full" size="lg">
+          <Button
+            onClick={() => router.push('/dashboard')}
+            className="w-full"
+            size="lg"
+          >
             대시보드로 이동
           </Button>
 
-          <Button onClick={() => router.push('/')} variant="outline" className="w-full" size="lg">
+          <Button
+            onClick={() => router.push('/')}
+            variant="outline"
+            className="w-full"
+            size="lg"
+          >
             홈으로 이동
           </Button>
         </CardContent>

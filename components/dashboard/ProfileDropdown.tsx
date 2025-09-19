@@ -10,7 +10,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/authStore';
-import { ChevronDown, LogOut, Settings, User, UserCog, Users } from 'lucide-react';
+import {
+  ChevronDown,
+  LogOut,
+  Settings,
+  User,
+  UserCog,
+  Users,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import AccountManageModal from './AccountManageModal';
@@ -18,10 +25,17 @@ import ProfileEditModal from './ProfileEditModal';
 
 export default function ProfileDropdown() {
   const router = useRouter();
-  const { user, profile, signOut, selectedProfileId, getProfilePermission, isAdminUser } =
-    useAuthStore();
+  const {
+    user,
+    profile,
+    signOut,
+    selectedProfileId,
+    getProfilePermission,
+    isAdminUser,
+  } = useAuthStore();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isAccountManageModalOpen, setIsAccountManageModalOpen] = useState(false);
+  const [isAccountManageModalOpen, setIsAccountManageModalOpen] =
+    useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -49,7 +63,9 @@ export default function ProfileDropdown() {
               </AvatarFallback>
             </Avatar>
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-900">{profile.name || user.email}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {profile.name || user.email}
+              </p>
               <p className="text-xs text-gray-500">{user.email}</p>
             </div>
             <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -85,12 +101,15 @@ export default function ProfileDropdown() {
           </DropdownMenuItem>
 
           {/* 계정 관리 (프로필 소유자만 표시) */}
-          {selectedProfileId && getProfilePermission(selectedProfileId) === 'owner' && (
-            <DropdownMenuItem onClick={() => setIsAccountManageModalOpen(true)}>
-              <Users className="h-4 w-4 mr-3" />
-              계정 관리
-            </DropdownMenuItem>
-          )}
+          {selectedProfileId &&
+            getProfilePermission(selectedProfileId) === 'owner' && (
+              <DropdownMenuItem
+                onClick={() => setIsAccountManageModalOpen(true)}
+              >
+                <Users className="h-4 w-4 mr-3" />
+                계정 관리
+              </DropdownMenuItem>
+            )}
 
           {/* 관리자 전용 메뉴 */}
           {isAdminUser && (
@@ -110,7 +129,10 @@ export default function ProfileDropdown() {
       </DropdownMenu>
 
       {/* 프로필 수정 모달 */}
-      <ProfileEditModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+      <ProfileEditModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
 
       {/* 계정 관리 모달 */}
       <AccountManageModal

@@ -21,14 +21,24 @@ interface ProfileEditModalProps {
   onClose: () => void;
 }
 
-export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalProps) {
-  const { profile, updateProfile, isLoading, selectedProfileId, getProfilePermission } =
-    useAuthStore();
+export default function ProfileEditModal({
+  isOpen,
+  onClose,
+}: ProfileEditModalProps) {
+  const {
+    profile,
+    updateProfile,
+    isLoading,
+    selectedProfileId,
+    getProfilePermission,
+  } = useAuthStore();
   const [editData, setEditData] = useState<Partial<Profile>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
   // 현재 프로필에 대한 권한 확인
-  const currentPermission = selectedProfileId ? getProfilePermission(selectedProfileId) : null;
+  const currentPermission = selectedProfileId
+    ? getProfilePermission(selectedProfileId)
+    : null;
   const isReadOnly = currentPermission === 'view';
 
   // 모달이 열릴 때마다 프로필 데이터로 초기화
@@ -165,7 +175,9 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
                 <Input
                   id="business_number"
                   value={editData.business_number || ''}
-                  onChange={e => handleChange('business_number', e.target.value)}
+                  onChange={e =>
+                    handleChange('business_number', e.target.value)
+                  }
                   placeholder="000-00-00000"
                   disabled={isReadOnly}
                 />
@@ -189,15 +201,15 @@ export default function ProfileEditModal({ isOpen, onClose }: ProfileEditModalPr
           {isReadOnly ? (
             <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
               <p className="text-sm text-amber-800">
-                <strong>알림:</strong> 현재 조회 권한만 있어서 정보를 수정할 수 없습니다. 수정이
-                필요한 경우 프로필 소유자에게 문의해 주세요.
+                <strong>알림:</strong> 현재 조회 권한만 있어서 정보를 수정할 수
+                없습니다. 수정이 필요한 경우 프로필 소유자에게 문의해 주세요.
               </p>
             </div>
           ) : (
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-blue-800">
-                <strong>참고:</strong> 개인/법인 구분은 변경할 수 없습니다. 변경이 필요한 경우
-                관리자에게 문의해 주세요.
+                <strong>참고:</strong> 개인/법인 구분은 변경할 수 없습니다.
+                변경이 필요한 경우 관리자에게 문의해 주세요.
               </p>
             </div>
           )}

@@ -1,11 +1,19 @@
 import MemberModals from '@/components/admin/MemberModals';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import type { FundMember, Profile } from '@/types/database';
 import { Building, Mail, Phone, Shield, User } from 'lucide-react';
 
 interface MemberWithFund extends Profile {
-  fund_members?: (FundMember & { fund?: { name: string; abbreviation?: string | null } })[];
+  fund_members?: (FundMember & {
+    fund?: { name: string; abbreviation?: string | null };
+  })[];
   registration_status: 'registered' | 'survey_only';
 }
 
@@ -16,7 +24,12 @@ interface MemberTableProps {
   fundName?: string;
 }
 
-export default function MemberTable({ members, mode, fundId, fundName }: MemberTableProps) {
+export default function MemberTable({
+  members,
+  mode,
+  fundId,
+  fundName,
+}: MemberTableProps) {
   const getStatusBadge = (status: 'registered' | 'survey_only') => {
     switch (status) {
       case 'registered':
@@ -37,7 +50,10 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
   const getRoleBadge = (role: 'ADMIN' | 'USER') => {
     if (role === 'ADMIN') {
       return (
-        <Badge variant="destructive" className="bg-red-100 text-red-800 text-xs">
+        <Badge
+          variant="destructive"
+          className="bg-red-100 text-red-800 text-xs"
+        >
           <Shield className="h-3 w-3 mr-1" />
           관리자
         </Badge>
@@ -65,7 +81,9 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
 
   const getEmptyMessage = () => {
     if (members.length === 0) {
-      return mode === 'fund_members' ? '등록된 조합원이 없습니다.' : '등록된 사용자가 없습니다.';
+      return mode === 'fund_members'
+        ? '등록된 조합원이 없습니다.'
+        : '등록된 사용자가 없습니다.';
     }
     return mode === 'fund_members'
       ? '조건에 맞는 조합원이 없습니다.'
@@ -82,7 +100,9 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
         </CardHeader>
         <CardContent>
           {members.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">{getEmptyMessage()}</div>
+            <div className="text-center py-8 text-gray-500">
+              {getEmptyMessage()}
+            </div>
           ) : (
             <div className="space-y-4">
               {members.map(member => (
@@ -95,7 +115,9 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
                       <div className="flex-shrink-0">
                         <div
                           className={`h-8 w-8 rounded-full flex items-center justify-center ${
-                            member.entity_type === 'corporate' ? 'bg-blue-100' : 'bg-green-100'
+                            member.entity_type === 'corporate'
+                              ? 'bg-blue-100'
+                              : 'bg-green-100'
                           }`}
                         >
                           {member.entity_type === 'corporate' ? (
@@ -117,34 +139,41 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
                               member.fund_members &&
                               member.fund_members.length > 0 && (
                                 <div className="text-sm font-medium text-blue-400">
-                                  {formatCurrency(member.fund_members[0].investment_units)}
+                                  {formatCurrency(
+                                    member.fund_members[0].investment_units
+                                  )}
                                 </div>
                               )
                             : // 사용자 관리 모드: 펀드 칩 표시
                               member.fund_members &&
                               member.fund_members.length > 0 && (
                                 <div className="flex gap-1 flex-wrap">
-                                  {member.fund_members.map((fundMember, index) => (
-                                    <Badge
-                                      key={index}
-                                      variant="secondary"
-                                      className="text-xs bg-blue-100 text-blue-800"
-                                    >
-                                      {fundMember.fund?.abbreviation ||
-                                        fundMember.fund?.name ||
-                                        '펀드'}
-                                    </Badge>
-                                  ))}
+                                  {member.fund_members.map(
+                                    (fundMember, index) => (
+                                      <Badge
+                                        key={index}
+                                        variant="secondary"
+                                        className="text-xs bg-blue-100 text-blue-800"
+                                      >
+                                        {fundMember.fund?.abbreviation ||
+                                          fundMember.fund?.name ||
+                                          '펀드'}
+                                      </Badge>
+                                    )
+                                  )}
                                 </div>
                               )}
-                          {mode === 'fund_members' && getStatusBadge(member.registration_status)}
+                          {mode === 'fund_members' &&
+                            getStatusBadge(member.registration_status)}
                         </div>
                       </div>
 
                       <div className="hidden sm:flex items-center space-x-6 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />
-                          <span className="truncate max-w-[150px]">{member.email}</span>
+                          <span className="truncate max-w-[150px]">
+                            {member.email}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Phone className="h-3 w-3" />
@@ -155,7 +184,8 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
                           member.fund_members.length > 0 && (
                             <div className="text-xs text-gray-500">
                               <span>
-                                {member.fund_members[0].investment_units.toLocaleString()}좌
+                                {member.fund_members[0].investment_units.toLocaleString()}
+                                좌
                               </span>
                             </div>
                           )}
@@ -181,27 +211,34 @@ export default function MemberTable({ members, mode, fundId, fundName }: MemberT
                         <div className="flex gap-4 text-xs">
                           <span>
                             <span className="font-medium">출자좌수:</span>{' '}
-                            {member.fund_members[0].investment_units.toLocaleString()}좌
+                            {member.fund_members[0].investment_units.toLocaleString()}
+                            좌
                           </span>
                           <span>
                             <span className="font-medium">출자금액:</span>{' '}
-                            {formatCurrency(member.fund_members[0].investment_units)}
+                            {formatCurrency(
+                              member.fund_members[0].investment_units
+                            )}
                           </span>
                         </div>
                       )}
-                    {mode === 'users' && member.fund_members && member.fund_members.length > 0 && (
-                      <div className="flex gap-1 flex-wrap">
-                        {member.fund_members.map((fundMember, index) => (
-                          <Badge
-                            key={index}
-                            variant="secondary"
-                            className="text-xs bg-blue-100 text-blue-800"
-                          >
-                            {fundMember.fund?.abbreviation || fundMember.fund?.name || '펀드'}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                    {mode === 'users' &&
+                      member.fund_members &&
+                      member.fund_members.length > 0 && (
+                        <div className="flex gap-1 flex-wrap">
+                          {member.fund_members.map((fundMember, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="text-xs bg-blue-100 text-blue-800"
+                            >
+                              {fundMember.fund?.abbreviation ||
+                                fundMember.fund?.name ||
+                                '펀드'}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 </div>
               ))}

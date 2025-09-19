@@ -19,7 +19,11 @@ interface SurveyStore {
   activeFundId: string | null;
 
   // 액션
-  updateField: <K extends keyof SurveyData>(fundId: string, field: K, value: SurveyData[K]) => void;
+  updateField: <K extends keyof SurveyData>(
+    fundId: string,
+    field: K,
+    value: SurveyData[K]
+  ) => void;
   goToPage: (fundId: string, page: number) => void;
   nextPage: (fundId: string) => void;
   prevPage: (fundId: string) => void;
@@ -83,7 +87,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   updateField: (fundId: string, field, value) => {
     set(state => {
-      const previous = state.fundSurveys[fundId] || createInitialFundSurveyData();
+      const previous =
+        state.fundSurveys[fundId] || createInitialFundSurveyData();
       return {
         fundSurveys: {
           ...state.fundSurveys,
@@ -104,7 +109,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   goToPage: (fundId: string, page: number) => {
     set(state => {
-      const previous = state.fundSurveys[fundId] || createInitialFundSurveyData();
+      const previous =
+        state.fundSurveys[fundId] || createInitialFundSurveyData();
       return {
         fundSurveys: {
           ...state.fundSurveys,
@@ -186,7 +192,10 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
       timestamp: Date.now(),
     };
     try {
-      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}${fundId}`, JSON.stringify(saveData));
+      localStorage.setItem(
+        `${LOCAL_STORAGE_KEY_PREFIX}${fundId}`,
+        JSON.stringify(saveData)
+      );
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
     }
@@ -194,7 +203,9 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   loadFromLocalStorage: (fundId: string) => {
     try {
-      const saved = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}${fundId}`);
+      const saved = localStorage.getItem(
+        `${LOCAL_STORAGE_KEY_PREFIX}${fundId}`
+      );
       if (!saved) return false;
 
       const data = JSON.parse(saved);
@@ -229,7 +240,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   setSubmitting: (fundId: string, isSubmitting: boolean) => {
     set(state => {
-      const previous = state.fundSurveys[fundId] || createInitialFundSurveyData();
+      const previous =
+        state.fundSurveys[fundId] || createInitialFundSurveyData();
       return {
         fundSurveys: {
           ...state.fundSurveys,
@@ -245,7 +257,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   setSubmitError: (fundId: string, error: Error | null) => {
     set(state => {
-      const previous = state.fundSurveys[fundId] || createInitialFundSurveyData();
+      const previous =
+        state.fundSurveys[fundId] || createInitialFundSurveyData();
       return {
         fundSurveys: {
           ...state.fundSurveys,
@@ -261,7 +274,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
 
   setProfileId: (fundId: string, profileId: string | null) => {
     set(state => {
-      const previous = state.fundSurveys[fundId] || createInitialFundSurveyData();
+      const previous =
+        state.fundSurveys[fundId] || createInitialFundSurveyData();
       return {
         fundSurveys: {
           ...state.fundSurveys,
@@ -279,7 +293,8 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   setFundId: (fundId: string, fundName?: string) => {
     if (fundName) {
       set(state => {
-        const previous = state.fundSurveys[fundId] || createInitialFundSurveyData();
+        const previous =
+          state.fundSurveys[fundId] || createInitialFundSurveyData();
         return {
           fundSurveys: {
             ...state.fundSurveys,
@@ -351,12 +366,17 @@ export const useSurveyStore = create<SurveyStore>((set, get) => ({
   saveActiveFundIdToLocalStorage: () => {
     const { activeFundId } = get();
     if (activeFundId) {
-      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`, activeFundId);
+      localStorage.setItem(
+        `${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`,
+        activeFundId
+      );
     }
   },
 
   getActiveFundIdFromLocalStorage: () => {
-    const activeFundId = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`);
+    const activeFundId = localStorage.getItem(
+      `${LOCAL_STORAGE_KEY_PREFIX}active_fund_id`
+    );
     return activeFundId;
   },
 

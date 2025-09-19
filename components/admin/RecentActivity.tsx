@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import type { ActivityItem } from '@/lib/admin/dashboard';
 import { Activity, Clock, Edit, UserPlus } from 'lucide-react';
 
@@ -7,7 +13,10 @@ interface RecentActivityProps {
   isLoading?: boolean;
 }
 
-export default function RecentActivity({ activities, isLoading = false }: RecentActivityProps) {
+export default function RecentActivity({
+  activities,
+  isLoading = false,
+}: RecentActivityProps) {
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
       case 'signup':
@@ -33,10 +42,14 @@ export default function RecentActivity({ activities, isLoading = false }: Recent
   const formatTime = (timestamp: string) => {
     const now = new Date();
     const time = new Date(timestamp);
-    const diffInHours = Math.floor((now.getTime() - time.getTime()) / (1000 * 60 * 60));
+    const diffInHours = Math.floor(
+      (now.getTime() - time.getTime()) / (1000 * 60 * 60)
+    );
 
     if (diffInHours < 1) {
-      const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
+      const diffInMinutes = Math.floor(
+        (now.getTime() - time.getTime()) / (1000 * 60)
+      );
       return `${diffInMinutes}분 전`;
     } else if (diffInHours < 24) {
       return `${diffInHours}시간 전`;
@@ -59,7 +72,10 @@ export default function RecentActivity({ activities, isLoading = false }: Recent
         {isLoading ? (
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse flex items-center space-x-3">
+              <div
+                key={i}
+                className="animate-pulse flex items-center space-x-3"
+              >
                 <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -69,7 +85,9 @@ export default function RecentActivity({ activities, isLoading = false }: Recent
             ))}
           </div>
         ) : activities.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">최근 활동이 없습니다.</div>
+          <div className="text-center py-8 text-gray-500">
+            최근 활동이 없습니다.
+          </div>
         ) : (
           <div className="space-y-4">
             {activities.map(activity => (
@@ -77,19 +95,25 @@ export default function RecentActivity({ activities, isLoading = false }: Recent
                 key={activity.id}
                 className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50"
               >
-                <div className="flex-shrink-0 mt-1">{getActivityIcon(activity.type)}</div>
+                <div className="flex-shrink-0 mt-1">
+                  {getActivityIcon(activity.type)}
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-gray-900">
                       {getActivityTitle(activity.type)}
                     </p>
-                    <span className="text-xs text-gray-500">{formatTime(activity.timestamp)}</span>
+                    <span className="text-xs text-gray-500">
+                      {formatTime(activity.timestamp)}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-600 truncate">
                     {activity.user_name} ({activity.user_email})
                   </p>
                   {activity.details && (
-                    <p className="text-xs text-gray-500 mt-1">{activity.details}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {activity.details}
+                    </p>
                   )}
                 </div>
               </div>

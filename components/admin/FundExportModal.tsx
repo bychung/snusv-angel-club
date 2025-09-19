@@ -18,7 +18,10 @@ interface FundExportModalProps {
   fundName: string;
 }
 
-export default function FundExportModal({ fundId, fundName }: FundExportModalProps) {
+export default function FundExportModal({
+  fundId,
+  fundName,
+}: FundExportModalProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (

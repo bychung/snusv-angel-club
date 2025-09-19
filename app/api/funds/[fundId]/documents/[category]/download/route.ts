@@ -14,13 +14,19 @@ export async function GET(
   }
 
   if (!category) {
-    return Response.json({ error: '문서 카테고리가 필요합니다' }, { status: 400 });
+    return Response.json(
+      { error: '문서 카테고리가 필요합니다' },
+      { status: 400 }
+    );
   }
 
   // 카테고리 검증
   const validCategories = ['account', 'tax', 'registration', 'agreement'];
   if (!validCategories.includes(category)) {
-    return Response.json({ error: '유효하지 않은 문서 카테고리입니다' }, { status: 400 });
+    return Response.json(
+      { error: '유효하지 않은 문서 카테고리입니다' },
+      { status: 400 }
+    );
   }
 
   try {
@@ -58,7 +64,10 @@ export async function GET(
         .single();
 
       if (!profile) {
-        return Response.json({ error: '프로필을 찾을 수 없습니다' }, { status: 403 });
+        return Response.json(
+          { error: '프로필을 찾을 수 없습니다' },
+          { status: 403 }
+        );
       }
 
       const { count } = await supabase
@@ -102,7 +111,9 @@ export async function GET(
     try {
       const url = new URL(document.file_url);
       const pathSegments = url.pathname.split('/');
-      const bucketIndex = pathSegments.findIndex(segment => segment === 'fund-documents');
+      const bucketIndex = pathSegments.findIndex(
+        segment => segment === 'fund-documents'
+      );
 
       if (bucketIndex === -1 || bucketIndex >= pathSegments.length - 1) {
         throw new Error('Invalid file URL format');
@@ -111,7 +122,10 @@ export async function GET(
       filePath = pathSegments.slice(bucketIndex + 1).join('/');
     } catch (error) {
       console.error('파일 경로 추출 실패:', error);
-      return Response.json({ error: '파일 URL 형식이 올바르지 않습니다' }, { status: 500 });
+      return Response.json(
+        { error: '파일 URL 형식이 올바르지 않습니다' },
+        { status: 500 }
+      );
     }
 
     // Service Role 전용 클라이언트 생성 (IR deck과 동일한 방식)
@@ -127,18 +141,26 @@ export async function GET(
 
     if (downloadError) {
       console.error('파일 다운로드 오류:', downloadError);
-      return Response.json({ error: '파일 다운로드에 실패했습니다.' }, { status: 500 });
+      return Response.json(
+        { error: '파일 다운로드에 실패했습니다.' },
+        { status: 500 }
+      );
     }
 
     if (!fileData) {
-      return Response.json({ error: '파일을 찾을 수 없습니다.' }, { status: 404 });
+      return Response.json(
+        { error: '파일을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
     }
 
     // 파일을 Buffer로 변환
     const buffer = await fileData.arrayBuffer();
 
     // 파일 다운로드 로그 기록
-    console.log(`문서 다운로드: ${user.email} - ${fundId}/${category} - ${document.file_name}`);
+    console.log(
+      `문서 다운로드: ${user.email} - ${fundId}/${category} - ${document.file_name}`
+    );
 
     // 파일을 직접 반환 (IR deck과 동일한 방식)
     return new NextResponse(buffer, {
@@ -152,7 +174,10 @@ export async function GET(
     console.error('문서 다운로드 실패:', error);
     return Response.json(
       {
-        error: error instanceof Error ? error.message : '내부 서버 오류가 발생했습니다',
+        error:
+          error instanceof Error
+            ? error.message
+            : '내부 서버 오류가 발생했습니다',
       },
       { status: 500 }
     );

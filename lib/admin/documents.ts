@@ -60,7 +60,11 @@ export async function uploadDocument(
 ): Promise<Document> {
   try {
     // 1. 파일을 Supabase Storage에 업로드
-    const uploadResult = await uploadFile(file, 'fund-documents', `${fundId}/${category}`);
+    const uploadResult = await uploadFile(
+      file,
+      'fund-documents',
+      `${fundId}/${category}`
+    );
 
     if (!uploadResult.success || !uploadResult.file_url) {
       throw new Error(uploadResult.error || '파일 업로드에 실패했습니다');
@@ -119,7 +123,9 @@ export async function deleteDocument(documentId: string): Promise<void> {
     // file_url에서 파일 경로 추출
     const url = new URL(document.file_url);
     const pathSegments = url.pathname.split('/');
-    const bucketIndex = pathSegments.findIndex(segment => segment === 'fund-documents');
+    const bucketIndex = pathSegments.findIndex(
+      segment => segment === 'fund-documents'
+    );
 
     if (bucketIndex !== -1 && bucketIndex < pathSegments.length - 1) {
       const filePath = pathSegments.slice(bucketIndex + 1).join('/');
@@ -127,7 +133,10 @@ export async function deleteDocument(documentId: string): Promise<void> {
     }
 
     // 3. DB에서 문서 정보 삭제
-    const { error: deleteError } = await supabase.from('documents').delete().eq('id', documentId);
+    const { error: deleteError } = await supabase
+      .from('documents')
+      .delete()
+      .eq('id', documentId);
 
     if (deleteError) {
       throw deleteError;

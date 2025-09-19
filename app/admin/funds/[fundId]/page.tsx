@@ -20,13 +20,20 @@ interface FundDetailPageProps {
   }>;
 }
 
-export default async function FundDetailPage({ params, searchParams }: FundDetailPageProps) {
+export default async function FundDetailPage({
+  params,
+  searchParams,
+}: FundDetailPageProps) {
   const { fundId } = await params;
   const { search, filter } = await searchParams;
   const supabase = await createClient();
 
   // 펀드 정보 조회 (서버에서만 실행)
-  const { data: fund, error } = await supabase.from('funds').select('*').eq('id', fundId).single();
+  const { data: fund, error } = await supabase
+    .from('funds')
+    .select('*')
+    .eq('id', fundId)
+    .single();
 
   if (error || !fund) {
     notFound();
@@ -81,7 +88,12 @@ export default async function FundDetailPage({ params, searchParams }: FundDetai
         <MemberSearchAndFilter mode="fund_members" />
 
         {/* 조합원 목록 */}
-        <MemberTable members={members} mode="fund_members" fundId={fundId} fundName={fund.name} />
+        <MemberTable
+          members={members}
+          mode="fund_members"
+          fundId={fundId}
+          fundName={fund.name}
+        />
       </div>
     </AdminLayout>
   );

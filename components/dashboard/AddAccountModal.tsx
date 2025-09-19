@@ -32,8 +32,13 @@ interface SearchResult {
   message: string;
 }
 
-export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccountModalProps) {
-  const { selectedProfileId, addProfileAccess, findProfileByEmail } = useAuthStore();
+export default function AddAccountModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddAccountModalProps) {
+  const { selectedProfileId, addProfileAccess, findProfileByEmail } =
+    useAuthStore();
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState<'admin' | 'view'>('view');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -77,7 +82,9 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
       }
 
       if (!result.found) {
-        setError(result.message || '해당 이메일로 가입된 사용자를 찾을 수 없습니다.');
+        setError(
+          result.message || '해당 이메일로 가입된 사용자를 찾을 수 없습니다.'
+        );
         return;
       }
 
@@ -132,19 +139,25 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
       if (searchResult.status === 'auth_only') {
         // 프로필이 없는 사용자의 경우 직접 profile_permissions에 추가
         const supabase = createClient();
-        const { error: permissionError } = await supabase.from('profile_permissions').insert({
-          profile_id: selectedProfileId,
-          user_id: searchResult.user_id,
-          permission_type: permission,
-          granted_by: selectedProfileId,
-        });
+        const { error: permissionError } = await supabase
+          .from('profile_permissions')
+          .insert({
+            profile_id: selectedProfileId,
+            user_id: searchResult.user_id,
+            permission_type: permission,
+            granted_by: selectedProfileId,
+          });
 
         if (permissionError) {
           throw new Error('권한 부여에 실패했습니다.');
         }
       } else {
         // 프로필이 있는 사용자의 경우 기존 방식 사용
-        await addProfileAccess(selectedProfileId, searchResult.email, permission);
+        await addProfileAccess(
+          selectedProfileId,
+          searchResult.email,
+          permission
+        );
       }
 
       onSuccess();
@@ -176,7 +189,9 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>계정 추가</DialogTitle>
-          <DialogDescription>이메일 주소로 사용자를 검색하고 권한을 부여하세요.</DialogDescription>
+          <DialogDescription>
+            이메일 주소로 사용자를 검색하고 권한을 부여하세요.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -221,10 +236,10 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                   searchResult.status === 'connected'
                     ? 'bg-blue-50 border-blue-200'
                     : searchResult.status === 'conflict'
-                    ? 'bg-red-50 border-red-200'
-                    : searchResult.status === 'auth_only'
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-yellow-50 border-yellow-200'
+                      ? 'bg-red-50 border-red-200'
+                      : searchResult.status === 'auth_only'
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-yellow-50 border-yellow-200'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -234,10 +249,10 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                         searchResult.status === 'connected'
                           ? 'text-blue-600'
                           : searchResult.status === 'conflict'
-                          ? 'text-red-600'
-                          : searchResult.status === 'auth_only'
-                          ? 'text-green-600'
-                          : 'text-yellow-600'
+                            ? 'text-red-600'
+                            : searchResult.status === 'auth_only'
+                              ? 'text-green-600'
+                              : 'text-yellow-600'
                       }`}
                     />
                     <div>
@@ -246,10 +261,10 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                           searchResult.status === 'connected'
                             ? 'text-blue-900'
                             : searchResult.status === 'conflict'
-                            ? 'text-red-900'
-                            : searchResult.status === 'auth_only'
-                            ? 'text-green-900'
-                            : 'text-yellow-900'
+                              ? 'text-red-900'
+                              : searchResult.status === 'auth_only'
+                                ? 'text-green-900'
+                                : 'text-yellow-900'
                         }`}
                       >
                         {searchResult.name}
@@ -259,10 +274,10 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                           searchResult.status === 'connected'
                             ? 'text-blue-700'
                             : searchResult.status === 'conflict'
-                            ? 'text-red-700'
-                            : searchResult.status === 'auth_only'
-                            ? 'text-green-700'
-                            : 'text-yellow-700'
+                              ? 'text-red-700'
+                              : searchResult.status === 'auth_only'
+                                ? 'text-green-700'
+                                : 'text-yellow-700'
                         }`}
                       >
                         {searchResult.email}
@@ -272,17 +287,17 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                           searchResult.status === 'connected'
                             ? 'text-blue-600'
                             : searchResult.status === 'conflict'
-                            ? 'text-red-600'
-                            : searchResult.status === 'auth_only'
-                            ? 'text-green-600'
-                            : 'text-yellow-600'
+                              ? 'text-red-600'
+                              : searchResult.status === 'auth_only'
+                                ? 'text-green-600'
+                                : 'text-yellow-600'
                         }`}
                       >
                         {searchResult.status === 'auth_only'
                           ? 'OAuth 가입됨 (프로필 없음)'
                           : searchResult.entity_type === 'individual'
-                          ? '개인'
-                          : '법인'}
+                            ? '개인'
+                            : '법인'}
                       </p>
                     </div>
                   </div>
@@ -291,19 +306,19 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                       searchResult.status === 'connected'
                         ? 'bg-blue-100 text-blue-800'
                         : searchResult.status === 'conflict'
-                        ? 'bg-red-100 text-red-800'
-                        : searchResult.status === 'auth_only'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
+                          ? 'bg-red-100 text-red-800'
+                          : searchResult.status === 'auth_only'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
                     {searchResult.status === 'connected'
                       ? '연결됨'
                       : searchResult.status === 'conflict'
-                      ? '충돌'
-                      : searchResult.status === 'auth_only'
-                      ? '연결 가능'
-                      : '미연결'}
+                        ? '충돌'
+                        : searchResult.status === 'auth_only'
+                          ? '연결 가능'
+                          : '미연결'}
                   </span>
                 </div>
                 <p
@@ -311,10 +326,10 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                     searchResult.status === 'connected'
                       ? 'text-blue-700'
                       : searchResult.status === 'conflict'
-                      ? 'text-red-700'
-                      : searchResult.status === 'auth_only'
-                      ? 'text-green-700'
-                      : 'text-yellow-700'
+                        ? 'text-red-700'
+                        : searchResult.status === 'auth_only'
+                          ? 'text-green-700'
+                          : 'text-yellow-700'
                   }`}
                 >
                   {searchResult.message}
@@ -327,7 +342,9 @@ export default function AddAccountModal({ isOpen, onClose, onSuccess }: AddAccou
                   <Label>부여할 권한</Label>
                   <RadioGroup
                     value={permission}
-                    onValueChange={value => setPermission(value as 'admin' | 'view')}
+                    onValueChange={value =>
+                      setPermission(value as 'admin' | 'view')
+                    }
                     className="space-y-2"
                   >
                     <div className="flex items-center space-x-2">

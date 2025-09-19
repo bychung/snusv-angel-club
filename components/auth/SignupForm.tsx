@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/store/authStore';
@@ -15,7 +21,9 @@ export default function SignupForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [signupMethod, setSignupMethod] = useState<'email' | 'oauth' | null>(null);
+  const [signupMethod, setSignupMethod] = useState<'email' | 'oauth' | null>(
+    null
+  );
 
   const {
     signUp,
@@ -88,7 +96,10 @@ export default function SignupForm() {
       console.error('회원가입 실패:', error);
 
       // 프로필을 찾지 못한 경우 - 이미 계정은 생성되었으므로 임시 토큰 발행 후 find-email로 이동
-      if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND_FOR_EMAIL') {
+      if (
+        error instanceof Error &&
+        error.message === 'PROFILE_NOT_FOUND_FOR_EMAIL'
+      ) {
         console.log(
           '[SignupForm] 계정 생성 완료, 프로필 연결 실패 - 임시 토큰 발행 및 find-email로 이동'
         );
@@ -139,7 +150,8 @@ export default function SignupForm() {
       }
 
       // 기타 에러는 알럿으로 표시
-      const errorMessage = error instanceof Error ? error.message : '회원가입에 실패했습니다.';
+      const errorMessage =
+        error instanceof Error ? error.message : '회원가입에 실패했습니다.';
       alert(errorMessage);
     } finally {
       setIsLoading(false);
@@ -175,7 +187,9 @@ export default function SignupForm() {
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center mb-2">
                 <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                <span className="text-sm font-medium text-green-800">설문조사 정보</span>
+                <span className="text-sm font-medium text-green-800">
+                  설문조사 정보
+                </span>
               </div>
               <div className="text-sm text-green-700 space-y-1">
                 <div>이름: {surveyData?.name || ''}</div>
@@ -187,7 +201,9 @@ export default function SignupForm() {
 
           {!signupMethod && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium text-center">회원가입 방법을 선택해주세요</h3>
+              <h3 className="text-lg font-medium text-center">
+                회원가입 방법을 선택해주세요
+              </h3>
 
               {/* 이메일 회원가입 선택 */}
               <Button
@@ -216,7 +232,11 @@ export default function SignupForm() {
           {/* 이메일 회원가입 */}
           {signupMethod === 'email' && (
             <div className="space-y-4">
-              <Button onClick={() => setSignupMethod(null)} variant="ghost" className="w-full">
+              <Button
+                onClick={() => setSignupMethod(null)}
+                variant="ghost"
+                className="w-full"
+              >
                 ← 다른 방법으로 회원가입
               </Button>
 
@@ -237,7 +257,9 @@ export default function SignupForm() {
                       출자 의향 설문조사에서 입력한 이메일이 사용됩니다.
                     </p>
                   ) : (
-                    <p className="text-xs text-gray-500">회원가입에 사용할 이메일을 입력하세요.</p>
+                    <p className="text-xs text-gray-500">
+                      회원가입에 사용할 이메일을 입력하세요.
+                    </p>
                   )}
                 </div>
 
@@ -295,7 +317,11 @@ export default function SignupForm() {
           {/* OAuth 회원가입 */}
           {signupMethod === 'oauth' && (
             <div className="space-y-4">
-              <Button onClick={() => setSignupMethod(null)} variant="ghost" className="w-full">
+              <Button
+                onClick={() => setSignupMethod(null)}
+                variant="ghost"
+                className="w-full"
+              >
                 ← 다른 방법으로 회원가입
               </Button>
 
@@ -335,12 +361,20 @@ export default function SignupForm() {
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
               이미 계정이 있으신가요?{' '}
-              <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/login')}>
+              <Button
+                variant="link"
+                className="p-0 h-auto"
+                onClick={() => router.push('/login')}
+              >
                 로그인하기
               </Button>
             </p>
 
-            <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/')}>
+            <Button
+              variant="link"
+              className="p-0 h-auto text-sm"
+              onClick={() => router.push('/')}
+            >
               홈으로 돌아가기
             </Button>
           </div>

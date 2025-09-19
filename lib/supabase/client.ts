@@ -11,14 +11,17 @@ function createLoggingFetch(timeoutMs: number = DEFAULT_TIMEOUT_MS) {
       typeof input === 'string'
         ? input
         : input instanceof URL
-        ? input.toString()
-        : (input as Request).url;
-    const method = init?.method || (input instanceof Request ? input.method : 'GET');
+          ? input.toString()
+          : (input as Request).url;
+    const method =
+      init?.method || (input instanceof Request ? input.method : 'GET');
 
     const controller = new AbortController();
     const userSignal = init?.signal;
     const onUserAbort = () =>
-      controller.abort((userSignal as any)?.reason || new DOMException('Aborted', 'AbortError'));
+      controller.abort(
+        (userSignal as any)?.reason || new DOMException('Aborted', 'AbortError')
+      );
     if (userSignal) {
       if (userSignal.aborted) onUserAbort();
       else userSignal.addEventListener('abort', onUserAbort, { once: true });
@@ -33,10 +36,19 @@ function createLoggingFetch(timeoutMs: number = DEFAULT_TIMEOUT_MS) {
     console.log('[supabase fetch] →', method, url);
 
     try {
-      const response = await fetch(input as any, { ...init, signal: controller.signal });
+      const response = await fetch(input as any, {
+        ...init,
+        signal: controller.signal,
+      });
       const ms = Date.now() - startedAt;
       // eslint-disable-next-line no-console
-      console.log('[supabase fetch] ←', method, url, response.status, `${ms}ms`);
+      console.log(
+        '[supabase fetch] ←',
+        method,
+        url,
+        response.status,
+        `${ms}ms`
+      );
       return response;
     } catch (error) {
       const ms = Date.now() - startedAt;

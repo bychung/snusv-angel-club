@@ -40,9 +40,12 @@ async function triggerProviderLogout(
 
       if (providerToken) {
         // Google OAuth 토큰 revoke (앱별 로그아웃)
-        await fetch(`https://oauth2.googleapis.com/revoke?token=${providerToken}`, {
-          method: 'POST',
-        });
+        await fetch(
+          `https://oauth2.googleapis.com/revoke?token=${providerToken}`,
+          {
+            method: 'POST',
+          }
+        );
         console.log('[authStore] Google app token revoked successfully');
       } else {
         console.warn('[authStore] No Google provider token found');
@@ -56,7 +59,8 @@ async function triggerProviderLogout(
 
   if (provider === 'kakao') {
     const clientId = process.env.NEXT_PUBLIC_KAKAO_REST_API_KEY;
-    const redirectUri = process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || `${origin}/login`;
+    const redirectUri =
+      process.env.NEXT_PUBLIC_KAKAO_LOGOUT_REDIRECT_URI || `${origin}/login`;
     if (!clientId) return;
     const url = `https://kauth.kakao.com/oauth/logout?client_id=${encodeURIComponent(
       clientId
@@ -86,7 +90,9 @@ interface AuthStore {
   signInWithOAuth: (provider: 'google' | 'kakao') => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (data: Database['public']['Tables']['profiles']['Update']) => Promise<void>;
+  updateProfile: (
+    data: Database['public']['Tables']['profiles']['Update']
+  ) => Promise<void>;
   fetchProfile: (userId?: string) => Promise<void>;
   findProfileByEmail: (email: string) => Promise<Profile | null>;
   setUser: (user: User | null) => void;
@@ -110,7 +116,9 @@ interface AuthStore {
     userId: string,
     permissionType: 'admin' | 'view'
   ) => Promise<void>;
-  getProfilePermission: (profileId: string) => 'owner' | 'admin' | 'view' | null;
+  getProfilePermission: (
+    profileId: string
+  ) => 'owner' | 'admin' | 'view' | null;
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -198,7 +206,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : '로그인에 실패했습니다.',
+        error:
+          error instanceof Error ? error.message : '로그인에 실패했습니다.',
         user: null,
         profile: null,
       });
@@ -213,7 +222,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       // 설문조사 페이지에서 OAuth 로그인하는 경우 원래 URL 저장
-      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/survey')) {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.pathname.startsWith('/survey')
+      ) {
         const currentUrl = window.location.pathname + window.location.search;
         sessionStorage.setItem('redirectAfterAuth', currentUrl);
         console.log('[authStore] Saved redirect URL for survey:', currentUrl);
@@ -232,7 +244,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : 'OAuth 로그인에 실패했습니다.',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'OAuth 로그인에 실패했습니다.',
       });
       throw error;
     } finally {
@@ -312,7 +327,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       console.log('[authStore] 회원가입 완료');
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : '회원가입에 실패했습니다.',
+        error:
+          error instanceof Error ? error.message : '회원가입에 실패했습니다.',
       });
       throw error;
     } finally {
@@ -327,7 +343,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const supabase = createClient();
       const currentUser = get().user as any;
       const provider: 'google' | 'kakao' | null =
-        currentUser?.app_metadata?.provider || currentUser?.identities?.[0]?.provider || null;
+        currentUser?.app_metadata?.provider ||
+        currentUser?.identities?.[0]?.provider ||
+        null;
 
       // 프로바이더 로그아웃을 먼저 시도 (토큰이 유효할 때)
       await triggerProviderLogout(provider, supabase);
@@ -341,7 +359,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ user: null, profile: null });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : '로그아웃에 실패했습니다.',
+        error:
+          error instanceof Error ? error.message : '로그아웃에 실패했습니다.',
       });
       throw error;
     } finally {
@@ -349,7 +368,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  updateProfile: async (data: Database['public']['Tables']['profiles']['Update']) => {
+  updateProfile: async (
+    data: Database['public']['Tables']['profiles']['Update']
+  ) => {
     const { user } = get();
     if (!user) {
       throw new Error('로그인이 필요합니다.');
@@ -377,7 +398,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       set({ profile: updatedProfile as Profile });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : '프로필 업데이트에 실패했습니다.',
+        error:
+          error instanceof Error
+            ? error.message
+            : '프로필 업데이트에 실패했습니다.',
       });
       throw error;
     } finally {
@@ -446,7 +470,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (error) {
         // 프로필이 없는 경우 - 공유받은 프로필이 있는지 먼저 확인
         if ((error as any).code === 'PGRST116') {
-          console.log('[authStore] No personal profile found, checking for shared profiles');
+          console.log(
+            '[authStore] No personal profile found, checking for shared profiles'
+          );
 
           try {
             // 공유받은 프로필이 있는지 확인
@@ -456,7 +482,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               .eq('user_id', targetUserId);
 
             if (sharedError) {
-              console.error('[authStore] Error checking shared profiles:', sharedError);
+              console.error(
+                '[authStore] Error checking shared profiles:',
+                sharedError
+              );
             }
 
             if (sharedAccess && sharedAccess.length > 0) {
@@ -488,7 +517,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               throw new Error('PROFILE_NOT_FOUND');
             }
           } catch (sharedCheckError) {
-            console.error('[authStore] Error during shared profile check:', sharedCheckError);
+            console.error(
+              '[authStore] Error during shared profile check:',
+              sharedCheckError
+            );
             set({
               error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
             });
@@ -540,7 +572,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           userFunds: [],
           isAdminUser: isAdminUser,
         });
-        console.log('[authStore] Profile set with empty userFunds due to fetch error');
+        console.log(
+          '[authStore] Profile set with empty userFunds due to fetch error'
+        );
 
         // 접근 가능한 프로필 목록도 함께 로드
         await get().fetchAccessibleProfiles();
@@ -548,7 +582,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch (error) {
       console.log('[authStore] fetchProfile error:', error);
       set({
-        error: error instanceof Error ? error.message : '프로필을 불러오는데 실패했습니다.',
+        error:
+          error instanceof Error
+            ? error.message
+            : '프로필을 불러오는데 실패했습니다.',
         profile: null,
         userFunds: [],
       });
@@ -686,22 +723,32 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         !currentSelectedId ||
         !accessibleProfiles.find(ap => ap.profile.id === currentSelectedId)
       ) {
-        newSelectedId = accessibleProfiles.length > 0 ? accessibleProfiles[0].profile.id : null;
+        newSelectedId =
+          accessibleProfiles.length > 0
+            ? accessibleProfiles[0].profile.id
+            : null;
       }
 
       set({
         accessibleProfiles,
         selectedProfileId: newSelectedId,
         profile: newSelectedId
-          ? accessibleProfiles.find(ap => ap.profile.id === newSelectedId)?.profile || null
+          ? accessibleProfiles.find(ap => ap.profile.id === newSelectedId)
+              ?.profile || null
           : null,
       });
 
-      console.log('[authStore] 접근 가능한 프로필 로드 완료:', accessibleProfiles.length);
+      console.log(
+        '[authStore] 접근 가능한 프로필 로드 완료:',
+        accessibleProfiles.length
+      );
     } catch (error) {
       console.error('[authStore] fetchAccessibleProfiles error:', error);
       set({
-        error: error instanceof Error ? error.message : '프로필 목록을 불러오는데 실패했습니다.',
+        error:
+          error instanceof Error
+            ? error.message
+            : '프로필 목록을 불러오는데 실패했습니다.',
         accessibleProfiles: [],
         selectedProfileId: null,
       });
@@ -710,7 +757,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   selectProfile: (profileId: string) => {
     const { accessibleProfiles } = get();
-    const selectedProfile = accessibleProfiles.find(ap => ap.profile.id === profileId);
+    const selectedProfile = accessibleProfiles.find(
+      ap => ap.profile.id === profileId
+    );
 
     if (selectedProfile) {
       set({
@@ -723,7 +772,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
 
-  addProfileAccess: async (profileId: string, email: string, permission: 'admin' | 'view') => {
+  addProfileAccess: async (
+    profileId: string,
+    email: string,
+    permission: 'admin' | 'view'
+  ) => {
     const { user } = get();
     if (!user) throw new Error('로그인이 필요합니다.');
 
@@ -749,16 +802,20 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         .single();
 
       if (ownerError || !ownerProfile) {
-        throw new Error('권한이 없습니다. 프로필 소유자만 접근 권한을 부여할 수 있습니다.');
+        throw new Error(
+          '권한이 없습니다. 프로필 소유자만 접근 권한을 부여할 수 있습니다.'
+        );
       }
 
       // 3. 권한 부여
-      const { error: insertError } = await supabase.from('profile_permissions').insert({
-        profile_id: profileId,
-        user_id: targetProfile.user_id,
-        permission_type: permission,
-        granted_by: profileId,
-      });
+      const { error: insertError } = await supabase
+        .from('profile_permissions')
+        .insert({
+          profile_id: profileId,
+          user_id: targetProfile.user_id,
+          permission_type: permission,
+          granted_by: profileId,
+        });
 
       if (insertError) {
         if (insertError.code === '23505') {
@@ -767,7 +824,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw insertError;
       }
 
-      console.log('[authStore] 프로필 접근 권한 부여 완료:', { email, permission });
+      console.log('[authStore] 프로필 접근 권한 부여 완료:', {
+        email,
+        permission,
+      });
     } catch (error) {
       console.error('[authStore] addProfileAccess error:', error);
       throw error;
@@ -790,7 +850,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         .single();
 
       if (ownerError || !ownerProfile) {
-        throw new Error('권한이 없습니다. 프로필 소유자만 접근 권한을 회수할 수 있습니다.');
+        throw new Error(
+          '권한이 없습니다. 프로필 소유자만 접근 권한을 회수할 수 있습니다.'
+        );
       }
 
       // 2. 권한 삭제
@@ -804,7 +866,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw deleteError;
       }
 
-      console.log('[authStore] 프로필 접근 권한 회수 완료:', { profileId, userId });
+      console.log('[authStore] 프로필 접근 권한 회수 완료:', {
+        profileId,
+        userId,
+      });
     } catch (error) {
       console.error('[authStore] removeProfileAccess error:', error);
       throw error;
@@ -817,7 +882,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     permissionType: 'admin' | 'view'
   ) => {
     try {
-      console.log('[authStore] updateProfileAccess called:', { profileId, userId, permissionType });
+      console.log('[authStore] updateProfileAccess called:', {
+        profileId,
+        userId,
+        permissionType,
+      });
 
       const response = await fetch(`/api/profiles/${profileId}/permissions`, {
         method: 'PUT',
@@ -851,8 +920,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     console.log('[authStore] user:', user);
     if (!user) return null;
 
-    const accessibleProfile = accessibleProfiles.find(ap => ap.profile.id === profileId);
-    console.log('[authStore] getProfilePermission:', accessibleProfile?.permission);
+    const accessibleProfile = accessibleProfiles.find(
+      ap => ap.profile.id === profileId
+    );
+    console.log(
+      '[authStore] getProfilePermission:',
+      accessibleProfile?.permission
+    );
     return accessibleProfile?.permission || null;
   },
 }));

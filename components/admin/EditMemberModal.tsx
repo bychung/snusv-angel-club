@@ -89,7 +89,11 @@ export default function EditMemberModal({
       if (profileError) throw profileError;
 
       // 출자 정보 업데이트 (fund_members 테이블) - showInvestmentInfo가 true일 때만
-      if (showInvestmentInfo && member.fund_members && member.fund_members.length > 0) {
+      if (
+        showInvestmentInfo &&
+        member.fund_members &&
+        member.fund_members.length > 0
+      ) {
         const { error: fundMemberError } = await supabase
           .from('fund_members')
           .update({
@@ -117,7 +121,9 @@ export default function EditMemberModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>조합원 정보 수정</DialogTitle>
-          <DialogDescription>{member.name}님의 정보를 수정합니다.</DialogDescription>
+          <DialogDescription>
+            {member.name}님의 정보를 수정합니다.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -127,7 +133,9 @@ export default function EditMemberModal({
               <Input
                 id="name"
                 value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
                 required
               />
             </div>
@@ -137,7 +145,9 @@ export default function EditMemberModal({
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 required
               />
             </div>
@@ -148,7 +158,9 @@ export default function EditMemberModal({
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                onChange={e =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 required
               />
             </div>
@@ -161,7 +173,9 @@ export default function EditMemberModal({
                   id="birth_date"
                   type="date"
                   value={formData.birth_date}
-                  onChange={e => setFormData({ ...formData, birth_date: e.target.value })}
+                  onChange={e =>
+                    setFormData({ ...formData, birth_date: e.target.value })
+                  }
                 />
               </div>
             )}
@@ -172,7 +186,12 @@ export default function EditMemberModal({
                 <Input
                   id="business_number"
                   value={formData.business_number}
-                  onChange={e => setFormData({ ...formData, business_number: e.target.value })}
+                  onChange={e =>
+                    setFormData({
+                      ...formData,
+                      business_number: e.target.value,
+                    })
+                  }
                   placeholder="000-00-00000"
                 />
               </div>
@@ -188,12 +207,16 @@ export default function EditMemberModal({
                   min="1"
                   value={formData.investment_units}
                   onChange={e =>
-                    setFormData({ ...formData, investment_units: Number(e.target.value) })
+                    setFormData({
+                      ...formData,
+                      investment_units: Number(e.target.value),
+                    })
                   }
                   required={showInvestmentInfo}
                 />
                 <p className="text-xs text-gray-500">
-                  출자금액: {(formData.investment_units * 1000000).toLocaleString()}원
+                  출자금액:{' '}
+                  {(formData.investment_units * 1000000).toLocaleString()}원
                 </p>
               </div>
             )}
@@ -209,7 +232,10 @@ export default function EditMemberModal({
               <select
                 value={formData.role}
                 onChange={e =>
-                  setFormData({ ...formData, role: e.target.value as 'ADMIN' | 'USER' })
+                  setFormData({
+                    ...formData,
+                    role: e.target.value as 'ADMIN' | 'USER',
+                  })
                 }
                 className="h-9 px-3 py-1 border rounded-md bg-transparent border-input w-full text-sm"
               >
@@ -229,7 +255,9 @@ export default function EditMemberModal({
             <Input
               id="address"
               value={formData.address}
-              onChange={e => setFormData({ ...formData, address: e.target.value })}
+              onChange={e =>
+                setFormData({ ...formData, address: e.target.value })
+              }
               required
             />
           </div>
@@ -247,7 +275,9 @@ export default function EditMemberModal({
               </div>
               <div>
                 <span className="font-medium">등록 상태:</span>{' '}
-                {member.registration_status === 'registered' ? '가입완료' : '설문만'}
+                {member.registration_status === 'registered'
+                  ? '가입완료'
+                  : '설문만'}
               </div>
               {member.updated_at !== member.created_at && (
                 <div>
@@ -259,7 +289,12 @@ export default function EditMemberModal({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose} disabled={isUpdating}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isUpdating}
+            >
               취소
             </Button>
             <Button type="submit" disabled={isUpdating}>

@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/lib/supabase/client';
@@ -117,8 +123,13 @@ export default function LoginForm() {
       console.error('로그인 실패:', error);
 
       // 프로필을 찾지 못한 경우 - 임시 토큰 발행 후 find-email로 이동
-      if (error instanceof Error && error.message === 'PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN') {
-        console.log('[LoginForm] 프로필 연결 실패 - 임시 토큰 발행 및 find-email로 이동');
+      if (
+        error instanceof Error &&
+        error.message === 'PROFILE_NOT_FOUND_FOR_EMAIL_LOGIN'
+      ) {
+        console.log(
+          '[LoginForm] 프로필 연결 실패 - 임시 토큰 발행 및 find-email로 이동'
+        );
 
         try {
           // 임시 토큰 발행
@@ -238,7 +249,9 @@ export default function LoginForm() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">또는</span>
+              <span className="bg-background px-2 text-muted-foreground">
+                또는
+              </span>
             </div>
           </div>
 
@@ -288,7 +301,12 @@ export default function LoginForm() {
               </div>
             )}
 
-            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isLoading}
+            >
               {isLoading ? '로그인 중...' : '이메일로 로그인'}
             </Button>
           </form>
@@ -297,12 +315,20 @@ export default function LoginForm() {
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
               출자자인데 계정이 없으신가요?{' '}
-              <Button variant="link" className="p-0 h-auto" onClick={() => router.push('/signup')}>
+              <Button
+                variant="link"
+                className="p-0 h-auto"
+                onClick={() => router.push('/signup')}
+              >
                 여기를 눌러 가입하세요.
               </Button>
             </p>
 
-            <Button variant="link" className="p-0 h-auto text-sm" onClick={() => router.push('/')}>
+            <Button
+              variant="link"
+              className="p-0 h-auto text-sm"
+              onClick={() => router.push('/')}
+            >
               홈으로 돌아가기
             </Button>
 

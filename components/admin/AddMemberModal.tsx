@@ -56,7 +56,10 @@ export default function AddMemberModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (field: keyof MemberFormData, value: string | number) => {
+  const handleChange = (
+    field: keyof MemberFormData,
+    value: string | number
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
   };
@@ -95,11 +98,16 @@ export default function AddMemberModal({
     // 개인인 경우 생년월일 검증 (선택사항이므로 입력했을 경우만)
     if (entity_type === 'individual' && birth_date && birth_date.trim()) {
       const birthDateObj = new Date(birth_date);
-      if (isNaN(birthDateObj.getTime())) return '유효한 생년월일을 입력해주세요.';
+      if (isNaN(birthDateObj.getTime()))
+        return '유효한 생년월일을 입력해주세요.';
     }
 
     // 법인인 경우 사업자번호 검증 (선택사항이므로 입력했을 경우만)
-    if (entity_type === 'corporate' && business_number && business_number.trim()) {
+    if (
+      entity_type === 'corporate' &&
+      business_number &&
+      business_number.trim()
+    ) {
       const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
       if (!businessNumberRegex.test(business_number))
         return '사업자번호 형식이 올바르지 않습니다. (예: 123-45-67890)';
@@ -164,7 +172,11 @@ export default function AddMemberModal({
         }
 
         // 법인인 경우 사업자번호 추가 (값이 있을 경우만)
-        if (entity_type === 'corporate' && business_number && business_number.trim()) {
+        if (
+          entity_type === 'corporate' &&
+          business_number &&
+          business_number.trim()
+        ) {
           profileInsertData.business_number = business_number.trim();
         }
 
@@ -191,13 +203,15 @@ export default function AddMemberModal({
       }
 
       // 2. fund_members에 추가
-      const { error: fundMemberError } = await supabase.from('fund_members').insert([
-        {
-          fund_id: fundId,
-          profile_id: profileId,
-          investment_units,
-        },
-      ]);
+      const { error: fundMemberError } = await supabase
+        .from('fund_members')
+        .insert([
+          {
+            fund_id: fundId,
+            profile_id: profileId,
+            investment_units,
+          },
+        ]);
 
       if (fundMemberError) {
         console.error('펀드 멤버 추가 오류:', fundMemberError);
@@ -311,7 +325,12 @@ export default function AddMemberModal({
                 type="number"
                 min="1"
                 value={formData.investment_units}
-                onChange={e => handleChange('investment_units', parseInt(e.target.value) || 0)}
+                onChange={e =>
+                  handleChange(
+                    'investment_units',
+                    parseInt(e.target.value) || 0
+                  )
+                }
                 placeholder="1"
                 disabled={isSubmitting}
               />
@@ -372,7 +391,9 @@ export default function AddMemberModal({
                 <Input
                   id="business_number"
                   value={formData.business_number || ''}
-                  onChange={e => handleChange('business_number', e.target.value)}
+                  onChange={e =>
+                    handleChange('business_number', e.target.value)
+                  }
                   placeholder="123-45-67890"
                   disabled={isSubmitting}
                 />
@@ -395,14 +416,19 @@ export default function AddMemberModal({
           {/* 안내 메시지 */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
-              <strong>참고:</strong> 이메일이 같은 기존 조합원이 있으면 해당 정보를 사용하고, 펀드
-              멤버로만 추가됩니다. 새로운 이메일이면 새 프로필을 생성합니다.
+              <strong>참고:</strong> 이메일이 같은 기존 조합원이 있으면 해당
+              정보를 사용하고, 펀드 멤버로만 추가됩니다. 새로운 이메일이면 새
+              프로필을 생성합니다.
             </p>
           </div>
         </div>
 
         <DialogFooter className="flex gap-2">
-          <Button onClick={handleCancel} variant="outline" disabled={isSubmitting}>
+          <Button
+            onClick={handleCancel}
+            variant="outline"
+            disabled={isSubmitting}
+          >
             취소
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>

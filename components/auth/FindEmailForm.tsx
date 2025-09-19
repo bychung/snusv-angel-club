@@ -3,7 +3,13 @@
 import SignupInquiryModal from '@/components/auth/SignupInquiryModal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AlertCircle, CheckCircle, Search, User } from 'lucide-react';
 import { useState } from 'react';
@@ -75,7 +81,9 @@ export default function FindEmailForm({
       setSearchResult(result);
     } catch (error) {
       console.error('이메일 검색 오류:', error);
-      setError(error instanceof Error ? error.message : '검색 중 오류가 발생했습니다.');
+      setError(
+        error instanceof Error ? error.message : '검색 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsSearching(false);
     }
@@ -122,7 +130,9 @@ export default function FindEmailForm({
       onLinkSuccess();
     } catch (error) {
       console.error('프로필 연결 오류:', error);
-      setError(error instanceof Error ? error.message : '연결 중 오류가 발생했습니다.');
+      setError(
+        error instanceof Error ? error.message : '연결 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsLinking(false);
     }
@@ -148,11 +158,14 @@ export default function FindEmailForm({
           <CardDescription className="text-center">
             {isAccountCreated ? (
               <>
-                <strong className="text-blue-700">계정 생성이 완료되었습니다!</strong>
+                <strong className="text-blue-700">
+                  계정 생성이 완료되었습니다!
+                </strong>
                 <br />
                 <br />
-                하지만 입력하신 이메일과 일치하는 조합원 정보를 찾을 수 없습니다. 다른 이메일 주소로
-                등록된 조합원 정보가 있다면 아래에서 검색해주세요.
+                하지만 입력하신 이메일과 일치하는 조합원 정보를 찾을 수
+                없습니다. 다른 이메일 주소로 등록된 조합원 정보가 있다면
+                아래에서 검색해주세요.
                 <br />
                 <span className="text-sm text-red-600 mt-2 block">
                   ※ 주의: 이미 계정이 생성되었으므로 <br />
@@ -161,8 +174,8 @@ export default function FindEmailForm({
               </>
             ) : (
               <>
-                회원가입하려는 계정의 이메일과 다른 이메일로 등록된 조합원 프로필이 있을 수
-                있습니다. 아래에서 검색해보세요.
+                회원가입하려는 계정의 이메일과 다른 이메일로 등록된 조합원
+                프로필이 있을 수 있습니다. 아래에서 검색해보세요.
               </>
             )}
           </CardDescription>
@@ -172,7 +185,9 @@ export default function FindEmailForm({
           {/* 시도한 이메일 표시 */}
           <div
             className={`p-3 rounded-lg ${
-              isAccountCreated ? 'bg-green-50 border border-green-200' : 'bg-blue-50'
+              isAccountCreated
+                ? 'bg-green-50 border border-green-200'
+                : 'bg-blue-50'
             }`}
           >
             <p
@@ -182,10 +197,14 @@ export default function FindEmailForm({
             >
               {isAccountCreated ? '생성된 계정 이메일:' : '로그인 시도 이메일:'}
             </p>
-            <p className={isAccountCreated ? 'text-green-900' : 'text-blue-900'}>
+            <p
+              className={isAccountCreated ? 'text-green-900' : 'text-blue-900'}
+            >
               {attemptedEmail}
             </p>
-            <p className={`text-xs mt-1 ${isAccountCreated ? 'text-green-600' : 'text-blue-600'}`}>
+            <p
+              className={`text-xs mt-1 ${isAccountCreated ? 'text-green-600' : 'text-blue-600'}`}
+            >
               {isAccountCreated ? '회원가입 방식:' : '로그인 방식:'} {provider}
             </p>
             {isAccountCreated && (
@@ -221,7 +240,11 @@ export default function FindEmailForm({
                 disabled={isSearching || isLinking}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isSearching || isLinking}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSearching || isLinking}
+            >
               {isSearching ? (
                 <>
                   <Search className="w-4 h-4 mr-2 animate-spin" />
@@ -243,12 +266,19 @@ export default function FindEmailForm({
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="font-medium text-green-800">이메일을 찾았습니다!</span>
+                    <span className="font-medium text-green-800">
+                      이메일을 찾았습니다!
+                    </span>
                   </div>
                   <p className="text-sm text-green-700 mb-3">
-                    <strong>{searchEmail}</strong> 주소로 등록된 프로필이 있습니다.
+                    <strong>{searchEmail}</strong> 주소로 등록된 프로필이
+                    있습니다.
                   </p>
-                  <Button onClick={handleLink} className="w-full" disabled={isLinking}>
+                  <Button
+                    onClick={handleLink}
+                    className="w-full"
+                    disabled={isLinking}
+                  >
                     {isLinking ? (
                       <>
                         <User className="w-4 h-4 mr-2 animate-pulse" />
@@ -265,14 +295,20 @@ export default function FindEmailForm({
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertCircle className="w-5 h-5 text-yellow-600" />
-                    <span className="font-medium text-yellow-800">검색 결과가 없습니다</span>
+                    <span className="font-medium text-yellow-800">
+                      검색 결과가 없습니다
+                    </span>
                   </div>
                   <p className="text-sm text-yellow-700 mb-3">
                     입력하신 이메일로 등록된 프로필을 찾을 수 없습니다.
                     <br />
                     관리자에게 문의하시겠습니까?
                   </p>
-                  <Button onClick={handleInquiryClick} variant="outline" className="w-full">
+                  <Button
+                    onClick={handleInquiryClick}
+                    variant="outline"
+                    className="w-full"
+                  >
                     문의하기
                   </Button>
                 </div>

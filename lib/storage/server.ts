@@ -43,7 +43,8 @@ function createStorageClient() {
 function sanitizeFileName(fileName: string): string {
   // 파일 확장자 분리
   const lastDotIndex = fileName.lastIndexOf('.');
-  const name = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
+  const name =
+    lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName;
   const extension = lastDotIndex > 0 ? fileName.substring(lastDotIndex) : '';
 
   // 한글, 특수문자, 공백을 제거하고 영문, 숫자, 하이픈, 언더스코어만 허용
@@ -61,20 +62,26 @@ function sanitizeFileName(fileName: string): string {
 /**
  * Supabase Storage 버킷이 존재하는지 확인하고 없으면 생성
  */
-async function ensureBucketExists(bucket: string): Promise<{ success: boolean; error?: string }> {
+async function ensureBucketExists(
+  bucket: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = createStorageClient();
 
     // 버킷 목록 조회해서 존재하는지 확인
     console.log(`버킷 '${bucket}' 존재 여부 확인 중...`);
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } =
+      await supabase.storage.listBuckets();
 
     if (listError) {
       console.error('버킷 목록 조회 실패:', listError);
       return { success: false, error: listError.message };
     }
 
-    console.log('조회된 버킷 목록:', buckets?.map(b => ({ name: b.name, public: b.public })) || []);
+    console.log(
+      '조회된 버킷 목록:',
+      buckets?.map(b => ({ name: b.name, public: b.public })) || []
+    );
     const bucketExists = buckets?.some(b => b.name === bucket);
     console.log(`버킷 '${bucket}' 존재 여부:`, bucketExists);
 
@@ -99,11 +106,19 @@ async function ensureBucketExists(bucket: string): Promise<{ success: boolean; e
     // 실제로 버킷이 없는 경우만 생성 시도
     if (listFilesError.message.includes('Bucket not found')) {
       console.log(`'${bucket}' 버킷을 생성합니다...`);
-      const { error: createError } = await supabase.storage.createBucket(bucket, {
-        public: false, // 비공개 버킷으로 생성
-        allowedMimeTypes: ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'],
-        fileSizeLimit: 10 * 1024 * 1024, // 10MB
-      });
+      const { error: createError } = await supabase.storage.createBucket(
+        bucket,
+        {
+          public: false, // 비공개 버킷으로 생성
+          allowedMimeTypes: [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+          ],
+          fileSizeLimit: 10 * 1024 * 1024, // 10MB
+        }
+      );
 
       if (createError) {
         console.error('버킷 생성 실패:', createError);
@@ -112,7 +127,9 @@ async function ensureBucketExists(bucket: string): Promise<{ success: boolean; e
           createError.message.includes('already exists') ||
           createError.message.includes('Duplicate')
         ) {
-          console.log(`버킷 '${bucket}'이 이미 존재합니다 (생성 시도 결과로 확인).`);
+          console.log(
+            `버킷 '${bucket}'이 이미 존재합니다 (생성 시도 결과로 확인).`
+          );
           return { success: true };
         }
         return {
@@ -125,7 +142,10 @@ async function ensureBucketExists(bucket: string): Promise<{ success: boolean; e
       return { success: true };
     } else {
       // 다른 에러인 경우 버킷은 존재하지만 접근에 문제가 있을 수 있음
-      console.log(`버킷 '${bucket}' 접근 시 알 수 없는 에러:`, listFilesError.message);
+      console.log(
+        `버킷 '${bucket}' 접근 시 알 수 없는 에러:`,
+        listFilesError.message
+      );
       return { success: true }; // 버킷은 존재한다고 가정하고 진행
     }
   } catch (error) {
@@ -168,10 +188,12 @@ export async function uploadFile(
 
     // 파일 업로드 시도
     console.log(`파일 업로드 시도: ${filePath} (크기: ${file.size} bytes)`);
-    const { data, error } = await supabase.storage.from(bucket).upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
 
     if (error) {
       console.error('파일 업로드 실패:', error);
@@ -190,7 +212,9 @@ export async function uploadFile(
     console.log('파일 업로드 성공:', data);
 
     // 비공개 버킷이므로 공개 URL 대신 파일 경로를 저장하고 나중에 signed URL 사용
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(data.path);
 
     return {
       success: true,
@@ -201,7 +225,10 @@ export async function uploadFile(
     console.error('파일 업로드 중 오류:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        error instanceof Error
+          ? error.message
+          : '알 수 없는 오류가 발생했습니다',
     };
   }
 }
@@ -231,7 +258,10 @@ export async function deleteFile(
     console.error('파일 삭제 중 오류:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        error instanceof Error
+          ? error.message
+          : '알 수 없는 오류가 발생했습니다',
     };
   }
 }
@@ -267,7 +297,10 @@ export async function createSignedUrl(
     console.error('서명된 URL 생성 중 오류:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다',
+      error:
+        error instanceof Error
+          ? error.message
+          : '알 수 없는 오류가 발생했습니다',
     };
   }
 }

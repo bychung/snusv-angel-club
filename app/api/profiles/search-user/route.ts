@@ -6,7 +6,10 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json();
 
     if (!email) {
-      return NextResponse.json({ error: '이메일이 필요합니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '이메일이 필요합니다.' },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
@@ -18,7 +21,10 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !currentUser) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { error: '인증이 필요합니다.' },
+        { status: 401 }
+      );
     }
 
     // 1. profiles 테이블에서 이메일로 검색
@@ -29,18 +35,24 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') {
-      return NextResponse.json({ error: '프로필 검색 중 오류가 발생했습니다.' }, { status: 500 });
+      return NextResponse.json(
+        { error: '프로필 검색 중 오류가 발생했습니다.' },
+        { status: 500 }
+      );
     }
 
     // 2. auth.users에서 이메일로 검색
     try {
-      const { data: authUsers, error: authListError } = await supabase.auth.admin.listUsers();
+      const { data: authUsers, error: authListError } =
+        await supabase.auth.admin.listUsers();
 
       if (authListError) {
         throw authListError;
       }
 
-      const targetAuthUser = authUsers.users.find((user: any) => user.email === email);
+      const targetAuthUser = authUsers.users.find(
+        (user: any) => user.email === email
+      );
 
       if (!targetAuthUser) {
         return NextResponse.json({
@@ -108,6 +120,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Search user API error:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

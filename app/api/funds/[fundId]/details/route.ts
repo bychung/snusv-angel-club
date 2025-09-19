@@ -37,7 +37,10 @@ export async function GET(
         .single();
 
       if (!profile) {
-        return Response.json({ error: '프로필을 찾을 수 없습니다' }, { status: 403 });
+        return Response.json(
+          { error: '프로필을 찾을 수 없습니다' },
+          { status: 403 }
+        );
       }
 
       const { count } = await supabase
@@ -47,7 +50,10 @@ export async function GET(
         .eq('profile_id', profile.id);
 
       if (!count || count === 0) {
-        return Response.json({ error: '해당 펀드에 접근할 권한이 없습니다' }, { status: 403 });
+        return Response.json(
+          { error: '해당 펀드에 접근할 권한이 없습니다' },
+          { status: 403 }
+        );
       }
     }
 
@@ -59,7 +65,10 @@ export async function GET(
     console.error('펀드 상세 정보 조회 실패:', error);
     return Response.json(
       {
-        error: error instanceof Error ? error.message : '내부 서버 오류가 발생했습니다',
+        error:
+          error instanceof Error
+            ? error.message
+            : '내부 서버 오류가 발생했습니다',
       },
       { status: 500 }
     );

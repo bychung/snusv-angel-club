@@ -13,15 +13,22 @@ import { useAuthStore } from '@/store/authStore';
 import { Building2, ChevronDown, User } from 'lucide-react';
 
 export default function ProfileSelector() {
-  const { accessibleProfiles, selectedProfileId, selectProfile, profile, getProfilePermission } =
-    useAuthStore();
+  const {
+    accessibleProfiles,
+    selectedProfileId,
+    selectProfile,
+    profile,
+    getProfilePermission,
+  } = useAuthStore();
 
   // 접근 가능한 프로필이 1개 이하면 선택기를 표시하지 않음
   if (accessibleProfiles.length <= 1) {
     return null;
   }
 
-  const selectedProfile = accessibleProfiles.find(ap => ap.profile.id === selectedProfileId);
+  const selectedProfile = accessibleProfiles.find(
+    ap => ap.profile.id === selectedProfileId
+  );
 
   const getPermissionBadge = (permission: 'owner' | 'admin' | 'view') => {
     switch (permission) {
@@ -85,7 +92,9 @@ export default function ProfileSelector() {
             key={accessibleProfile.profile.id}
             onClick={() => selectProfile(accessibleProfile.profile.id)}
             className={`cursor-pointer ${
-              selectedProfileId === accessibleProfile.profile.id ? 'bg-blue-50 text-blue-900' : ''
+              selectedProfileId === accessibleProfile.profile.id
+                ? 'bg-blue-50 text-blue-900'
+                : ''
             }`}
           >
             <div className="flex items-center justify-between w-full">
@@ -96,7 +105,9 @@ export default function ProfileSelector() {
                   <User className="h-4 w-4 text-gray-400" />
                 )}
                 <div className="flex flex-col">
-                  <span className="font-medium text-sm">{accessibleProfile.profile.name}</span>
+                  <span className="font-medium text-sm">
+                    {accessibleProfile.profile.name}
+                  </span>
                   {accessibleProfile.grantedBy && (
                     <span className="text-xs text-gray-500">
                       {accessibleProfile.grantedBy}님이 공유

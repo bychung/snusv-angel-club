@@ -68,8 +68,12 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
         (sum: number, member: any) => sum + member.investment_units,
         0
       );
-      const registeredMembers = members.filter((member: any) => member.profile?.user_id).length;
-      const surveyOnlyMembers = members.filter((member: any) => !member.profile?.user_id).length;
+      const registeredMembers = members.filter(
+        (member: any) => member.profile?.user_id
+      ).length;
+      const surveyOnlyMembers = members.filter(
+        (member: any) => !member.profile?.user_id
+      ).length;
 
       return {
         ...fund,
@@ -141,7 +145,12 @@ export async function getFundDetails(
   }
 
   // 4. 문서 상태 조회
-  const documentCategories = ['account', 'tax', 'registration', 'agreement'] as const;
+  const documentCategories = [
+    'account',
+    'tax',
+    'registration',
+    'agreement',
+  ] as const;
   const documents_status = {} as FundDetailsResponse['documents_status'];
 
   for (const category of documentCategories) {
@@ -154,7 +163,8 @@ export async function getFundDetails(
       .limit(1);
 
     const exists = !!(docs && docs.length > 0);
-    const downloadable = isAdmin || (isParticipant && ['account', 'agreement'].includes(category));
+    const downloadable =
+      isAdmin || (isParticipant && ['account', 'agreement'].includes(category));
 
     documents_status[category] = {
       exists,
@@ -173,7 +183,9 @@ export async function getFundDetails(
 /**
  * 특정 펀드의 조합원 목록을 조회합니다 (GP 선택용, 관리자 전용)
  */
-export async function getFundMembers(fundId: string): Promise<FundMemberInfo[]> {
+export async function getFundMembers(
+  fundId: string
+): Promise<FundMemberInfo[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -214,7 +226,13 @@ export async function updateFundDetails(
     tax_number?: string;
     gp_id?: string[];
     address?: string;
-    status?: 'ready' | 'processing' | 'applied' | 'active' | 'closing' | 'closed';
+    status?:
+      | 'ready'
+      | 'processing'
+      | 'applied'
+      | 'active'
+      | 'closing'
+      | 'closed';
     account?: string;
     account_bank?: string;
   }

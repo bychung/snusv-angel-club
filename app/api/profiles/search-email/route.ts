@@ -22,13 +22,19 @@ export async function POST(request: NextRequest) {
 
     // 필수 필드 검증
     if (!email || typeof email !== 'string') {
-      return NextResponse.json({ error: '유효한 이메일을 입력해주세요.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '유효한 이메일을 입력해주세요.' },
+        { status: 400 }
+      );
     }
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return NextResponse.json({ error: '올바른 이메일 형식을 입력해주세요.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '올바른 이메일 형식을 입력해주세요.' },
+        { status: 400 }
+      );
     }
 
     // 타이밍 공격 방지를 위한 지연 시뮬레이션
@@ -52,7 +58,9 @@ export async function POST(request: NextRequest) {
       const elapsedTime = Date.now() - startTime;
       const minTime = 200; // 최소 200ms
       if (elapsedTime < minTime) {
-        await new Promise(resolve => setTimeout(resolve, minTime - elapsedTime));
+        await new Promise(resolve =>
+          setTimeout(resolve, minTime - elapsedTime)
+        );
       }
 
       const found = profiles && profiles.length > 0;
@@ -69,7 +77,9 @@ export async function POST(request: NextRequest) {
       const elapsedTime = Date.now() - startTime;
       const minTime = 200;
       if (elapsedTime < minTime) {
-        await new Promise(resolve => setTimeout(resolve, minTime - elapsedTime));
+        await new Promise(resolve =>
+          setTimeout(resolve, minTime - elapsedTime)
+        );
       }
 
       console.error('이메일 검색 처리 오류:', searchError);
@@ -81,6 +91,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('이메일 검색 API 오류:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

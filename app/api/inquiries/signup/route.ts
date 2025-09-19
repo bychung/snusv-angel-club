@@ -26,19 +26,28 @@ export async function POST(request: NextRequest) {
 
     // 필수 필드 검증
     if (!attemptedEmail || !provider) {
-      return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      );
     }
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(attemptedEmail)) {
-      return NextResponse.json({ error: '올바른 이메일 형식을 입력해주세요.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '올바른 이메일 형식을 입력해주세요.' },
+        { status: 400 }
+      );
     }
 
     // provider 값 검증
     const validProviders = ['google', 'kakao', 'email'];
     if (!validProviders.includes(provider)) {
-      return NextResponse.json({ error: '유효하지 않은 로그인 방식입니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '유효하지 않은 로그인 방식입니다.' },
+        { status: 400 }
+      );
     }
 
     // 이미 같은 사용자가 같은 이메일로 문의를 했는지 확인 (최근 24시간 내)
@@ -81,7 +90,10 @@ export async function POST(request: NextRequest) {
 
     if (saveError) {
       console.error('문의 저장 오류:', saveError);
-      return NextResponse.json({ error: '문의 저장에 실패했습니다.' }, { status: 500 });
+      return NextResponse.json(
+        { error: '문의 저장에 실패했습니다.' },
+        { status: 500 }
+      );
     }
 
     console.log(
@@ -90,12 +102,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: '회원가입 문의가 성공적으로 접수되었습니다. 관리자가 확인 후 처리해드리겠습니다.',
+      message:
+        '회원가입 문의가 성공적으로 접수되었습니다. 관리자가 확인 후 처리해드리겠습니다.',
       inquiryId: savedInquiry.id,
     });
   } catch (error) {
     console.error('회원가입 문의 API 오류:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -109,7 +125,10 @@ export async function GET() {
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { error: '인증이 필요합니다.' },
+        { status: 401 }
+      );
     }
 
     // 관리자 권한 확인
@@ -120,7 +139,10 @@ export async function GET() {
       .single();
 
     if (profileError || !profile || profile.role !== 'ADMIN') {
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
+      return NextResponse.json(
+        { error: '관리자 권한이 필요합니다.' },
+        { status: 403 }
+      );
     }
 
     // 회원가입 문의 목록 조회
@@ -131,12 +153,18 @@ export async function GET() {
 
     if (fetchError) {
       console.error('회원가입 문의 목록 조회 오류:', fetchError);
-      return NextResponse.json({ error: '문의 목록을 불러올 수 없습니다.' }, { status: 500 });
+      return NextResponse.json(
+        { error: '문의 목록을 불러올 수 없습니다.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ data: inquiries });
   } catch (error) {
     console.error('회원가입 문의 목록 처리 오류:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

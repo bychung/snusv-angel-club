@@ -7,7 +7,10 @@ interface StatsCardsProps {
   isLoading?: boolean;
 }
 
-export default function StatsCards({ stats, isLoading = false }: StatsCardsProps) {
+export default function StatsCards({
+  stats,
+  isLoading = false,
+}: StatsCardsProps) {
   const cards = [
     {
       title: '총 참여자 수',
@@ -56,7 +59,9 @@ export default function StatsCards({ stats, isLoading = false }: StatsCardsProps
         return (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">{card.title}</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">
+                {card.title}
+              </CardTitle>
               <Icon className={`h-4 w-4 ${card.color}`} />
             </CardHeader>
             <CardContent>

@@ -3,7 +3,13 @@
 import FindEmailForm from '@/components/auth/FindEmailForm';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { AlertCircle, Home } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -36,7 +42,8 @@ export default function FindEmailContent() {
   const handleLinkSuccess = () => {
     console.log('프로필 연결 성공, 로그인 페이지로 리디렉션');
     router.push(
-      '/login?success=' + encodeURIComponent('프로필 연결이 완료되었습니다. 이제 로그인해주세요.')
+      '/login?success=' +
+        encodeURIComponent('프로필 연결이 완료되었습니다. 이제 로그인해주세요.')
     );
   };
 

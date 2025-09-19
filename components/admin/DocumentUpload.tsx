@@ -51,7 +51,12 @@ export default function DocumentUpload({
 
       // 파일 검증
       const maxSize = 10 * 1024 * 1024; // 10MB
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+      ];
 
       if (file.size > maxSize) {
         const errorMsg = `파일 크기가 너무 큽니다. 최대 ${Math.round(
@@ -127,7 +132,10 @@ export default function DocumentUpload({
         xhr.open('POST', `/api/admin/funds/${fundId}/documents/${category}`);
         xhr.send(formData);
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : '업로드 중 오류가 발생했습니다';
+        const errorMsg =
+          error instanceof Error
+            ? error.message
+            : '업로드 중 오류가 발생했습니다';
         setUploadState(prev => ({
           ...prev,
           uploading: false,
@@ -163,7 +171,9 @@ export default function DocumentUpload({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">{categoryNames[category]} 업로드</h3>
+        <h3 className="text-lg font-medium">
+          {categoryNames[category]} 업로드
+        </h3>
         {uploadState.success && (
           <Button variant="outline" size="sm" onClick={resetState}>
             <X className="h-4 w-4 mr-1" />
@@ -190,9 +200,13 @@ export default function DocumentUpload({
                 <div className="text-center space-y-4 w-full">
                   <Upload className="h-12 w-12 mx-auto text-blue-500 animate-pulse" />
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-700">업로드 중...</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      업로드 중...
+                    </p>
                     <Progress value={uploadState.progress} className="w-full" />
-                    <p className="text-xs text-gray-500">{uploadState.progress}% 완료</p>
+                    <p className="text-xs text-gray-500">
+                      {uploadState.progress}% 완료
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -219,8 +233,12 @@ export default function DocumentUpload({
             <div className="text-center space-y-4 py-8">
               <CheckCircle className="h-12 w-12 mx-auto text-green-500" />
               <div className="space-y-2">
-                <p className="text-lg font-medium text-green-700">업로드가 완료되었습니다!</p>
-                <p className="text-sm text-gray-500">문서가 성공적으로 업로드되었습니다.</p>
+                <p className="text-lg font-medium text-green-700">
+                  업로드가 완료되었습니다!
+                </p>
+                <p className="text-sm text-gray-500">
+                  문서가 성공적으로 업로드되었습니다.
+                </p>
               </div>
             </div>
           )}
@@ -237,7 +255,9 @@ export default function DocumentUpload({
       </Card>
 
       <div className="text-xs text-gray-500">
-        <p>• 업로드된 파일은 히스토리에 추가되며, 기존 파일을 덮어쓰지 않습니다.</p>
+        <p>
+          • 업로드된 파일은 히스토리에 추가되며, 기존 파일을 덮어쓰지 않습니다.
+        </p>
         <p>• 관리자만 파일을 업로드하고 삭제할 수 있습니다.</p>
       </div>
     </div>

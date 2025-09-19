@@ -125,7 +125,9 @@ export function CreateFundDialog() {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>새 펀드 추가</DialogTitle>
-          <DialogDescription>새로운 펀드를 생성합니다. 펀드 정보를 입력해주세요.</DialogDescription>
+          <DialogDescription>
+            새로운 펀드를 생성합니다. 펀드 정보를 입력해주세요.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">

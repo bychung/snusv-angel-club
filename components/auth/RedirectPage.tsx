@@ -1,6 +1,12 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -27,12 +33,16 @@ export default function RedirectPage() {
       setMessage(`로그인 실패: ${errorDescription || hasError}`);
 
       setTimeout(() => {
-        router.replace('/login?error=' + encodeURIComponent('OAuth 로그인에 실패했습니다.'));
+        router.replace(
+          '/login?error=' + encodeURIComponent('OAuth 로그인에 실패했습니다.')
+        );
       }, 3000);
       return;
     }
 
-    console.log('[RedirectPage] Waiting for AuthProvider to handle SIGNED_IN event...');
+    console.log(
+      '[RedirectPage] Waiting for AuthProvider to handle SIGNED_IN event...'
+    );
 
     // 15초 후 안전장치 (만약을 위한 fallback)
     const timeoutId = setTimeout(() => {
@@ -91,7 +101,9 @@ export default function RedirectPage() {
               <p className="text-xs text-gray-500">잠시만 기다려주세요...</p>
             </div>
           ) : (
-            <p className="text-sm text-red-600">자동으로 이전 페이지로 이동합니다.</p>
+            <p className="text-sm text-red-600">
+              자동으로 이전 페이지로 이동합니다.
+            </p>
           )}
         </CardContent>
       </Card>

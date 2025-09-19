@@ -6,7 +6,12 @@ import IRInquiryModal from '@/components/modals/IRInquiryModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   ChevronRight,
   ExternalLink,
@@ -115,7 +120,8 @@ const executiveMembers: ExecutiveMember[] = [
     position: 'SNUSV ANGEL CLUB 운영진',
     image: '/members/leesangwook.png',
     shortBio: '네오위즈 사업실장 (SNUSV 4기)',
-    fullBio: '게임/겜블/블록체인 전문가로서 신규 사업 개발 및 검토를 주로 하고 있습니다.',
+    fullBio:
+      '게임/겜블/블록체인 전문가로서 신규 사업 개발 및 검토를 주로 하고 있습니다.',
     experience: ['서울대학교 동물생명공학부 졸업'],
   },
   {
@@ -126,7 +132,12 @@ const executiveMembers: ExecutiveMember[] = [
     shortBio: '프로펠벤처스, 델타인베스트먼트 대표이사',
     fullBio:
       'LP, GP를 모두 경험하였고 다수의 엔젤투자를 진행해 본 경험이 있습니다. 과거에는 개발자로서 업무를 한 적이 있으며 현재도 투자와 AI개발을 병행하고 있습니다.',
-    experience: ['서울대학교 컴퓨터공학부 졸업', '한국벤처투자', '지앤텍벤처투자', '루트벤처스'],
+    experience: [
+      '서울대학교 컴퓨터공학부 졸업',
+      '한국벤처투자',
+      '지앤텍벤처투자',
+      '루트벤처스',
+    ],
   },
 ];
 
@@ -212,7 +223,9 @@ const partners: Partner[] = [
 
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState('home');
-  const [selectedMember, setSelectedMember] = useState<ExecutiveMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<ExecutiveMember | null>(
+    null
+  );
   const [scrollY, setScrollY] = useState(0);
   const [isIRModalOpen, setIsIRModalOpen] = useState(false);
   const [isAngelModalOpen, setIsAngelModalOpen] = useState(false);
@@ -298,7 +311,9 @@ export default function HomePage() {
                 >
                   <Icon
                     className={`w-4 h-4 md:w-5 md:h-5 ${
-                      isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                      isActive
+                        ? 'text-white'
+                        : 'text-gray-400 group-hover:text-white'
                     }`}
                   />
 
@@ -340,9 +355,11 @@ export default function HomePage() {
               </h1>
 
               <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
-                서울대학교 학생 벤처 네트워크 동아리(SNUSV) Alumni 기반의 엔젤클럽으로,
+                서울대학교 학생 벤처 네트워크 동아리(SNUSV) Alumni 기반의
+                엔젤클럽으로,
                 <br />
-                후배 스타트업을 지원하며 함께 미래를 만들어가는 투자 생태계를 구축합니다.
+                후배 스타트업을 지원하며 함께 미래를 만들어가는 투자 생태계를
+                구축합니다.
               </p>
             </div>
 
@@ -358,13 +375,15 @@ export default function HomePage() {
                 {
                   icon: Users,
                   title: '네트워크 지원',
-                  description: 'SNUSV 선배 창업가 및 업계 전문가들의 멘토링 제공',
+                  description:
+                    'SNUSV 선배 창업가 및 업계 전문가들의 멘토링 제공',
                   gradient: 'from-purple-500 to-pink-500',
                 },
                 {
                   icon: Target,
                   title: '성장 파트너',
-                  description: '단순 투자를 넘어 스타트업의 지속적인 성장을 함께하는 파트너',
+                  description:
+                    '단순 투자를 넘어 스타트업의 지속적인 성장을 함께하는 파트너',
                   gradient: 'from-pink-500 to-cyan-500',
                 },
               ].map((item, index) => (
@@ -378,8 +397,12 @@ export default function HomePage() {
                     >
                       <item.icon className="w-8 h-8 text-white" />
                     </div>
-                    <h3 className="text-xl font-semibold mb-4 text-white">{item.title}</h3>
-                    <p className="text-gray-300 leading-relaxed">{item.description}</p>
+                    <h3 className="text-xl font-semibold mb-4 text-white">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-300 leading-relaxed">
+                      {item.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -403,7 +426,9 @@ export default function HomePage() {
 
             {/* Executive Members */}
             <div className="mb-20">
-              <h3 className="text-3xl font-semibold mb-12 text-center text-white">운영진</h3>
+              <h3 className="text-3xl font-semibold mb-12 text-center text-white">
+                운영진
+              </h3>
               <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {executiveMembers.map(member => (
                   <Card
@@ -424,9 +449,15 @@ export default function HomePage() {
                           <Sparkles className="w-4 h-4 text-white" />
                         </div>
                       </div>
-                      <h4 className="text-xl font-semibold mb-2 text-white">{member.name}</h4>
-                      <p className="text-cyan-400 font-medium mb-3">{member.position}</p>
-                      <p className="text-gray-300 text-sm mb-4">{member.shortBio}</p>
+                      <h4 className="text-xl font-semibold mb-2 text-white">
+                        {member.name}
+                      </h4>
+                      <p className="text-cyan-400 font-medium mb-3">
+                        {member.position}
+                      </p>
+                      <p className="text-gray-300 text-sm mb-4">
+                        {member.shortBio}
+                      </p>
                       <Button
                         variant="ghost"
                         className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 group-hover:translate-x-1 transition-all"
@@ -458,8 +489,12 @@ export default function HomePage() {
                           className="w-full h-full object-cover rounded-xl bg-gray-800"
                         />
                       </div>
-                      <h4 className="font-semibold mb-1 text-white">{member.name}</h4>
-                      <p className="text-gray-400 text-sm mb-1">{member.position}</p>
+                      <h4 className="font-semibold mb-1 text-white">
+                        {member.name}
+                      </h4>
+                      <p className="text-gray-400 text-sm mb-1">
+                        {member.position}
+                      </p>
                       <p className="text-gray-500 text-xs">{member.bio}</p>
                     </CardContent>
                   </Card>
@@ -499,7 +534,9 @@ export default function HomePage() {
                       />
                     </div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-semibold text-lg text-white">{portfolio.name}</h4>
+                      <h4 className="font-semibold text-lg text-white">
+                        {portfolio.name}
+                      </h4>
                       <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-cyan-400 transition-colors" />
                     </div>
                     <Badge
@@ -508,7 +545,9 @@ export default function HomePage() {
                     >
                       {portfolio.category}
                     </Badge>
-                    <p className="text-gray-300 text-sm leading-relaxed">{portfolio.description}</p>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      {portfolio.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -545,12 +584,18 @@ export default function HomePage() {
                           className="max-h-full max-w-full object-contain"
                         />
                       </div>
-                      <h3 className="text-3xl font-bold mb-6 text-white">{partner.name}</h3>
-                      <p className="text-gray-300 leading-relaxed text-lg">{partner.description}</p>
+                      <h3 className="text-3xl font-bold mb-6 text-white">
+                        {partner.name}
+                      </h3>
+                      <p className="text-gray-300 leading-relaxed text-lg">
+                        {partner.description}
+                      </p>
                     </div>
 
                     <div>
-                      <h4 className="text-xl font-semibold mb-6 text-white">주요 특징</h4>
+                      <h4 className="text-xl font-semibold mb-6 text-white">
+                        주요 특징
+                      </h4>
                       <ul className="space-y-4 mb-8">
                         {partner.features.map((feature, idx) => (
                           <li key={idx} className="flex items-center gap-3">
@@ -560,7 +605,9 @@ export default function HomePage() {
                         ))}
                       </ul>
 
-                      <h4 className="text-xl font-semibold mb-6 text-white">구성원</h4>
+                      <h4 className="text-xl font-semibold mb-6 text-white">
+                        구성원
+                      </h4>
                       <div className="space-y-3">
                         {partner.members.map((member, idx) => (
                           <div
@@ -580,7 +627,10 @@ export default function HomePage() {
         </section>
 
         {/* With Us Section */}
-        <section id="withus" className="min-h-screen py-20 px-8 relative overflow-hidden pb-24">
+        <section
+          id="withus"
+          className="min-h-screen py-20 px-8 relative overflow-hidden pb-24"
+        >
           {/* Background Effects */}
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-purple-500/20 to-pink-500/20"></div>
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-black/50 to-black"></div>
@@ -590,7 +640,8 @@ export default function HomePage() {
               함께 미래를 만들어가요
             </h2>
             <p className="text-xl mb-16 text-gray-300 leading-relaxed">
-              혁신적인 아이디어와 열정을 가진 스타트업, 그리고 함께 투자하고 싶은 파트너를 찾습니다.
+              혁신적인 아이디어와 열정을 가진 스타트업, 그리고 함께 투자하고
+              싶은 파트너를 찾습니다.
             </p>
 
             <div className="grid md:grid-cols-2 gap-8 mb-16">
@@ -599,9 +650,12 @@ export default function HomePage() {
                   <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <TrendingUp className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-white">스타트업 IR</h3>
+                  <h3 className="text-2xl font-semibold mb-4 text-white">
+                    스타트업 IR
+                  </h3>
                   <p className="mb-6 text-gray-300 leading-relaxed">
-                    혁신적인 기술과 비즈니스 모델을 가진 초기 스타트업의 IR을 기다립니다.
+                    혁신적인 기술과 비즈니스 모델을 가진 초기 스타트업의 IR을
+                    기다립니다.
                   </p>
                   <Button
                     className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-0"
@@ -617,9 +671,12 @@ export default function HomePage() {
                   <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <Handshake className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-white">엔젤클럽 가입</h3>
+                  <h3 className="text-2xl font-semibold mb-4 text-white">
+                    엔젤클럽 가입
+                  </h3>
                   <p className="mb-6 text-gray-300 leading-relaxed">
-                    함께 스타트업 생태계에 투자하고 성장시킬 클럽원을 모집합니다.
+                    함께 스타트업 생태계에 투자하고 성장시킬 클럽원을
+                    모집합니다.
                   </p>
                   <Button
                     className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
@@ -632,7 +689,9 @@ export default function HomePage() {
             </div>
 
             <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-12 border border-white/10">
-              <h3 className="text-3xl font-semibold mb-6 text-white">기타 문의</h3>
+              <h3 className="text-3xl font-semibold mb-6 text-white">
+                기타 문의
+              </h3>
               <div className="flex items-center justify-center gap-3 text-xl mb-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-xl flex items-center justify-center">
                   <Mail className="w-6 h-6 text-white" />
@@ -653,7 +712,10 @@ export default function HomePage() {
       </main>
 
       {/* Member Detail Modal */}
-      <Dialog open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
+      <Dialog
+        open={!!selectedMember}
+        onOpenChange={() => setSelectedMember(null)}
+      >
         <DialogContent className="max-w-2xl bg-gray-900 border-gray-700 text-white">
           <DialogHeader>
             <DialogTitle className="text-2xl text-white">
@@ -671,8 +733,12 @@ export default function HomePage() {
                   />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-white">{selectedMember.name}</h3>
-                  <p className="text-cyan-400 font-medium">{selectedMember.position}</p>
+                  <h3 className="text-xl font-semibold text-white">
+                    {selectedMember.name}
+                  </h3>
+                  <p className="text-cyan-400 font-medium">
+                    {selectedMember.position}
+                  </p>
                 </div>
               </div>
 
@@ -685,7 +751,10 @@ export default function HomePage() {
                 <h4 className="font-semibold mb-2 text-white">주요 경력</h4>
                 <ul className="space-y-2">
                   {selectedMember.experience.map((exp, index) => (
-                    <li key={index} className="text-gray-300 flex items-center gap-3">
+                    <li
+                      key={index}
+                      className="text-gray-300 flex items-center gap-3"
+                    >
                       <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full"></div>
                       {exp}
                     </li>
@@ -711,10 +780,16 @@ export default function HomePage() {
       </div>
 
       {/* IR 문의 모달 */}
-      <IRInquiryModal isOpen={isIRModalOpen} onClose={() => setIsIRModalOpen(false)} />
+      <IRInquiryModal
+        isOpen={isIRModalOpen}
+        onClose={() => setIsIRModalOpen(false)}
+      />
 
       {/* 엔젤클럽 가입 문의 모달 */}
-      <AngelInquiryModal isOpen={isAngelModalOpen} onClose={() => setIsAngelModalOpen(false)} />
+      <AngelInquiryModal
+        isOpen={isAngelModalOpen}
+        onClose={() => setIsAngelModalOpen(false)}
+      />
     </div>
   );
 }

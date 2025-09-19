@@ -35,9 +35,12 @@ export async function getDashboardStats(): Promise<Stats> {
       .not('user_id', 'is', null);
 
     // 총 출자 정보
-    const { data: fundData } = await supabase.from('fund_members').select('investment_units');
+    const { data: fundData } = await supabase
+      .from('fund_members')
+      .select('investment_units');
 
-    const totalUnits = fundData?.reduce((sum, item) => sum + item.investment_units, 0) || 0;
+    const totalUnits =
+      fundData?.reduce((sum, item) => sum + item.investment_units, 0) || 0;
     const totalInvestment = totalUnits * 1000000; // 1좌당 100만원
 
     return {
@@ -91,8 +94,10 @@ export async function getRecentActivity(): Promise<ActivityItem[]> {
       // 회원가입 활동 (user_id가 있고 created_at과 updated_at이 비슷한 경우)
       const isNewSignup =
         profile.user_id &&
-        Math.abs(new Date(profile.created_at).getTime() - new Date(profile.updated_at).getTime()) <
-          60000;
+        Math.abs(
+          new Date(profile.created_at).getTime() -
+            new Date(profile.updated_at).getTime()
+        ) < 60000;
 
       if (isNewSignup) {
         activityList.push({
@@ -130,7 +135,10 @@ export async function getRecentActivity(): Promise<ActivityItem[]> {
     });
 
     // 시간순 정렬
-    activityList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    activityList.sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
 
     return activityList.slice(0, 8);
   } catch (error) {

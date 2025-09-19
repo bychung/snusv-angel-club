@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
@@ -127,16 +133,27 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const store = useSurveyStore();
-  const { user, profile, signInWithOAuth, isLoading: authLoading } = useAuthStore();
+  const {
+    user,
+    profile,
+    signInWithOAuth,
+    isLoading: authLoading,
+  } = useAuthStore();
   const activeFundId = fundId || store.activeFundId;
 
   // 로그인된 사용자 여부
   const isLoggedInUser = !!user;
 
   // 현재 펀드의 설문조사 데이터 가져오기
-  const surveyData = activeFundId ? store.getFundSurveyData(activeFundId).surveyData : null;
-  const currentPage = activeFundId ? store.getFundSurveyData(activeFundId).currentPage : 1;
-  const fundName = activeFundId ? store.getFundSurveyData(activeFundId).fundName : null;
+  const surveyData = activeFundId
+    ? store.getFundSurveyData(activeFundId).surveyData
+    : null;
+  const currentPage = activeFundId
+    ? store.getFundSurveyData(activeFundId).currentPage
+    : 1;
+  const fundName = activeFundId
+    ? store.getFundSurveyData(activeFundId).fundName
+    : null;
 
   // 설문조사 완료 상태 확인
   const [isAlreadySubmitted, setIsAlreadySubmitted] = useState(false);
@@ -198,8 +215,10 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     if (!existingData?.phone) updates.phone = profile.phone || '';
     if (!existingData?.email) updates.email = profile.email || '';
     if (!existingData?.address) updates.address = profile.address || '';
-    if (!existingData?.entityType) updates.entityType = profile.entity_type || 'individual';
-    if (!existingData?.birthDate && profile.birth_date) updates.birthDate = profile.birth_date;
+    if (!existingData?.entityType)
+      updates.entityType = profile.entity_type || 'individual';
+    if (!existingData?.birthDate && profile.birth_date)
+      updates.birthDate = profile.birth_date;
     if (!existingData?.businessNumber && profile.business_number)
       updates.businessNumber = profile.business_number;
 
@@ -341,7 +360,10 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const validateBusinessNumber = () => {
     if (surveyData?.entityType === 'corporate') {
       const businessNumberRegex = /^\d{3}-\d{2}-\d{5}$/;
-      if (!surveyData.businessNumber || !businessNumberRegex.test(surveyData.businessNumber)) {
+      if (
+        !surveyData.businessNumber ||
+        !businessNumberRegex.test(surveyData.businessNumber)
+      ) {
         return '올바른 사업자번호 형식이 아닙니다 (xxx-xx-xxxxx)';
       }
     }
@@ -399,9 +421,14 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         phone: surveyData.phone,
         email: surveyData.email,
         entity_type: surveyData.entityType as 'individual' | 'corporate',
-        birth_date: surveyData.entityType === 'individual' ? surveyData.birthDate || null : null,
+        birth_date:
+          surveyData.entityType === 'individual'
+            ? surveyData.birthDate || null
+            : null,
         business_number:
-          surveyData.entityType === 'corporate' ? surveyData.businessNumber || null : null,
+          surveyData.entityType === 'corporate'
+            ? surveyData.businessNumber || null
+            : null,
         address: surveyData.address,
         updated_at: new Date().toISOString(),
       };
@@ -440,7 +467,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
       // 2. 펀드 ID 확인
       if (!activeFundId) {
-        throw new Error('펀드 ID가 필요합니다. URL에 fund_id 파라미터를 포함해주세요.');
+        throw new Error(
+          '펀드 ID가 필요합니다. URL에 fund_id 파라미터를 포함해주세요.'
+        );
       }
 
       // 3. fund_members 테이블에 upsert
@@ -468,7 +497,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       store.nextPage(activeFundId);
     } catch (error) {
       console.error('제출 오류:', error);
-      setSubmitError(error instanceof Error ? error.message : '제출 중 오류가 발생했습니다.');
+      setSubmitError(
+        error instanceof Error ? error.message : '제출 중 오류가 발생했습니다.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -509,13 +540,16 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
           <>
             <CardHeader>
               <CardTitle>
-                출자하실분의 성함 또는 회사명((주) 및 주식회사 포함)을 알려주세요.
+                출자하실분의 성함 또는 회사명((주) 및 주식회사 포함)을
+                알려주세요.
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <TextInput
                 value={surveyData?.name || ''}
-                onChange={value => activeFundId && store.updateField(activeFundId, 'name', value)}
+                onChange={value =>
+                  activeFundId && store.updateField(activeFundId, 'name', value)
+                }
                 placeholder="홍길동 또는 (주)회사명"
                 required
               />
@@ -532,23 +566,28 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             <CardHeader>
               <CardTitle>출자좌수를 알려주세요.</CardTitle>
               <CardDescription>
-                출자금액 1백만원당 1좌입니다. 만약 2천만원을 출자하실 계획이라면, 20(좌)을 입력해
-                주시면 됩니다.
+                출자금액 1백만원당 1좌입니다. 만약 2천만원을 출자하실
+                계획이라면, 20(좌)을 입력해 주시면 됩니다.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <NumberInput
                 value={surveyData?.investmentUnits || 0}
                 onChange={value =>
-                  activeFundId && store.updateField(activeFundId, 'investmentUnits', value)
+                  activeFundId &&
+                  store.updateField(activeFundId, 'investmentUnits', value)
                 }
                 placeholder="20"
                 min={1}
                 required
               />
               <div className="text-sm text-gray-600">
-                출자금액: {(surveyData?.investmentUnits || 0).toLocaleString()}좌 ={' '}
-                {((surveyData?.investmentUnits || 0) * 1000000).toLocaleString()}원
+                출자금액: {(surveyData?.investmentUnits || 0).toLocaleString()}
+                좌 ={' '}
+                {(
+                  (surveyData?.investmentUnits || 0) * 1000000
+                ).toLocaleString()}
+                원
               </div>
               <Button onClick={handleNext} className="w-full" size="lg">
                 다음
@@ -566,7 +605,10 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             <CardContent className="space-y-4">
               <PhoneInput
                 value={surveyData?.phone || ''}
-                onChange={value => activeFundId && store.updateField(activeFundId, 'phone', value)}
+                onChange={value =>
+                  activeFundId &&
+                  store.updateField(activeFundId, 'phone', value)
+                }
                 required
               />
               <Button onClick={handleNext} className="w-full" size="lg">
@@ -586,7 +628,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               <TextInput
                 value={surveyData?.address || ''}
                 onChange={value =>
-                  activeFundId && store.updateField(activeFundId, 'address', value)
+                  activeFundId &&
+                  store.updateField(activeFundId, 'address', value)
                 }
                 placeholder="서울특별시 강남구..."
                 required
@@ -607,7 +650,10 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             <CardContent className="space-y-4">
               <EmailInput
                 value={surveyData?.email || ''}
-                onChange={value => activeFundId && store.updateField(activeFundId, 'email', value)}
+                onChange={value =>
+                  activeFundId &&
+                  store.updateField(activeFundId, 'email', value)
+                }
                 required
               />
               <Button onClick={handleNext} className="w-full" size="lg">
@@ -628,7 +674,11 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 value={surveyData?.entityType || ''}
                 onChange={value =>
                   activeFundId &&
-                  store.updateField(activeFundId, 'entityType', value as 'individual' | 'corporate')
+                  store.updateField(
+                    activeFundId,
+                    'entityType',
+                    value as 'individual' | 'corporate'
+                  )
                 }
                 options={[
                   { value: 'individual', label: '개인' },
@@ -654,14 +704,22 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               <BirthDateInput
                 value={surveyData?.birthDate || ''}
                 onChange={value =>
-                  activeFundId && store.updateField(activeFundId, 'birthDate', value)
+                  activeFundId &&
+                  store.updateField(activeFundId, 'birthDate', value)
                 }
                 required
               />
-              <Button onClick={handleSubmit} className="w-full" size="lg" disabled={isLoading}>
+              <Button
+                onClick={handleSubmit}
+                className="w-full"
+                size="lg"
+                disabled={isLoading}
+              >
                 {isLoading ? '제출 중...' : '제출하기'}
               </Button>
-              {submitError && <div className="text-sm text-red-500 mt-2">{submitError}</div>}
+              {submitError && (
+                <div className="text-sm text-red-500 mt-2">{submitError}</div>
+              )}
             </CardContent>
           </>
         );
@@ -677,14 +735,22 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               <BusinessNumberInput
                 value={surveyData?.businessNumber || ''}
                 onChange={value =>
-                  activeFundId && store.updateField(activeFundId, 'businessNumber', value)
+                  activeFundId &&
+                  store.updateField(activeFundId, 'businessNumber', value)
                 }
                 required
               />
-              <Button onClick={handleSubmit} className="w-full" size="lg" disabled={isLoading}>
+              <Button
+                onClick={handleSubmit}
+                className="w-full"
+                size="lg"
+                disabled={isLoading}
+              >
                 {isLoading ? '제출 중...' : '제출하기'}
               </Button>
-              {submitError && <div className="text-sm text-red-500 mt-2">{submitError}</div>}
+              {submitError && (
+                <div className="text-sm text-red-500 mt-2">{submitError}</div>
+              )}
             </CardContent>
           </>
         );
@@ -705,18 +771,28 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                   <>
                     향후 진행되는 내용 확인 등을 위해 회원가입 하시겠습니까?
                     <br />
-                    기존에 입력하신 정보로 회원 가입이 진행되므로 추가 입력 정보가 거의 없습니다.
+                    기존에 입력하신 정보로 회원 가입이 진행되므로 추가 입력
+                    정보가 거의 없습니다.
                   </>
                 )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-4">
-                <Button onClick={handleExit} variant="outline" className="flex-1" size="lg">
+                <Button
+                  onClick={handleExit}
+                  variant="outline"
+                  className="flex-1"
+                  size="lg"
+                >
                   페이지에서 나가기
                 </Button>
                 {isLoggedInUser ? (
-                  <Button onClick={handleGoToDashboard} className="flex-1" size="lg">
+                  <Button
+                    onClick={handleGoToDashboard}
+                    className="flex-1"
+                    size="lg"
+                  >
                     대시보드로 이동
                   </Button>
                 ) : (
@@ -791,7 +867,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const isUserDataLoading = () => {
     // 인증 관련 로딩 중
     if (authLoading) {
-      console.log('[SurveyContainer] Auth still loading, waiting for completion...');
+      console.log(
+        '[SurveyContainer] Auth still loading, waiting for completion...'
+      );
       return true;
     }
 
@@ -870,8 +948,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               <b>{fundName}</b>에 대한 출자 의향을 묻는 조사입니다. <br />
               {isLoggedInUser ? (
                 <>
-                  회원님의 기존 정보가 자동으로 입력되었습니다. 수정이 필요한 경우 직접 수정해
-                  주세요.
+                  회원님의 기존 정보가 자동으로 입력되었습니다. 수정이 필요한
+                  경우 직접 수정해 주세요.
                 </>
               ) : (
                 <>마지막까지 입력 후 제출을 부탁드립니다.</>

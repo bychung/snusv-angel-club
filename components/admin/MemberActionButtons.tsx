@@ -11,7 +11,10 @@ interface MemberActionButtonsProps {
   fundName: string;
 }
 
-export default function MemberActionButtons({ fundId, fundName }: MemberActionButtonsProps) {
+export default function MemberActionButtons({
+  fundId,
+  fundName,
+}: MemberActionButtonsProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);

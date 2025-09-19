@@ -31,14 +31,22 @@ export default function RadioSelect({
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
       )}
-      <RadioGroup value={value} onValueChange={onChange} disabled={disabled} className="space-y-3">
+      <RadioGroup
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        className="space-y-3"
+      >
         {options.map(option => (
           <div
             key={option.value}
             className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
           >
             <RadioGroupItem value={option.value} id={option.value} />
-            <Label htmlFor={option.value} className="flex-1 cursor-pointer font-normal">
+            <Label
+              htmlFor={option.value}
+              className="flex-1 cursor-pointer font-normal"
+            >
               {option.label}
             </Label>
           </div>

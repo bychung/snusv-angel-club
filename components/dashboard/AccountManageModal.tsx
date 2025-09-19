@@ -37,8 +37,16 @@ interface ProfileAccess {
   };
 }
 
-export default function AccountManageModal({ isOpen, onClose }: AccountManageModalProps) {
-  const { selectedProfileId, removeProfileAccess, updateProfileAccess, profile } = useAuthStore();
+export default function AccountManageModal({
+  isOpen,
+  onClose,
+}: AccountManageModalProps) {
+  const {
+    selectedProfileId,
+    removeProfileAccess,
+    updateProfileAccess,
+    profile,
+  } = useAuthStore();
   const [accessList, setAccessList] = useState<ProfileAccess[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -51,7 +59,9 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/profiles/${selectedProfileId}/permissions`);
+      const response = await fetch(
+        `/api/profiles/${selectedProfileId}/permissions`
+      );
       const result = await response.json();
 
       if (!response.ok) {
@@ -71,7 +81,9 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
   const handleRemoveAccess = async (userId: string, userName: string) => {
     if (!selectedProfileId) return;
 
-    const confirmed = window.confirm(`${userName}님의 접근 권한을 회수하시겠습니까?`);
+    const confirmed = window.confirm(
+      `${userName}님의 접근 권한을 회수하시겠습니까?`
+    );
     if (!confirmed) return;
 
     setIsRemoving(userId);
@@ -111,7 +123,9 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
   };
 
   const getPermissionColor = (permission: 'admin' | 'view') => {
-    return permission === 'admin' ? 'text-green-600 bg-green-50' : 'text-gray-600 bg-gray-50';
+    return permission === 'admin'
+      ? 'text-green-600 bg-green-50'
+      : 'text-gray-600 bg-gray-50';
   };
 
   useEffect(() => {
@@ -143,7 +157,9 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
                 <div className="flex items-center space-x-3">
                   <User className="h-5 w-5 text-blue-600" />
                   <div>
-                    <p className="font-medium text-blue-900">{profile.name} (나)</p>
+                    <p className="font-medium text-blue-900">
+                      {profile.name} (나)
+                    </p>
                     <p className="text-sm text-blue-700">{profile.email}</p>
                   </div>
                 </div>
@@ -172,7 +188,9 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
               {isLoading ? (
                 <div className="text-center py-8 text-gray-500">로딩 중...</div>
               ) : accessList.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">공유된 계정이 없습니다.</div>
+                <div className="text-center py-8 text-gray-500">
+                  공유된 계정이 없습니다.
+                </div>
               ) : (
                 <div className="space-y-2">
                   {accessList.map(access => (
@@ -186,9 +204,13 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
                           <p className="font-medium text-gray-900">
                             {access.user_info?.name || '이름 없음'}
                           </p>
-                          <p className="text-sm text-gray-600">{access.user_info?.email}</p>
+                          <p className="text-sm text-gray-600">
+                            {access.user_info?.email}
+                          </p>
                           {!access.user_info?.has_profile && (
-                            <p className="text-xs text-blue-600">OAuth 전용 계정</p>
+                            <p className="text-xs text-blue-600">
+                              OAuth 전용 계정
+                            </p>
                           )}
                         </div>
                       </div>
@@ -208,7 +230,9 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
                                   access.permission_type
                                 )}`}
                               >
-                                <span>{getPermissionBadge(access.permission_type)}</span>
+                                <span>
+                                  {getPermissionBadge(access.permission_type)}
+                                </span>
                                 <ChevronDown className="h-3 w-3" />
                               </span>
                             </Button>
@@ -223,7 +247,8 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
                                 )
                               }
                               disabled={
-                                access.permission_type === 'view' || isUpdating === access.user_id
+                                access.permission_type === 'view' ||
+                                isUpdating === access.user_id
                               }
                             >
                               <span className="flex items-center">
@@ -240,7 +265,8 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
                                 )
                               }
                               disabled={
-                                access.permission_type === 'admin' || isUpdating === access.user_id
+                                access.permission_type === 'admin' ||
+                                isUpdating === access.user_id
                               }
                             >
                               <span className="flex items-center">
@@ -256,9 +282,15 @@ export default function AccountManageModal({ isOpen, onClose }: AccountManageMod
                           variant="outline"
                           size="sm"
                           onClick={() =>
-                            handleRemoveAccess(access.user_id, access.user_info?.name || '사용자')
+                            handleRemoveAccess(
+                              access.user_id,
+                              access.user_info?.name || '사용자'
+                            )
                           }
-                          disabled={isRemoving === access.user_id || isUpdating === access.user_id}
+                          disabled={
+                            isRemoving === access.user_id ||
+                            isUpdating === access.user_id
+                          }
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           {isRemoving === access.user_id ? (

@@ -17,7 +17,12 @@ export function formatFileSize(bytes: number): string {
 export function validateFile(
   file: File,
   maxSize: number = 10 * 1024 * 1024, // 10MB
-  allowedTypes: string[] = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+  allowedTypes: string[] = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+  ]
 ): { valid: boolean; error?: string } {
   // 파일 크기 검증
   if (file.size > maxSize) {

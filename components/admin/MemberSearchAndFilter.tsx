@@ -10,13 +10,20 @@ interface MemberSearchAndFilterProps {
   mode: 'users' | 'fund_members';
 }
 
-export default function MemberSearchAndFilter({ mode }: MemberSearchAndFilterProps) {
+export default function MemberSearchAndFilter({
+  mode,
+}: MemberSearchAndFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'registered' | 'survey_only'>(
-    (searchParams.get('filter') as any) || (mode === 'users' ? 'registered' : 'all')
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get('search') || ''
+  );
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'registered' | 'survey_only'
+  >(
+    (searchParams.get('filter') as any) ||
+      (mode === 'users' ? 'registered' : 'all')
   );
 
   // URL 업데이트
@@ -40,7 +47,9 @@ export default function MemberSearchAndFilter({ mode }: MemberSearchAndFilterPro
   }, [searchTerm, filterStatus, router, searchParams]);
 
   const getSearchTitle = () => {
-    return mode === 'fund_members' ? '조합원 검색 및 필터' : '사용자 검색 및 필터';
+    return mode === 'fund_members'
+      ? '조합원 검색 및 필터'
+      : '사용자 검색 및 필터';
   };
 
   return (

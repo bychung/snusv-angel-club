@@ -21,7 +21,10 @@ interface BulkUploadResult {
   }>;
 }
 
-export async function POST(request: NextRequest, context: { params: Promise<{ fundId: string }> }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ fundId: string }> }
+) {
   try {
     const { fundId } = await context.params;
     const supabase = await createClient();
@@ -33,14 +36,20 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fu
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { error: '인증이 필요합니다.' },
+        { status: 401 }
+      );
     }
 
     // 관리자 권한 확인
     const adminAccess = await isAdminServer(user);
     if (!adminAccess) {
       console.log('Admin access denied for user:', user.email);
-      return NextResponse.json({ error: '관리자 권한이 필요합니다.' }, { status: 403 });
+      return NextResponse.json(
+        { error: '관리자 권한이 필요합니다.' },
+        { status: 403 }
+      );
     }
 
     console.log('Admin access granted for user:', user.email);
@@ -49,7 +58,10 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fu
     const { members } = body;
 
     if (!members || !Array.isArray(members) || members.length === 0) {
-      return NextResponse.json({ error: '업로드할 데이터가 없습니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '업로드할 데이터가 없습니다.' },
+        { status: 400 }
+      );
     }
 
     const result: BulkUploadResult = {
@@ -59,13 +71,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ fu
     };
 
     // 트랜잭션으로 처리
-    const { error: transactionError } = await supabase.rpc('bulk_upload_members', {
-      p_fund_id: fundId,
-      p_members: members.map((member, index) => ({
-        ...member,
-        original_index: index,
-      })),
-    });
+    const { error: transactionError } = await supabase.rpc(
+      'bulk_upload_members',
+      {
+        p_fund_id: fundId,
+        p_members: members.map((member, index) => ({
+          ...member,
+          original_index: index,
+        })),
+      }
+    );
 
     if (transactionError) {
       // 트랜잭션이 실패한 경우 개별 처리로 폴백
@@ -154,7 +169,9 @@ async function processMembersIndividually(
           result.errors.push({
             index: i + 1,
             name: member.name,
-            error: '프로필 생성 실패: ' + (insertError?.message || '알 수 없는 오류'),
+            error:
+              '프로필 생성 실패: ' +
+              (insertError?.message || '알 수 없는 오류'),
           });
           continue;
         }
@@ -181,11 +198,13 @@ async function processMembersIndividually(
       }
 
       // 3. 펀드 멤버 추가
-      const { error: fundMemberError } = await supabase.from('fund_members').insert({
-        fund_id: fundId,
-        profile_id: profileId,
-        investment_units: member.investment_units,
-      });
+      const { error: fundMemberError } = await supabase
+        .from('fund_members')
+        .insert({
+          fund_id: fundId,
+          profile_id: profileId,
+          investment_units: member.investment_units,
+        });
 
       if (fundMemberError) {
         result.errors.push({

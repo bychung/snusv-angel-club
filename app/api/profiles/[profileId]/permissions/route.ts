@@ -9,7 +9,10 @@ export async function GET(
     const { profileId } = await params;
 
     if (!profileId) {
-      return NextResponse.json({ error: '프로필 ID가 필요합니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '프로필 ID가 필요합니다.' },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
@@ -21,7 +24,10 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (authError || !currentUser) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { error: '인증이 필요합니다.' },
+        { status: 401 }
+      );
     }
 
     // 현재 사용자가 해당 프로필의 owner인지 확인
@@ -51,7 +57,8 @@ export async function GET(
     }
 
     // auth.users 정보 조회
-    const { data: authUsers, error: authError2 } = await supabase.auth.admin.listUsers();
+    const { data: authUsers, error: authError2 } =
+      await supabase.auth.admin.listUsers();
 
     if (authError2) {
       throw authError2;
@@ -59,7 +66,9 @@ export async function GET(
 
     // 권한 목록과 사용자 정보 결합
     const enrichedPermissions = permissions.map(permission => {
-      const authUser = authUsers.users.find((user: any) => user.id === permission.user_id);
+      const authUser = authUsers.users.find(
+        (user: any) => user.id === permission.user_id
+      );
 
       // profiles 테이블에서도 검색 시도
       return supabase
@@ -72,7 +81,8 @@ export async function GET(
           user_id: permission.user_id,
           permission_type: permission.permission_type,
           user_info: {
-            name: profile?.name || authUser?.email?.split('@')[0] || '알 수 없음',
+            name:
+              profile?.name || authUser?.email?.split('@')[0] || '알 수 없음',
             email: profile?.email || authUser?.email || '이메일 없음',
             entity_type: profile?.entity_type || 'individual',
             has_profile: !profileError && !!profile,
@@ -86,7 +96,10 @@ export async function GET(
     return NextResponse.json({ permissions: resolvedPermissions });
   } catch (error) {
     console.error('Get permissions API error:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }
 
@@ -99,11 +112,17 @@ export async function PUT(
     const { userId, permissionType } = await request.json();
 
     if (!profileId || !userId || !permissionType) {
-      return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '필수 정보가 누락되었습니다.' },
+        { status: 400 }
+      );
     }
 
     if (!['admin', 'view'].includes(permissionType)) {
-      return NextResponse.json({ error: '올바르지 않은 권한 유형입니다.' }, { status: 400 });
+      return NextResponse.json(
+        { error: '올바르지 않은 권한 유형입니다.' },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
@@ -115,7 +134,10 @@ export async function PUT(
     } = await supabase.auth.getUser();
 
     if (authError || !currentUser) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+      return NextResponse.json(
+        { error: '인증이 필요합니다.' },
+        { status: 401 }
+      );
     }
 
     // 현재 사용자가 해당 프로필의 owner인지 확인
@@ -141,7 +163,10 @@ export async function PUT(
 
     if (updateError) {
       console.error('권한 업데이트 오류:', updateError);
-      return NextResponse.json({ error: '권한 업데이트에 실패했습니다.' }, { status: 500 });
+      return NextResponse.json(
+        { error: '권한 업데이트에 실패했습니다.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -150,6 +175,9 @@ export async function PUT(
     });
   } catch (error) {
     console.error('Update permissions API error:', error);
-    return NextResponse.json({ error: '서버 오류가 발생했습니다.' }, { status: 500 });
+    return NextResponse.json(
+      { error: '서버 오류가 발생했습니다.' },
+      { status: 500 }
+    );
   }
 }

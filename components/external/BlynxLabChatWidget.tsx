@@ -23,7 +23,10 @@ const BlynxLabChatWidget = (props: { slug: string }) => {
       onLoad={() => {
         // 스크립트 로드가 완료된 후 init 함수를 실행합니다.
         // window 객체에 BlynxLabWidget이 확실히 존재하는지 확인하는 것이 안전합니다.
-        if (window.BlynxLabWidget && typeof window.BlynxLabWidget.init === 'function') {
+        if (
+          window.BlynxLabWidget &&
+          typeof window.BlynxLabWidget.init === 'function'
+        ) {
           window.BlynxLabWidget.init({ slug });
         }
       }}

@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -74,7 +80,9 @@ export default function ExportControls() {
       query = query.is('user_id', null);
     }
 
-    const { data, error } = await query.order('created_at', { ascending: false });
+    const { data, error } = await query.order('created_at', {
+      ascending: false,
+    });
 
     if (error) throw error;
     return data || [];
@@ -93,7 +101,9 @@ export default function ExportControls() {
         row['주소'] = user.address;
 
         if (user.entity_type === 'individual' && user.birth_date) {
-          row['생년월일'] = new Date(user.birth_date).toLocaleDateString('ko-KR');
+          row['생년월일'] = new Date(user.birth_date).toLocaleDateString(
+            'ko-KR'
+          );
         }
 
         if (user.entity_type === 'corporate' && user.business_number) {
@@ -111,21 +121,28 @@ export default function ExportControls() {
       if (options.includeFields.investmentInfo && user.fund_members?.[0]) {
         const investment = user.fund_members[0];
         row['출자좌수'] = investment.investment_units;
-        row['출자금액'] = (investment.investment_units * 1000000).toLocaleString() + '원';
+        row['출자금액'] =
+          (investment.investment_units * 1000000).toLocaleString() + '원';
         // row['제출일'] = new Date(investment.created_at).toLocaleDateString('ko-KR');
 
         if (investment.created_at !== investment.updated_at) {
-          row['출자정보_최종수정일'] = new Date(investment.updated_at).toLocaleDateString('ko-KR');
+          row['출자정보_최종수정일'] = new Date(
+            investment.updated_at
+          ).toLocaleDateString('ko-KR');
         }
       }
 
       // 가입 정보
       if (options.includeFields.registrationInfo) {
         row['가입상태'] = user.user_id ? '가입완료' : '설문만';
-        row['설문참여일'] = new Date(user.created_at).toLocaleDateString('ko-KR');
+        row['설문참여일'] = new Date(user.created_at).toLocaleDateString(
+          'ko-KR'
+        );
 
         if (user.created_at !== user.updated_at) {
-          row['정보_최종수정일'] = new Date(user.updated_at).toLocaleDateString('ko-KR');
+          row['정보_최종수정일'] = new Date(user.updated_at).toLocaleDateString(
+            'ko-KR'
+          );
         }
       }
 
@@ -170,7 +187,10 @@ export default function ExportControls() {
     document.body.removeChild(link);
   };
 
-  const updateIncludeFields = (field: keyof ExportOptions['includeFields'], checked: boolean) => {
+  const updateIncludeFields = (
+    field: keyof ExportOptions['includeFields'],
+    checked: boolean
+  ) => {
     setOptions(prev => ({
       ...prev,
       includeFields: {
@@ -187,7 +207,9 @@ export default function ExportControls() {
         <Card>
           <CardHeader>
             <CardTitle>내보내기 형식</CardTitle>
-            <CardDescription>데이터를 내보낼 파일 형식을 선택하세요.</CardDescription>
+            <CardDescription>
+              데이터를 내보낼 파일 형식을 선택하세요.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <RadioGroup
@@ -198,14 +220,20 @@ export default function ExportControls() {
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="excel" id="excel" />
-                <Label htmlFor="excel" className="flex items-center cursor-pointer">
+                <Label
+                  htmlFor="excel"
+                  className="flex items-center cursor-pointer"
+                >
                   <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
                   Excel (.xlsx)
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="csv" id="csv" />
-                <Label htmlFor="csv" className="flex items-center cursor-pointer">
+                <Label
+                  htmlFor="csv"
+                  className="flex items-center cursor-pointer"
+                >
                   <FileText className="h-4 w-4 mr-2 text-blue-600" />
                   CSV (.csv)
                 </Label>
@@ -248,7 +276,9 @@ export default function ExportControls() {
       <Card>
         <CardHeader>
           <CardTitle>포함할 정보</CardTitle>
-          <CardDescription>내보낼 데이터에 포함할 정보를 선택하세요.</CardDescription>
+          <CardDescription>
+            내보낼 데이터에 포함할 정보를 선택하세요.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -256,18 +286,26 @@ export default function ExportControls() {
               <Checkbox
                 id="basicInfo"
                 checked={options.includeFields.basicInfo}
-                onCheckedChange={checked => updateIncludeFields('basicInfo', checked as boolean)}
+                onCheckedChange={checked =>
+                  updateIncludeFields('basicInfo', checked as boolean)
+                }
               />
-              <Label htmlFor="basicInfo">기본 정보 (이름, 구분, 주소, 생년월일/사업자번호)</Label>
+              <Label htmlFor="basicInfo">
+                기본 정보 (이름, 구분, 주소, 생년월일/사업자번호)
+              </Label>
             </div>
 
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="contactInfo"
                 checked={options.includeFields.contactInfo}
-                onCheckedChange={checked => updateIncludeFields('contactInfo', checked as boolean)}
+                onCheckedChange={checked =>
+                  updateIncludeFields('contactInfo', checked as boolean)
+                }
               />
-              <Label htmlFor="contactInfo">연락처 정보 (이메일, 전화번호)</Label>
+              <Label htmlFor="contactInfo">
+                연락처 정보 (이메일, 전화번호)
+              </Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -278,7 +316,9 @@ export default function ExportControls() {
                   updateIncludeFields('investmentInfo', checked as boolean)
                 }
               />
-              <Label htmlFor="investmentInfo">출자 정보 (출자좌수, 출자금액, 출자일)</Label>
+              <Label htmlFor="investmentInfo">
+                출자 정보 (출자좌수, 출자금액, 출자일)
+              </Label>
             </div>
 
             <div className="flex items-center space-x-2">
@@ -289,7 +329,9 @@ export default function ExportControls() {
                   updateIncludeFields('registrationInfo', checked as boolean)
                 }
               />
-              <Label htmlFor="registrationInfo">가입 정보 (가입상태, 참여일, 수정일)</Label>
+              <Label htmlFor="registrationInfo">
+                가입 정보 (가입상태, 참여일, 수정일)
+              </Label>
             </div>
           </div>
         </CardContent>
@@ -300,7 +342,8 @@ export default function ExportControls() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-sm text-gray-600">
-              선택한 조건에 따라 데이터를 {options.format.toUpperCase()} 파일로 내보냅니다.
+              선택한 조건에 따라 데이터를 {options.format.toUpperCase()} 파일로
+              내보냅니다.
             </div>
             <Button
               onClick={handleExport}

@@ -7,7 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function SurveyNavigation() {
   const store = useSurveyStore();
   const currentPage = store.getCurrentPage();
-  
+
   const handlePrevPage = () => {
     if (store.activeFundId) {
       store.prevPage(store.activeFundId);
