@@ -12,9 +12,7 @@ import { NextRequest } from 'next/server';
 // 문서 업로드 (관리자만)
 export async function POST(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ fundId: string; category: DocumentCategory }> }
+  { params }: { params: Promise<{ fundId: string; category: string }> }
 ) {
   const { fundId, category } = await params;
 
@@ -36,6 +34,9 @@ export async function POST(
       { status: 400 }
     );
   }
+
+  // 검증된 category를 DocumentCategory로 타입 캐스팅
+  const documentCategory = category as DocumentCategory;
 
   try {
     // 인증 및 권한 확인
@@ -89,7 +90,12 @@ export async function POST(
     }
 
     // 문서 업로드 및 DB 저장
-    const document = await uploadDocument(file, fundId, category, profile.id);
+    const document = await uploadDocument(
+      file,
+      fundId,
+      documentCategory,
+      profile.id
+    );
 
     return Response.json({
       message: '문서가 성공적으로 업로드되었습니다',
@@ -112,9 +118,7 @@ export async function POST(
 // 문서 히스토리 조회 (관리자만)
 export async function GET(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ fundId: string; category: DocumentCategory }> }
+  { params }: { params: Promise<{ fundId: string; category: string }> }
 ) {
   const { fundId, category } = await params;
 
@@ -137,6 +141,9 @@ export async function GET(
     );
   }
 
+  // 검증된 category를 DocumentCategory로 타입 캐스팅
+  const documentCategory = category as DocumentCategory;
+
   try {
     // 인증 및 권한 확인
     const supabase = await createClient();
@@ -158,7 +165,7 @@ export async function GET(
     }
 
     // 문서 히스토리 조회
-    const documents = await getDocumentHistory(fundId, category);
+    const documents = await getDocumentHistory(fundId, documentCategory);
 
     return Response.json({ documents });
   } catch (error) {

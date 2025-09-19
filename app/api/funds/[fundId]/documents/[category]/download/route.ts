@@ -6,9 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ fundId: string; category: DocumentCategory }> }
+  { params }: { params: Promise<{ fundId: string; category: string }> }
 ) {
   const { fundId, category } = await params;
 
@@ -31,6 +29,9 @@ export async function GET(
     );
   }
 
+  // 검증된 category를 DocumentCategory로 타입 캐스팅
+  const documentCategory = category as DocumentCategory;
+
   try {
     // 사용자 인증 확인
     const supabase = await createClient();
@@ -52,7 +53,7 @@ export async function GET(
         DocumentCategory.ACCOUNT,
         DocumentCategory.AGREEMENT,
       ];
-      if (!downloadableCategories.includes(category as DocumentCategory)) {
+      if (!downloadableCategories.includes(documentCategory)) {
         return Response.json(
           {
             error: '해당 문서를 다운로드할 권한이 없습니다',
@@ -96,7 +97,7 @@ export async function GET(
       .from('documents')
       .select('*')
       .eq('fund_id', fundId)
-      .eq('category', category)
+      .eq('category', documentCategory)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -164,7 +165,7 @@ export async function GET(
 
     // 파일 다운로드 로그 기록
     console.log(
-      `문서 다운로드: ${user.email} - ${fundId}/${category} - ${document.file_name}`
+      `문서 다운로드: ${user.email} - ${fundId}/${documentCategory} - ${document.file_name}`
     );
 
     // 파일을 직접 반환 (IR deck과 동일한 방식)
