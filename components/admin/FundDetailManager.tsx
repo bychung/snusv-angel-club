@@ -57,6 +57,8 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     status: 'ready' as FundStatus,
     account: '',
     account_bank: '',
+    closed_at: '',
+    registered_at: '',
   });
 
   // 데이터 초기 로드
@@ -94,6 +96,8 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           status: fundData.fund.status || 'ready',
           account: fundData.fund.account || '',
           account_bank: fundData.fund.account_bank || '',
+          closed_at: fundData.fund.closed_at || '',
+          registered_at: fundData.fund.registered_at || '',
         });
       } catch (err) {
         setError(
@@ -312,6 +316,46 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                       handleInputChange('account_bank', e.target.value)
                     }
                     placeholder="우리은행"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="closed_at">결성일</Label>
+                  <Input
+                    id="closed_at"
+                    type="date"
+                    value={
+                      formData.closed_at ? formData.closed_at.split('T')[0] : ''
+                    }
+                    onChange={e => {
+                      const value = e.target.value
+                        ? `${e.target.value}T00:00:00.000Z`
+                        : '';
+                      handleInputChange('closed_at', value);
+                    }}
+                    placeholder="펀드 결성일을 선택하세요"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="registered_at">등록일</Label>
+                  <Input
+                    id="registered_at"
+                    type="date"
+                    value={
+                      formData.registered_at
+                        ? formData.registered_at.split('T')[0]
+                        : ''
+                    }
+                    onChange={e => {
+                      const value = e.target.value
+                        ? `${e.target.value}T00:00:00.000Z`
+                        : '';
+                      handleInputChange('registered_at', value);
+                    }}
+                    placeholder="펀드 등록일을 선택하세요"
                   />
                 </div>
               </div>

@@ -120,7 +120,9 @@ export default function FundTable({ funds }: FundTableProps) {
                       {fund.name}
                     </CardTitle>
                     <CardDescription className="text-sm text-gray-500 flex items-center gap-2 mb-2">
-                      <span>등록일: {formatDate(fund.created_at)}</span>
+                      {fund.registered_at && (
+                        <span>등록일: {formatDate(fund.registered_at)}</span>
+                      )}
                       {fund.abbreviation && (
                         <Badge
                           variant="secondary"

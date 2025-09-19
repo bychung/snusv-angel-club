@@ -23,6 +23,8 @@ export interface Fund {
   status: 'ready' | 'processing' | 'applied' | 'active' | 'closing' | 'closed';
   account?: string | null;
   account_bank?: string | null;
+  closed_at?: string | null; // 결성일
+  registered_at?: string | null; // 등록일
   created_at: string;
   updated_at: string;
 }

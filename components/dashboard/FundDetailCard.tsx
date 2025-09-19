@@ -69,6 +69,14 @@ export default function FundDetailCard({
     });
   };
 
+  const formatRegisteredDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear().toString().slice(-2);
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}.${month}.${day} 등록`;
+  };
+
   const handleDocumentDownload = async (category: string) => {
     try {
       const response = await fetch(
@@ -156,6 +164,11 @@ export default function FundDetailCard({
                 fund.status}
             </Badge>
           </div>
+          {fund.registered_at && (
+            <span className="text-xs text-gray-500 ml-auto">
+              {formatRegisteredDate(fund.registered_at)}
+            </span>
+          )}
         </div>
       </CardHeader>
 

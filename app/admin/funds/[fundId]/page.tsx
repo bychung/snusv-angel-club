@@ -75,7 +75,8 @@ export default async function FundDetailPage({
               <h1 className="text-3xl font-bold text-gray-900">{fund.name}</h1>
               <p className="mt-2 text-gray-600">조합원을 관리할 수 있습니다.</p>
               <p className="text-sm text-gray-500 mt-1">
-                등록일: {new Date(fund.created_at).toLocaleDateString('ko-KR')}
+                데이터 생성일:{' '}
+                {new Date(fund.created_at).toLocaleDateString('ko-KR')}
               </p>
             </div>
           </div>
