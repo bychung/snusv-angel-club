@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
@@ -142,11 +142,16 @@ export default function FundDetailCard({
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg font-semibold text-gray-900">
-              {fundName}
-            </CardTitle>
+        <div>
+          <div className="text-lg font-bold text-gray-900 flex justify-between items-baseline">
+            <span>{fundName}</span>
+            {fund.registered_at && (
+              <span className="text-xs text-gray-500 font-normal">
+                {formatRegisteredDate(fund.registered_at)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
             <Badge
               className={
                 FUND_STATUS_CONFIG[fund.status as FundStatus]?.colorClasses ||
@@ -165,11 +170,6 @@ export default function FundDetailCard({
               </Badge>
             )}
           </div>
-          {fund.registered_at && (
-            <span className="text-xs text-gray-500 ml-auto">
-              {formatRegisteredDate(fund.registered_at)}
-            </span>
-          )}
         </div>
       </CardHeader>
 
