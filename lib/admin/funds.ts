@@ -250,10 +250,22 @@ export async function updateFundDetails(
 ): Promise<Fund> {
   const supabase = await createClient();
 
+  // 빈 문자열인 날짜 필드들을 null로 변환
+  const sanitizedUpdates = { ...updates };
+  if (sanitizedUpdates.closed_at === '') {
+    sanitizedUpdates.closed_at = undefined;
+  }
+  if (sanitizedUpdates.registered_at === '') {
+    sanitizedUpdates.registered_at = undefined;
+  }
+  if (sanitizedUpdates.dissolved_at === '') {
+    sanitizedUpdates.dissolved_at = undefined;
+  }
+
   const { data, error } = await supabase
     .from('funds')
     .update({
-      ...updates,
+      ...sanitizedUpdates,
       updated_at: new Date().toISOString(),
     })
     .eq('id', fundId)

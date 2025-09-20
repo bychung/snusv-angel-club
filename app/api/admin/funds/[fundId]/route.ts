@@ -49,6 +49,23 @@ export async function PUT(
       dissolved_at,
     } = requestBody;
 
+    // 날짜 필드 유효성 검증
+    const dateFields = { closed_at, registered_at, dissolved_at };
+    for (const [fieldName, value] of Object.entries(dateFields)) {
+      if (value && value !== '' && !isNaN(Date.parse(value))) {
+        // 유효한 날짜 형식인지 확인
+        continue;
+      } else if (value === '') {
+        // 빈 문자열은 null로 처리
+        requestBody[fieldName] = null;
+      } else if (value && isNaN(Date.parse(value))) {
+        return Response.json(
+          { error: `${fieldName} 필드의 날짜 형식이 올바르지 않습니다` },
+          { status: 400 }
+        );
+      }
+    }
+
     // status 값 검증
     if (
       status &&
@@ -78,7 +95,7 @@ export async function PUT(
       );
     }
 
-    // 펀드 정보 업데이트
+    // 펀드 정보 업데이트 (수정된 데이터 사용)
     const updatedFund = await updateFundDetails(fundId, {
       name,
       abbreviation,
@@ -88,9 +105,9 @@ export async function PUT(
       status,
       account,
       account_bank,
-      closed_at,
-      registered_at,
-      dissolved_at,
+      closed_at: requestBody.closed_at,
+      registered_at: requestBody.registered_at,
+      dissolved_at: requestBody.dissolved_at,
     });
 
     return Response.json({
