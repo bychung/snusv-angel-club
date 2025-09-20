@@ -260,76 +260,82 @@ export default function FundDetailCard({
         </div>
 
         {/* 관련 문서 */}
-        {fund.status !== 'ready' && (
-          <>
-            <Separator />
+        {fund.status !== 'ready' &&
+          Object.entries(documents_status).some(
+            ([_, status]) => status.exists
+          ) && (
+            <>
+              <Separator />
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-gray-400" />
-                <h4 className="font-medium text-gray-900">관련 문서</h4>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(documents_status).map(([category, status]) => {
-                  const categoryName =
-                    DOCUMENT_CATEGORY_NAMES[category as DocumentCategory];
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-gray-400" />
+                  <h4 className="font-medium text-gray-900">관련 문서</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(documents_status).map(
+                    ([category, status]) => {
+                      const categoryName =
+                        DOCUMENT_CATEGORY_NAMES[category as DocumentCategory];
 
-                  const isDownloadable = status.exists && status.downloadable;
+                      const isDownloadable =
+                        status.exists && status.downloadable;
 
-                  return (
-                    <button
-                      key={category}
-                      onClick={
-                        isDownloadable
-                          ? () => handleDocumentDownload(category)
-                          : undefined
-                      }
-                      disabled={!isDownloadable}
-                      className={`py-1 px-3 rounded-lg border text-left transition-all min-h-14 ${
-                        status.exists
-                          ? 'border-green-200 bg-green-50'
-                          : 'border-gray-200 bg-gray-50'
-                      } ${
-                        isDownloadable
-                          ? 'hover:bg-green-100 cursor-pointer'
-                          : 'cursor-default'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {status.exists ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Clock className="h-4 w-4 text-gray-400" />
+                      return (
+                        <button
+                          key={category}
+                          onClick={
+                            isDownloadable
+                              ? () => handleDocumentDownload(category)
+                              : undefined
+                          }
+                          hidden={!isDownloadable}
+                          className={`py-1 px-3 rounded-lg border text-left transition-all min-h-10 ${
+                            status.exists
+                              ? 'border-green-200 bg-green-50'
+                              : 'border-gray-200 bg-gray-50'
+                          } ${
+                            isDownloadable
+                              ? 'hover:bg-green-100 cursor-pointer'
+                              : 'cursor-default'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {status.exists ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Clock className="h-4 w-4 text-gray-400" />
+                              )}
+                              <span
+                                className={`text-sm font-medium ${
+                                  isDownloadable
+                                    ? 'text-gray-900'
+                                    : status.exists
+                                    ? 'text-gray-700'
+                                    : 'text-gray-500'
+                                }`}
+                              >
+                                {categoryName}
+                              </span>
+                            </div>
+                            {isDownloadable && (
+                              <Download className="h-4 w-4 text-green-600" />
+                            )}
+                          </div>
+                          {!status.exists && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              업로드 대기중
+                            </p>
                           )}
-                          <span
-                            className={`text-sm font-medium ${
-                              isDownloadable
-                                ? 'text-gray-900'
-                                : status.exists
-                                ? 'text-gray-700'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            {categoryName}
-                          </span>
-                        </div>
-                        {isDownloadable && (
-                          <Download className="h-4 w-4 text-green-600" />
-                        )}
-                      </div>
-                      {!status.exists && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          업로드 대기중
-                        </p>
-                      )}
-                    </button>
-                  );
-                })}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
       </CardContent>
     </Card>
   );
