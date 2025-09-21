@@ -27,7 +27,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. profiles 테이블에서 이메일로 검색
+    // 현재 사용자의 프로필 정보 가져오기
+    const { data: currentProfile, error: currentProfileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .single();
+
+    if (currentProfileError) {
+      return NextResponse.json(
+        { error: '현재 사용자 프로필을 찾을 수 없습니다.' },
+        { status: 500 }
+      );
+    }
+
+    const currentProfileId = currentProfile.id;
+
+    // 1. email로 auth user(targetAuthUser)를 찾는다
+    const { data: authUsers, error: authListError } =
+      await supabase.auth.admin.listUsers();
+
+    if (authListError) {
+      throw authListError;
+    }
+
+    const targetAuthUser = authUsers.users.find(
+      (user: any) => user.email === email
+    );
+
+    if (!targetAuthUser) {
+      return NextResponse.json({
+        found: false,
+        message: '해당 이메일로 가입된 계정을 찾을 수 없습니다.',
+      });
+    }
+
+    // 2. email로 profile을 검색한다
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*')
@@ -41,83 +76,106 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. auth.users에서 이메일로 검색
-    try {
-      const { data: authUsers, error: authListError } =
-        await supabase.auth.admin.listUsers();
+    // 가입 방법(provider) 정보 추출
+    let provider = 'email'; // 기본값
+    if (targetAuthUser.identities && targetAuthUser.identities.length > 0) {
+      // identities 배열에서 첫 번째 provider 사용
+      provider = targetAuthUser.identities[0].provider || 'email';
+    } else if (targetAuthUser.app_metadata?.provider) {
+      provider = targetAuthUser.app_metadata.provider;
+    } else if (
+      targetAuthUser.app_metadata?.providers &&
+      targetAuthUser.app_metadata.providers.length > 0
+    ) {
+      provider = targetAuthUser.app_metadata.providers[0];
+    }
 
-      if (authListError) {
-        throw authListError;
-      }
+    const userInfo = {
+      id: targetAuthUser.id,
+      email: targetAuthUser.email,
+      created_at: targetAuthUser.created_at,
+      provider: provider,
+    };
 
-      const targetAuthUser = authUsers.users.find(
-        (user: any) => user.email === email
+    // 3. targetAuthUser.id로 profile_permission을 검색한다
+    const { data: profilePermissions, error: permissionError } = await supabase
+      .from('profile_permissions')
+      .select('profile_id')
+      .eq('user_id', targetAuthUser.id);
+
+    if (permissionError) {
+      return NextResponse.json(
+        { error: '권한 검색 중 오류가 발생했습니다.' },
+        { status: 500 }
       );
+    }
 
-      if (!targetAuthUser) {
-        return NextResponse.json({
-          found: false,
-          message: '해당 이메일로 가입된 계정을 찾을 수 없습니다.',
-        });
-      }
-
-      // 3. 결과 구성
-      const userInfo = {
-        id: targetAuthUser.id,
-        email: targetAuthUser.email,
-        created_at: targetAuthUser.created_at,
-      };
-
-      if (profile) {
-        // 프로필이 있는 경우
-        if (profile.user_id && profile.user_id === targetAuthUser.id) {
-          // 이미 연결됨
+    if (!profile) {
+      if (profilePermissions && profilePermissions.length !== 0) {
+        const linkedProfileId = profilePermissions[0].profile_id; // 첫 번째 권한의 프로필 ID 사용
+        // 본인 프로필은 없으나 다른 계정에 종속된 계정
+        if (linkedProfileId === currentProfileId) {
+          // 이미 이 계정과 연동됨
           return NextResponse.json({
             found: true,
             status: 'connected',
             user: userInfo,
             profile: profile,
-            message: '이미 프로필과 연결된 계정입니다.',
+            message: '이미 이 계정과 연동되어 있습니다!',
           });
-        } else if (profile.user_id && profile.user_id !== targetAuthUser.id) {
-          // 다른 계정과 연결됨
+        } else {
+          // 타 계정에 이미 연동됨
           return NextResponse.json({
             found: true,
             status: 'conflict',
             user: userInfo,
             profile: profile,
-            message: '이미 다른 계정과 연결된 프로필입니다.',
-          });
-        } else {
-          // 프로필은 있지만 연결 안됨
-          return NextResponse.json({
-            found: true,
-            status: 'unlinked',
-            user: userInfo,
-            profile: profile,
-            message: '프로필이 있지만 계정과 연결되지 않았습니다.',
+            message: '타 계정에 이미 연동되어 있는 계정입니다',
           });
         }
       } else {
-        // 프로필이 없는 경우 (가장 일반적)
+        // 본인 프로필이 없고 다른 계정에 종속된 계정도 없음
         return NextResponse.json({
           found: true,
           status: 'auth_only',
           user: userInfo,
           profile: null,
-          message: 'OAuth 가입되어 있지만 프로필이 없습니다. (일반적인 상황)',
+          message: '연결이 가능한 이메일입니다.',
         });
       }
-    } catch (authError) {
-      console.error('Auth admin API error:', authError);
-      return NextResponse.json(
-        {
-          found: false,
-          message: '계정 검색 중 오류가 발생했습니다. 관리자에게 문의해주세요.',
-        },
-        { status: 500 }
-      );
+    } else {
+      // 프로필이 있다면, 이미 독립적으로 사용중인 계정이다.
+      if (!profilePermissions || profilePermissions.length === 0) {
+        return NextResponse.json({
+          found: true,
+          status: 'conflict',
+          user: userInfo,
+          profile: profile,
+          message: '독립적으로 사용중인 계정입니다',
+        });
+      }
     }
+
+    // // 4. 방금 검색한 profile_permisson의 profile_id가 currentUser의 profile_id와 같은지 확인
+    // const linkedProfileId = profilePermissions[0].profile_id; // 첫 번째 권한의 프로필 ID 사용
+
+    // if (linkedProfileId === currentProfileId) {
+    //   return NextResponse.json({
+    //     found: true,
+    //     status: 'connected',
+    //     user: userInfo,
+    //     profile: profile,
+    //     message: '이미 이 계정과 연동되어 있습니다!',
+    //   });
+    // } else {
+    //   return NextResponse.json({
+    //     found: true,
+    //     status: 'conflict',
+    //     user: userInfo,
+    //     profile: profile,
+    //     message: '타 계정에 이미 연동되어 있는 계정입니다',
+    //   });
+    // }
   } catch (error) {
     console.error('Search user API error:', error);
     return NextResponse.json(

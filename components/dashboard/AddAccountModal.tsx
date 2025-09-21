@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
-import { AlertTriangle, Search, User } from 'lucide-react';
+import { AlertTriangle, CircleX, Search, User } from 'lucide-react';
 import { useState } from 'react';
 
 interface AddAccountModalProps {
@@ -28,8 +28,10 @@ interface SearchResult {
   email: string;
   user_id: string;
   entity_type?: 'individual' | 'corporate';
-  status: 'connected' | 'unlinked' | 'conflict' | 'auth_only';
+  // status: 'connected' | 'unlinked' | 'conflict' | 'auth_only';
+  status: 'connected' | 'conflict' | 'auth_only';
   message: string;
+  provider?: string;
 }
 
 export default function AddAccountModal({
@@ -97,6 +99,7 @@ export default function AddAccountModal({
         entity_type: result.profile?.entity_type || 'individual',
         status: result.status,
         message: result.message,
+        provider: result.user.provider,
       });
     } catch (error) {
       console.error('사용자 검색 실패:', error);
@@ -184,6 +187,13 @@ export default function AddAccountModal({
     }
   };
 
+  // 이메일 입력 초기화
+  const clearEmail = () => {
+    setEmail('');
+    setError('');
+    setSearchResult(null);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
@@ -198,7 +208,7 @@ export default function AddAccountModal({
           {/* 이메일 검색 */}
           <div className="space-y-2">
             <Label htmlFor="email">이메일 주소</Label>
-            <div className="flex space-x-2">
+            <div className="relative">
               <Input
                 id="email"
                 type="email"
@@ -207,7 +217,21 @@ export default function AddAccountModal({
                 onChange={e => setEmail(e.target.value)}
                 onKeyPress={handleEmailKeyPress}
                 disabled={isSearching}
+                className="pr-10"
               />
+              {email.length > 0 && (
+                <Button
+                  onClick={clearEmail}
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                  disabled={isSearching}
+                >
+                  <CircleX className="h-4 w-4 text-gray-500" />
+                </Button>
+              )}
+            </div>
+            <div className="flex justify-end">
               <Button
                 onClick={handleSearch}
                 disabled={isSearching || !email.trim()}
@@ -236,10 +260,10 @@ export default function AddAccountModal({
                   searchResult.status === 'connected'
                     ? 'bg-blue-50 border-blue-200'
                     : searchResult.status === 'conflict'
-                      ? 'bg-red-50 border-red-200'
-                      : searchResult.status === 'auth_only'
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-yellow-50 border-yellow-200'
+                    ? 'bg-red-50 border-red-200'
+                    : searchResult.status === 'auth_only'
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-yellow-50 border-yellow-200'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -249,10 +273,10 @@ export default function AddAccountModal({
                         searchResult.status === 'connected'
                           ? 'text-blue-600'
                           : searchResult.status === 'conflict'
-                            ? 'text-red-600'
-                            : searchResult.status === 'auth_only'
-                              ? 'text-green-600'
-                              : 'text-yellow-600'
+                          ? 'text-red-600'
+                          : searchResult.status === 'auth_only'
+                          ? 'text-green-600'
+                          : 'text-yellow-600'
                       }`}
                     />
                     <div>
@@ -261,10 +285,10 @@ export default function AddAccountModal({
                           searchResult.status === 'connected'
                             ? 'text-blue-900'
                             : searchResult.status === 'conflict'
-                              ? 'text-red-900'
-                              : searchResult.status === 'auth_only'
-                                ? 'text-green-900'
-                                : 'text-yellow-900'
+                            ? 'text-red-900'
+                            : searchResult.status === 'auth_only'
+                            ? 'text-green-900'
+                            : 'text-yellow-900'
                         }`}
                       >
                         {searchResult.name}
@@ -274,10 +298,10 @@ export default function AddAccountModal({
                           searchResult.status === 'connected'
                             ? 'text-blue-700'
                             : searchResult.status === 'conflict'
-                              ? 'text-red-700'
-                              : searchResult.status === 'auth_only'
-                                ? 'text-green-700'
-                                : 'text-yellow-700'
+                            ? 'text-red-700'
+                            : searchResult.status === 'auth_only'
+                            ? 'text-green-700'
+                            : 'text-yellow-700'
                         }`}
                       >
                         {searchResult.email}
@@ -287,17 +311,23 @@ export default function AddAccountModal({
                           searchResult.status === 'connected'
                             ? 'text-blue-600'
                             : searchResult.status === 'conflict'
-                              ? 'text-red-600'
-                              : searchResult.status === 'auth_only'
-                                ? 'text-green-600'
-                                : 'text-yellow-600'
+                            ? 'text-red-600'
+                            : searchResult.status === 'auth_only'
+                            ? 'text-green-600'
+                            : 'text-yellow-600'
                         }`}
                       >
                         {searchResult.status === 'auth_only'
-                          ? 'OAuth 가입됨 (프로필 없음)'
+                          ? `${
+                              searchResult.provider === 'google'
+                                ? 'Google로 가입됨'
+                                : searchResult.provider === 'kakao'
+                                ? 'Kakao로 가입됨'
+                                : 'Email로 가입됨'
+                            } (프로필 연결 안됨)`
                           : searchResult.entity_type === 'individual'
-                            ? '개인'
-                            : '법인'}
+                          ? '개인'
+                          : '법인'}
                       </p>
                     </div>
                   </div>
@@ -306,19 +336,19 @@ export default function AddAccountModal({
                       searchResult.status === 'connected'
                         ? 'bg-blue-100 text-blue-800'
                         : searchResult.status === 'conflict'
-                          ? 'bg-red-100 text-red-800'
-                          : searchResult.status === 'auth_only'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-red-100 text-red-800'
+                        : searchResult.status === 'auth_only'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
                     {searchResult.status === 'connected'
                       ? '연결됨'
                       : searchResult.status === 'conflict'
-                        ? '충돌'
-                        : searchResult.status === 'auth_only'
-                          ? '연결 가능'
-                          : '미연결'}
+                      ? '연결 불가'
+                      : searchResult.status === 'auth_only'
+                      ? '연결 가능'
+                      : '미연결'}
                   </span>
                 </div>
                 <p
@@ -326,10 +356,10 @@ export default function AddAccountModal({
                     searchResult.status === 'connected'
                       ? 'text-blue-700'
                       : searchResult.status === 'conflict'
-                        ? 'text-red-700'
-                        : searchResult.status === 'auth_only'
-                          ? 'text-green-700'
-                          : 'text-yellow-700'
+                      ? 'text-red-700'
+                      : searchResult.status === 'auth_only'
+                      ? 'text-green-700'
+                      : 'text-yellow-700'
                   }`}
                 >
                   {searchResult.message}
@@ -381,16 +411,11 @@ export default function AddAccountModal({
               취소
             </Button>
             {searchResult && searchResult.status === 'connected' && (
-              <Button onClick={handleAddAccess} disabled={isAdding}>
-                {isAdding ? '추가 중...' : '권한 부여'}
+              <Button disabled className="bg-gray-300">
+                이미 연결된 계정입니다
               </Button>
             )}
             {searchResult && searchResult.status === 'auth_only' && (
-              <Button onClick={handleAddAccess} disabled={isAdding}>
-                {isAdding ? '연결 및 권한 부여 중...' : '연결하고 권한 부여'}
-              </Button>
-            )}
-            {searchResult && searchResult.status === 'unlinked' && (
               <Button onClick={handleAddAccess} disabled={isAdding}>
                 {isAdding ? '연결 및 권한 부여 중...' : '연결하고 권한 부여'}
               </Button>
