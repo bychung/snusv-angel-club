@@ -51,6 +51,8 @@ export interface Document {
   file_size: number;
   file_url: string;
   uploaded_by?: string | null;
+  member_id?: string | null; // 조합원별 문서용 (투자확인서 등)
+  document_year?: number | null; // 연도별 구분용
   created_at: string;
   updated_at: string;
 }

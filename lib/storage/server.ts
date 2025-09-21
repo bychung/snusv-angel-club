@@ -304,3 +304,45 @@ export async function createSignedUrl(
     };
   }
 }
+
+/**
+ * Supabase Storage에서 파일 다운로드
+ */
+export async function downloadFile(
+  filePath: string,
+  bucket: string = 'fund-documents'
+): Promise<{ success: boolean; data?: Uint8Array; error?: string }> {
+  try {
+    const supabase = createStorageClient();
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .download(filePath);
+
+    if (error) {
+      console.error('파일 다운로드 실패:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    // Blob을 Uint8Array로 변환
+    const arrayBuffer = await data.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    return {
+      success: true,
+      data: uint8Array,
+    };
+  } catch (error) {
+    console.error('파일 다운로드 중 오류:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : '알 수 없는 오류가 발생했습니다',
+    };
+  }
+}

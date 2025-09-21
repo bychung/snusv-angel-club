@@ -29,6 +29,7 @@ import { Building2, FileText, RefreshCw, Save, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DocumentHistory from './DocumentHistory';
 import DocumentUpload from './DocumentUpload';
+import InvestmentCertificateManager from './InvestmentCertificateManager';
 
 interface FundDetailManagerProps {
   fundId: string;
@@ -46,6 +47,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('info');
+  const [certificateRefreshKey, setCertificateRefreshKey] = useState(0);
 
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -151,6 +153,10 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     // 필요시 펀드 상세 정보 다시 로드
   };
 
+  const handleCertificateRefresh = () => {
+    setCertificateRefreshKey(prev => prev + 1);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -209,14 +215,18 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="info" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             기본 정보
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            문서 관리
+            공통 문서
+          </TabsTrigger>
+          <TabsTrigger value="certificates" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            투자확인서
           </TabsTrigger>
         </TabsList>
 
@@ -439,34 +449,68 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
         {/* 문서 관리 탭 */}
         <TabsContent value="documents" className="space-y-6">
-          {Object.values(DocumentCategory).map(category => (
-            <div key={category} className="space-y-4">
+          {Object.values(DocumentCategory)
+            .filter(
+              category => category !== DocumentCategory.INVESTMENT_CERTIFICATE
+            )
+            .map(category => (
+              <div key={category} className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-gray-500" />
+                  <h3 className="text-lg font-semibold">
+                    {DOCUMENT_CATEGORY_NAMES[category]}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    - {DOCUMENT_CATEGORY_DESCRIPTIONS[category]}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <DocumentUpload
+                    fundId={fundId}
+                    category={category}
+                    onUploadComplete={handleDocumentAction}
+                    onUploadError={error => setError(error)}
+                  />
+
+                  <DocumentHistory
+                    fundId={fundId}
+                    category={category}
+                    onDocumentDeleted={handleDocumentAction}
+                  />
+                </div>
+              </div>
+            ))}
+        </TabsContent>
+
+        {/* 투자확인서 관리 탭 */}
+        <TabsContent value="certificates" className="space-y-6">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-gray-500" />
-                <h3 className="text-lg font-semibold">
-                  {DOCUMENT_CATEGORY_NAMES[category]}
-                </h3>
+                <Users className="h-5 w-5 text-gray-500" />
+                <h3 className="text-lg font-semibold">투자확인서 관리</h3>
                 <span className="text-sm text-gray-500">
-                  - {DOCUMENT_CATEGORY_DESCRIPTIONS[category]}
+                  - 조합원별 투자확인서 업로드 및 관리 (개인조합원만 해당)
                 </span>
               </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DocumentUpload
-                  fundId={fundId}
-                  category={category}
-                  onUploadComplete={handleDocumentAction}
-                  onUploadError={error => setError(error)}
-                />
-
-                <DocumentHistory
-                  fundId={fundId}
-                  category={category}
-                  onDocumentDeleted={handleDocumentAction}
-                />
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCertificateRefresh}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                새로고침
+              </Button>
             </div>
-          ))}
+
+            <InvestmentCertificateManager
+              fundId={fundId}
+              members={members}
+              onRefresh={handleDocumentAction}
+              refreshKey={certificateRefreshKey}
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -12,7 +12,9 @@ export interface FundWithStats extends Fund {
 export interface FundMemberInfo {
   id: string;
   name: string;
+  email: string;
   role: 'ADMIN' | 'USER';
+  entity_type: 'individual' | 'corporate';
 }
 
 export interface DocumentStatus {
@@ -27,6 +29,7 @@ export interface FundDetailsResponse {
     agreement: DocumentStatus;
     tax: DocumentStatus;
     account: DocumentStatus;
+    registration: DocumentStatus;
   };
   user_permission: 'user' | 'admin';
 }
@@ -113,14 +116,16 @@ export async function getFundDetails(
   if (fund.gp_id && fund.gp_id.length > 0) {
     const { data: gpProfiles } = await supabase
       .from('profiles')
-      .select('id, name, role')
+      .select('id, name, email, role, entity_type')
       .in('id', fund.gp_id);
 
     gp_info =
       gpProfiles?.map(profile => ({
         id: profile.id,
         name: profile.name,
+        email: profile.email,
         role: profile.role as 'ADMIN' | 'USER',
+        entity_type: profile.entity_type as 'individual' | 'corporate',
       })) || [];
   }
 
@@ -158,6 +163,7 @@ export async function getFundDetails(
     DocumentCategory.AGREEMENT,
     DocumentCategory.TAX,
     DocumentCategory.ACCOUNT,
+    DocumentCategory.REGISTRATION,
   ] as const;
   const documents_status = {} as FundDetailsResponse['documents_status'];
 
@@ -201,7 +207,7 @@ export async function getFundMembers(
     .select(
       `
       profile:profiles (
-        id, name, role
+        id, name, email, role, entity_type
       )
     `
     )
@@ -219,7 +225,9 @@ export async function getFundMembers(
     .map((item: any) => ({
       id: item.profile.id,
       name: item.profile.name,
+      email: item.profile.email,
       role: item.profile.role as 'ADMIN' | 'USER',
+      entity_type: item.profile.entity_type as 'individual' | 'corporate',
     }));
 }
 

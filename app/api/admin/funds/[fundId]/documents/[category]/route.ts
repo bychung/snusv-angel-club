@@ -72,13 +72,45 @@ export async function POST(
       );
     }
 
-    // FormData에서 파일 추출
+    // FormData에서 파일 및 추가 데이터 추출
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const memberId = formData.get('memberId') as string | null;
+    const documentYear = formData.get('documentYear') as string | null;
 
     if (!file) {
       return Response.json(
         { error: '업로드할 파일이 필요합니다' },
+        { status: 400 }
+      );
+    }
+
+    // 투자확인서의 경우 memberId 필수 검증
+    if (documentCategory === DocumentCategory.INVESTMENT_CERTIFICATE) {
+      if (!memberId) {
+        return Response.json(
+          { error: '투자확인서 업로드 시 조합원 ID가 필요합니다' },
+          { status: 400 }
+        );
+      }
+
+      // memberId가 해당 펀드의 조합원인지 검증
+      const { count } = await supabase
+        .from('fund_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('fund_id', fundId)
+        .eq('profile_id', memberId);
+
+      if (!count || count === 0) {
+        return Response.json(
+          { error: '해당 펀드의 조합원이 아닙니다' },
+          { status: 400 }
+        );
+      }
+    } else if (memberId) {
+      // 투자확인서가 아닌 문서에 memberId가 있는 경우
+      return Response.json(
+        { error: '이 문서 카테고리는 조합원별 업로드를 지원하지 않습니다' },
         { status: 400 }
       );
     }
@@ -94,7 +126,9 @@ export async function POST(
       file,
       fundId,
       documentCategory,
-      profile.id
+      profile.id,
+      memberId || undefined,
+      documentYear ? parseInt(documentYear) : undefined
     );
 
     return Response.json({

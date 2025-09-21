@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import type { DocumentWithUploader } from '@/lib/admin/documents';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
 import { calculateFundTerm, formatRegisteredDate } from '@/lib/utils';
@@ -37,6 +38,32 @@ export default function FundDetailCard({
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [investmentCertificates, setInvestmentCertificates] = useState<
+    DocumentWithUploader[]
+  >([]);
+  const [certificatesLoading, setCertificatesLoading] = useState(false);
+
+  const fetchInvestmentCertificates = async () => {
+    try {
+      setCertificatesLoading(true);
+      const response = await fetch(
+        `/api/funds/${fundId}/investment-certificates`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setInvestmentCertificates(data.certificates || []);
+      } else {
+        // 404나 403 같은 경우는 투자확인서가 없거나 권한이 없음을 의미
+        setInvestmentCertificates([]);
+      }
+    } catch (err) {
+      console.error('투자확인서 조회 실패:', err);
+      setInvestmentCertificates([]);
+    } finally {
+      setCertificatesLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchFundDetails = async () => {
@@ -50,6 +77,9 @@ export default function FundDetailCard({
 
         const data = await response.json();
         setFundDetails(data);
+
+        // 펀드 정보 로드 후 투자확인서도 조회
+        fetchInvestmentCertificates();
       } catch (err) {
         setError(
           err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다'
@@ -68,6 +98,46 @@ export default function FundDetailCard({
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const handleCertificateDownload = async (
+    documentId: string,
+    year?: number
+  ) => {
+    try {
+      const params = new URLSearchParams({
+        ...(year && { year: year.toString() }),
+        documentId,
+      });
+
+      const response = await fetch(
+        `/api/funds/${fundId}/investment-certificates/download?${params}`
+      );
+
+      if (!response.ok) {
+        throw new Error('파일 다운로드에 실패했습니다.');
+      }
+
+      // 파일 다운로드
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') ||
+          'investment-certificate.pdf'
+        : 'investment-certificate.pdf';
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = decodeURIComponent(filename);
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('투자확인서 다운로드 실패:', error);
+      alert('파일 다운로드에 실패했습니다.');
+    }
   };
 
   const handleDocumentDownload = async (category: string) => {
@@ -259,7 +329,7 @@ export default function FundDetailCard({
           )}
         </div>
 
-        {/* 관련 문서 */}
+        {/* 펀드 문서 */}
         {fund.status !== 'ready' &&
           Object.entries(documents_status).some(
             ([_, status]) => status.exists
@@ -270,7 +340,7 @@ export default function FundDetailCard({
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-gray-400" />
-                  <h4 className="font-medium text-gray-900">관련 문서</h4>
+                  <h4 className="font-medium text-gray-900">펀드 문서</h4>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {Object.entries(documents_status).map(
@@ -336,6 +406,69 @@ export default function FundDetailCard({
               </div>
             </>
           )}
+
+        {/* 투자확인서 */}
+        {investmentCertificates.length > 0 && (
+          <>
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-gray-400" />
+                <h4 className="font-medium text-gray-900">
+                  나의 투자확인서 (소득공제용)
+                </h4>
+              </div>
+
+              {certificatesLoading ? (
+                <div className="text-sm text-gray-500">로딩 중...</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {investmentCertificates
+                    .sort((a, b) => {
+                      // 연도별 정렬 (최신순), 연도가 없는 것은 맨 아래
+                      if (a.document_year && b.document_year) {
+                        return b.document_year - a.document_year;
+                      }
+                      if (a.document_year && !b.document_year) return -1;
+                      if (!a.document_year && b.document_year) return 1;
+                      return (
+                        new Date(b.created_at).getTime() -
+                        new Date(a.created_at).getTime()
+                      );
+                    })
+                    .map(certificate => (
+                      <button
+                        key={certificate.id}
+                        onClick={() =>
+                          handleCertificateDownload(
+                            certificate.id,
+                            certificate.document_year || undefined
+                          )
+                        }
+                        className="py-2 px-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer text-left transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <span className="text-sm font-medium text-gray-900">
+                                {certificate.document_year
+                                  ? `${certificate.document_year}년 `
+                                  : ''}
+                                투자확인서
+                              </span>
+                            </div>
+                          </div>
+                          <Download className="h-4 w-4 text-blue-600" />
+                        </div>
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
