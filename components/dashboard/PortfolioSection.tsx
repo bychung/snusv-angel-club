@@ -9,119 +9,35 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { format222Date, formatToMillion } from '@/lib/utils';
+import { usePortfolioStore } from '@/store/portfolioStore';
 import { CompanyDocumentCategory } from '@/types/company-documents';
-import type { InvestmentWithDetails } from '@/types/investments';
-import { formatPercentage } from '@/types/investments';
+import {
+  formatPercentage,
+  type InvestmentWithDetails,
+} from '@/types/investments';
 import { Building2, Download } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CompanyDocumentsModal } from './CompanyDocumentsModal';
-
-interface PortfolioData {
-  fund: {
-    id: string;
-    name: string;
-    abbreviation?: string;
-    status: string;
-  };
-  investments: InvestmentWithDetails[];
-  total_investment_amount: number;
-  portfolio_count: number;
-}
 
 interface PortfolioSectionProps {
   fundId: string;
 }
 
 export function PortfolioSection({ fundId }: PortfolioSectionProps) {
-  const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const portfolioStore = usePortfolioStore();
+  const portfolioData = portfolioStore.getPortfolioData(fundId);
+  const { portfolio, loading, error, documentAvailability } = portfolioData;
+
   const [selectedCompany, setSelectedCompany] =
     useState<InvestmentWithDetails | null>(null);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
-  // 각 투자의 문서 유무를 저장하는 state
-  const [documentAvailability, setDocumentAvailability] = useState<
-    Record<string, { hasIR: boolean; hasInvestmentReport: boolean }>
-  >({});
 
-  // 특정 투자의 문서 유무 확인
-  const checkDocumentAvailability = async (
-    companyId: string
-  ): Promise<{ hasIR: boolean; hasInvestmentReport: boolean }> => {
-    try {
-      const response = await fetch(
-        `/api/funds/${fundId}/companies/${companyId}/documents`
-      );
-      const data = await response.json();
-
-      if (response.ok && data.documents_by_category) {
-        const hasIR =
-          data.documents_by_category[CompanyDocumentCategory.IR_DECK] &&
-          data.documents_by_category[CompanyDocumentCategory.IR_DECK].length >
-            0;
-        const hasInvestmentReport =
-          data.documents_by_category[
-            CompanyDocumentCategory.INVESTMENT_REPORT
-          ] &&
-          data.documents_by_category[CompanyDocumentCategory.INVESTMENT_REPORT]
-            .length > 0;
-
-        return { hasIR, hasInvestmentReport };
-      }
-      return { hasIR: false, hasInvestmentReport: false };
-    } catch (err) {
-      console.error(`문서 유무 확인 실패 (회사 ID: ${companyId}):`, err);
-      return { hasIR: false, hasInvestmentReport: false };
-    }
-  };
-
-  // 모든 투자의 문서 유무 확인
-  const checkAllDocuments = async (investments: InvestmentWithDetails[]) => {
-    const availability: Record<
-      string,
-      { hasIR: boolean; hasInvestmentReport: boolean }
-    > = {};
-
-    // 병렬로 모든 투자의 문서 유무 확인
-    const promises = investments.map(async investment => {
-      const result = await checkDocumentAvailability(investment.company_id);
-      availability[investment.company_id] = result;
-    });
-
-    await Promise.all(promises);
-    setDocumentAvailability(availability);
-  };
-
-  // 포트폴리오 데이터 로드
-  const loadPortfolio = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/funds/${fundId}/portfolio`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setPortfolio(data);
-        setError(null);
-        // 포트폴리오 로드 후 문서 유무 확인
-        if (data.investments && data.investments.length > 0) {
-          await checkAllDocuments(data.investments);
-        }
-      } else {
-        setError(data.error || '포트폴리오를 불러오는데 실패했습니다');
-      }
-    } catch (err) {
-      console.error('포트폴리오 로드 실패:', err);
-      setError('네트워크 오류가 발생했습니다');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 컴포넌트 마운트 시 또는 fundId가 변경될 때 포트폴리오 로드
   useEffect(() => {
     if (fundId) {
-      loadPortfolio();
+      portfolioStore.loadPortfolio(fundId);
     }
-  }, [fundId]);
+  }, [fundId, portfolioStore]);
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return '-';
@@ -229,7 +145,11 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
         <CardContent>
           <div className="text-center py-8">
             <p className="text-red-600">{error}</p>
-            <Button variant="outline" onClick={loadPortfolio} className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => portfolioStore.loadPortfolio(fundId)}
+              className="mt-4"
+            >
               다시 시도
             </Button>
           </div>
