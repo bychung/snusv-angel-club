@@ -194,7 +194,7 @@ export default function FundSection() {
         <h3 className="text-xl font-semibold">펀드 출자 정보</h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
         {fundInfos.map(fund => {
           const isEditing = editingFundId === fund.id;
           const fundStatus = fundStatuses[fund.funds.id];

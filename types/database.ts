@@ -40,7 +40,10 @@ export interface FundMember {
   updated_at: string;
 }
 
+import { Company } from './companies';
+import { CompanyDocument } from './company-documents';
 import { DocumentCategory } from './documents';
+import { Investment } from './investments';
 
 export interface Document {
   id: string;
@@ -121,6 +124,37 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Omit<Document, 'id' | 'created_at' | 'updated_at'>> & {
+          updated_at?: string;
+        };
+      };
+      companies: {
+        Row: Company;
+        Insert: Omit<Company, 'id' | 'created_at' | 'updated_at'> & {
+          updated_at?: string;
+        };
+        Update: Partial<Omit<Company, 'id' | 'created_at' | 'updated_at'>> & {
+          updated_at?: string;
+        };
+      };
+      investments: {
+        Row: Investment;
+        Insert: Omit<Investment, 'id' | 'created_at' | 'updated_at'> & {
+          updated_at?: string;
+        };
+        Update: Partial<
+          Omit<Investment, 'id' | 'created_at' | 'updated_at'>
+        > & {
+          updated_at?: string;
+        };
+      };
+      company_documents: {
+        Row: CompanyDocument;
+        Insert: Omit<CompanyDocument, 'id' | 'created_at' | 'updated_at'> & {
+          updated_at?: string;
+        };
+        Update: Partial<
+          Omit<CompanyDocument, 'id' | 'created_at' | 'updated_at'>
+        > & {
           updated_at?: string;
         };
       };

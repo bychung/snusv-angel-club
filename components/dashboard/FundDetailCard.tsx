@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { DocumentWithUploader } from '@/lib/admin/documents';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import { FUND_STATUS_CONFIG, type FundStatus } from '@/lib/fund-status';
@@ -18,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { PortfolioSection } from './PortfolioSection';
 
 interface FundDetailCardProps {
   fundId: string;
@@ -243,232 +245,247 @@ export default function FundDetailCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* 내 출자 정보 */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h4 className="font-medium text-blue-900 mb-2">내 출자 정보</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-blue-700">출자 좌수</span>
-              <span className="font-mono font-medium">
-                {investmentInfo.units.toLocaleString()}좌
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-blue-700">출자 금액</span>
-              <span className="font-mono font-medium">
-                {investmentInfo.amount.toLocaleString()}원
-              </span>
-            </div>
-            {fund.status !== 'ready' && (
-              <>
-                {' '}
+      <CardContent>
+        <Tabs defaultValue="fund-info" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="fund-info">펀드 정보</TabsTrigger>
+            <TabsTrigger value="portfolio">포트폴리오</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="fund-info" className="space-y-4 mt-4">
+            {/* 내 출자 정보 */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">내 출자 정보</h4>
+              <div className="space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">
-                    {fund.status === 'processing'
-                      ? '예상 결성 금액'
-                      : '전체 결성 금액'}
-                  </span>
+                  <span className="text-blue-700">출자 좌수</span>
                   <span className="font-mono font-medium">
-                    {fund.totalInvestment.toLocaleString()}원
+                    {investmentInfo.units.toLocaleString()}좌
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">
-                    {fund.status === 'processing'
-                      ? '예상 출자지분율'
-                      : '출자지분율'}
-                  </span>
+                  <span className="text-blue-700">출자 금액</span>
                   <span className="font-mono font-medium">
-                    {(
-                      (investmentInfo.amount / fund.totalInvestment) *
-                      100
-                    ).toFixed(2)}
-                    %
+                    {investmentInfo.amount.toLocaleString()}원
                   </span>
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* 펀드 기본 정보 */}
-        <div className="grid grid-cols-2 gap-4">
-          {fund.gp_info && fund.gp_info.length > 0 && (
-            <div className="flex items-start gap-3">
-              <Users className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-600">업무집행조합원</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {fund.gp_info.map(gp => gp.name).join(', ')}
-                </p>
+                {fund.status !== 'ready' && (
+                  <>
+                    {' '}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-700">
+                        {fund.status === 'processing'
+                          ? '예상 결성 금액'
+                          : '전체 결성 금액'}
+                      </span>
+                      <span className="font-mono font-medium">
+                        {fund.totalInvestment.toLocaleString()}원
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-700">
+                        {fund.status === 'processing'
+                          ? '예상 출자지분율'
+                          : '출자지분율'}
+                      </span>
+                      <span className="font-mono font-medium">
+                        {(
+                          (investmentInfo.amount / fund.totalInvestment) *
+                          100
+                        ).toFixed(2)}
+                        %
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          )}
-          {fund.tax_number && (
-            <div className="flex items-start gap-3">
-              <Hash className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-600">고유번호</p>
-                <p className="text-sm font-mono font-medium text-gray-900">
-                  {fund.tax_number}
-                </p>
-              </div>
-            </div>
-          )}
-          {fund.account && (
-            <div className="flex items-start gap-3 col-span-2">
-              <CreditCard className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-600">계좌 정보</p>
-                <p className="text-sm font-mono font-medium text-gray-900">
-                  {fund.account_bank} {fund.account}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* 펀드 문서 */}
-        {fund.status !== 'ready' &&
-          Object.entries(documents_status).some(
-            ([_, status]) => status.exists
-          ) && (
-            <>
-              <Separator />
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <h4 className="font-medium text-gray-900">펀드 문서</h4>
+            {/* 펀드 기본 정보 */}
+            <div className="grid grid-cols-2 gap-4">
+              {fund.gp_info && fund.gp_info.length > 0 && (
+                <div className="flex items-start gap-3">
+                  <Users className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-600">업무집행조합원</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {fund.gp_info.map(gp => gp.name).join(', ')}
+                    </p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(documents_status).map(
-                    ([category, status]) => {
-                      const categoryName =
-                        DOCUMENT_CATEGORY_NAMES[category as DocumentCategory];
-
-                      const isDownloadable =
-                        status.exists && status.downloadable;
-
-                      return (
-                        <button
-                          key={category}
-                          onClick={
-                            isDownloadable
-                              ? () => handleDocumentDownload(category)
-                              : undefined
-                          }
-                          hidden={!isDownloadable}
-                          className={`py-1 px-3 rounded-lg border text-left transition-all min-h-10 ${
-                            status.exists
-                              ? 'border-green-200 bg-green-50'
-                              : 'border-gray-200 bg-gray-50'
-                          } ${
-                            isDownloadable
-                              ? 'hover:bg-green-100 cursor-pointer'
-                              : 'cursor-default'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {status.exists ? (
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <Clock className="h-4 w-4 text-gray-400" />
-                              )}
-                              <span
-                                className={`text-sm font-medium ${
-                                  isDownloadable
-                                    ? 'text-gray-900'
-                                    : status.exists
-                                    ? 'text-gray-700'
-                                    : 'text-gray-500'
-                                }`}
-                              >
-                                {categoryName}
-                              </span>
-                            </div>
-                            {isDownloadable && (
-                              <Download className="h-4 w-4 text-green-600" />
-                            )}
-                          </div>
-                          {!status.exists && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              업로드 대기중
-                            </p>
-                          )}
-                        </button>
-                      );
-                    }
-                  )}
+              )}
+              {fund.tax_number && (
+                <div className="flex items-start gap-3">
+                  <Hash className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-600">고유번호</p>
+                    <p className="text-sm font-mono font-medium text-gray-900">
+                      {fund.tax_number}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-
-        {/* 투자확인서 */}
-        {investmentCertificates.length > 0 && (
-          <>
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-400" />
-                <h4 className="font-medium text-gray-900">
-                  나의 투자확인서 (소득공제용)
-                </h4>
-              </div>
-
-              {certificatesLoading ? (
-                <div className="text-sm text-gray-500">로딩 중...</div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {investmentCertificates
-                    .sort((a, b) => {
-                      // 연도별 정렬 (최신순), 연도가 없는 것은 맨 아래
-                      if (a.document_year && b.document_year) {
-                        return b.document_year - a.document_year;
-                      }
-                      if (a.document_year && !b.document_year) return -1;
-                      if (!a.document_year && b.document_year) return 1;
-                      return (
-                        new Date(b.created_at).getTime() -
-                        new Date(a.created_at).getTime()
-                      );
-                    })
-                    .map(certificate => (
-                      <button
-                        key={certificate.id}
-                        onClick={() =>
-                          handleCertificateDownload(
-                            certificate.id,
-                            certificate.document_year || undefined
-                          )
-                        }
-                        className="py-2 px-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer text-left transition-all"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-blue-600" />
-                            <div>
-                              <span className="text-sm font-medium text-gray-900">
-                                {certificate.document_year
-                                  ? `${certificate.document_year}년 `
-                                  : ''}
-                                투자확인서
-                              </span>
-                            </div>
-                          </div>
-                          <Download className="h-4 w-4 text-blue-600" />
-                        </div>
-                      </button>
-                    ))}
+              )}
+              {fund.account && (
+                <div className="flex items-start gap-3 col-span-2">
+                  <CreditCard className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-gray-600">계좌 정보</p>
+                    <p className="text-sm font-mono font-medium text-gray-900">
+                      {fund.account_bank} {fund.account}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-          </>
-        )}
+
+            {/* 펀드 문서 */}
+            {fund.status !== 'ready' &&
+              Object.entries(documents_status).some(
+                ([_, status]) => status.exists
+              ) && (
+                <>
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-gray-400" />
+                      <h4 className="font-medium text-gray-900">펀드 문서</h4>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.entries(documents_status).map(
+                        ([category, status]) => {
+                          const categoryName =
+                            DOCUMENT_CATEGORY_NAMES[
+                              category as DocumentCategory
+                            ];
+
+                          const isDownloadable =
+                            status.exists && status.downloadable;
+
+                          return (
+                            <button
+                              key={category}
+                              onClick={
+                                isDownloadable
+                                  ? () => handleDocumentDownload(category)
+                                  : undefined
+                              }
+                              hidden={!isDownloadable}
+                              className={`py-1 px-3 rounded-lg border text-left transition-all min-h-10 ${
+                                status.exists
+                                  ? 'border-green-200 bg-green-50'
+                                  : 'border-gray-200 bg-gray-50'
+                              } ${
+                                isDownloadable
+                                  ? 'hover:bg-green-100 cursor-pointer'
+                                  : 'cursor-default'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  {status.exists ? (
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                  ) : (
+                                    <Clock className="h-4 w-4 text-gray-400" />
+                                  )}
+                                  <span
+                                    className={`text-sm font-medium ${
+                                      isDownloadable
+                                        ? 'text-gray-900'
+                                        : status.exists
+                                        ? 'text-gray-700'
+                                        : 'text-gray-500'
+                                    }`}
+                                  >
+                                    {categoryName}
+                                  </span>
+                                </div>
+                                {isDownloadable && (
+                                  <Download className="h-4 w-4 text-green-600" />
+                                )}
+                              </div>
+                              {!status.exists && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  업로드 대기중
+                                </p>
+                              )}
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+            {/* 투자확인서 */}
+            {investmentCertificates.length > 0 && (
+              <>
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-400" />
+                    <h4 className="font-medium text-gray-900">
+                      나의 투자확인서 (소득공제용)
+                    </h4>
+                  </div>
+
+                  {certificatesLoading ? (
+                    <div className="text-sm text-gray-500">로딩 중...</div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {investmentCertificates
+                        .sort((a, b) => {
+                          // 연도별 정렬 (최신순), 연도가 없는 것은 맨 아래
+                          if (a.document_year && b.document_year) {
+                            return b.document_year - a.document_year;
+                          }
+                          if (a.document_year && !b.document_year) return -1;
+                          if (!a.document_year && b.document_year) return 1;
+                          return (
+                            new Date(b.created_at).getTime() -
+                            new Date(a.created_at).getTime()
+                          );
+                        })
+                        .map(certificate => (
+                          <button
+                            key={certificate.id}
+                            onClick={() =>
+                              handleCertificateDownload(
+                                certificate.id,
+                                certificate.document_year || undefined
+                              )
+                            }
+                            className="py-2 px-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 cursor-pointer text-left transition-all"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-blue-600" />
+                                <div>
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {certificate.document_year
+                                      ? `${certificate.document_year}년 `
+                                      : ''}
+                                    투자확인서
+                                  </span>
+                                </div>
+                              </div>
+                              <Download className="h-4 w-4 text-blue-600" />
+                            </div>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="portfolio" className="mt-4">
+            <PortfolioSection fundId={fundId} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

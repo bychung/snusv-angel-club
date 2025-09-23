@@ -6,12 +6,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatRegisteredDate(dateString: string): string {
+export function format222Date(dateString: string): string {
   const date = new Date(dateString);
   const year = date.getFullYear().toString().slice(-2);
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const day = date.getDate().toString().padStart(2, '0');
-  return `${year}.${month}.${day} 등록`;
+  return `${year}.${month}.${day}`;
+}
+
+export function formatRegisteredDate(dateString: string): string {
+  return format222Date(dateString) + ' 등록';
+}
+
+export function formatToMillion(amount: number): string {
+  // todo 반올림 처리 필요
+  const roundedAmount = Math.round(amount / 1000000);
+  return roundedAmount.toString();
 }
 
 // 펀드 만기 기간을 계산하는 함수 (dayjs 사용)

@@ -7,12 +7,14 @@ import { useAuthStore } from '@/store/authStore';
 import {
   BarChart3,
   Building,
+  Building2,
   Home,
   LogOut,
   Mail,
   MessageSquare,
   Settings,
   Shield,
+  TrendingUp,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -81,6 +83,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       href: '/admin/funds',
       icon: Building,
       current: pathname.startsWith('/admin/funds'),
+    },
+    {
+      name: '회사 관리',
+      href: '/admin/companies',
+      icon: Building2,
+      current: pathname.startsWith('/admin/companies'),
+    },
+    {
+      name: '투자 관리',
+      href: '/admin/investments',
+      icon: TrendingUp,
+      current: pathname.startsWith('/admin/investments'),
     },
     {
       name: '사용자 관리',
