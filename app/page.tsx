@@ -89,15 +89,15 @@ const executiveMembers: ExecutiveMember[] = [
     id: 'cofounder2',
     name: '곽준영',
     position: 'SNUSV ANGEL CLUB 코파운더',
-    image: '/members/kwakjuneyoung.png',
+    image: '/members/kwakjuneyoung.jpeg',
     shortBio: '법무법인 WAVE 대표변호사',
     fullBio:
-      '변호사 업무 이외에도 다수 개인투자조합 GP로 활동할 뿐 아니라, 다수 스타트업/중소/중견기업 자문을 하며 기업에 대한 이해가 높고 도움을 드리고 있습니다.',
+      '법무법인 WAVE의 대표변호사 곽준영입니다. 지난 10여년간 대형 로펌과 글로벌 회계법인에서 쌓은 전문성을 바탕으로 고난이도 기업 컨설팅 및 민형사 소송을 성공적으로 수행해왔습니다. 특히, 금융조세, 경영권 분쟁, M&A 등 기업법무와 상속, 증여 관련 업무에 강점을 가지고 있으며, 자산가들의 재산과 권리를 보호하는 데 특화되어 있습니다. 또한, 경기도 교육청 고문변호사 및 법무부 근무 경력을 통해 학교폭력, 교권보호, 외국인 관련 사건까지 폭넓은 법률 서비스를 제공하고 있습니다.',
     experience: [
-      '고려대학교 법학대학 졸업',
-      'EY한영회계법인',
-      '법무특허법인 다래 등 대형 로펌 근무',
-      'IBK기업은행 미래성장성 심의위원',
+      '(사)엔젤투자협회 정회원',
+      '상장사/비상장사 스타트업 법률고문 및 자문, 투자심사',
+      '유암코(연합자산관리공사) 고문 ',
+      '서울시립대로스쿨 형사소송법/형사실무교수',
     ],
   },
   {
@@ -124,6 +124,21 @@ const executiveMembers: ExecutiveMember[] = [
     fullBio:
       '게임/겜블/블록체인 전문가로서 신규 사업 개발 및 검토를 주로 하고 있습니다.',
     experience: ['서울대학교 동물생명공학부 졸업'],
+  },
+  {
+    id: 'board3',
+    name: '최영수',
+    position: 'SNUSV ANGEL CLUB 운영진',
+    image: '/members/choiyoungsoo.png',
+    shortBio: '프라이밍 대표이사',
+    fullBio:
+      '창업가로서 소프트웨어와 교육쪽을 중심으로 창업을 하였고, 다양한 회사에 Seed 투자하고 돕는 일을 하고 있습니다. ',
+    experience: [
+      '연세대학교 물리학과 졸업',
+      '게임빌',
+      '위버스마인드 창업',
+      '프라이밍 창업',
+    ],
   },
   {
     id: 'gp',
@@ -748,7 +763,9 @@ export default function HomePage() {
 
               <div>
                 <h4 className="font-semibold mb-2 text-white">소개</h4>
-                <p className="text-gray-300">{selectedMember.fullBio}</p>
+                <p className="text-gray-300 whitespace-pre-line">
+                  {selectedMember.fullBio}
+                </p>
               </div>
 
               <div>
