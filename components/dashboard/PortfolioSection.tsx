@@ -63,23 +63,38 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
   const handleDownloadIR = async (investment: InvestmentWithDetails) => {
     try {
       const response = await fetch(
-        `/api/funds/${fundId}/companies/${investment.company_id}/documents`
+        `/api/funds/${fundId}/companies/${investment.company_id}/documents/download?category=${CompanyDocumentCategory.IR_DECK}`
       );
-      const data = await response.json();
 
-      if (response.ok && data.documents_by_category) {
-        const irDocuments =
-          data.documents_by_category[CompanyDocumentCategory.IR_DECK];
-        if (irDocuments && irDocuments.length > 0) {
-          // 가장 최신 IR 자료 다운로드
-          const latestIR = irDocuments[0];
-          window.open(latestIR.file_url, '_blank');
-        } else {
-          alert('IR 자료가 없습니다.');
-        }
-      } else {
-        alert('문서를 불러오는데 실패했습니다.');
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`다운로드 실패: ${errorData.error}`);
+        return;
       }
+
+      // 파일 다운로드 처리 (FundDetailCard의 handleDocumentDownload와 동일한 방식)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출, 없으면 기본값 사용
+      const contentDisposition = response.headers.get('content-disposition');
+      let fileName = 'IR_자료';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=['"]?([^;'"\n]*)/);
+        if (match) {
+          fileName = decodeURIComponent(match[1]);
+        }
+      }
+
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log(`IR 자료 다운로드 완료: ${fileName}`);
     } catch (err) {
       console.error('IR 자료 다운로드 실패:', err);
       alert('다운로드 중 오류가 발생했습니다.');
@@ -92,23 +107,38 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
   ) => {
     try {
       const response = await fetch(
-        `/api/funds/${fundId}/companies/${investment.company_id}/documents`
+        `/api/funds/${fundId}/companies/${investment.company_id}/documents/download?category=${CompanyDocumentCategory.INVESTMENT_REPORT}`
       );
-      const data = await response.json();
 
-      if (response.ok && data.documents_by_category) {
-        const reportDocuments =
-          data.documents_by_category[CompanyDocumentCategory.INVESTMENT_REPORT];
-        if (reportDocuments && reportDocuments.length > 0) {
-          // 가장 최신 투심보고서 다운로드
-          const latestReport = reportDocuments[0];
-          window.open(latestReport.file_url, '_blank');
-        } else {
-          alert('투심보고서가 없습니다.');
-        }
-      } else {
-        alert('문서를 불러오는데 실패했습니다.');
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(`다운로드 실패: ${errorData.error}`);
+        return;
       }
+
+      // 파일 다운로드 처리 (FundDetailCard의 handleDocumentDownload와 동일한 방식)
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출, 없으면 기본값 사용
+      const contentDisposition = response.headers.get('content-disposition');
+      let fileName = '투심보고서';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename\*?=['"]?([^;'"\n]*)/);
+        if (match) {
+          fileName = decodeURIComponent(match[1]);
+        }
+      }
+
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log(`투심보고서 다운로드 완료: ${fileName}`);
     } catch (err) {
       console.error('투심보고서 다운로드 실패:', err);
       alert('다운로드 중 오류가 발생했습니다.');
