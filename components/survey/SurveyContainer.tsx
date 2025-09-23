@@ -1,13 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+// Card components removed for cleaner layout
 import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
@@ -67,13 +61,13 @@ function ExpiredSurveyPage({
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
-      <div className="container max-w-2xl mx-auto px-4">
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-orange-600">
+      <div className="container max-w-full sm:max-w-2xl lg:max-w-3xl mx-auto px-2 sm:px-4 lg:px-6">
+        <div className="w-full">
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-orange-600">
               만료된 출자 의향 조사입니다
-            </CardTitle>
-            <CardDescription className="mt-4">
+            </h1>
+            <p className="mt-4 text-gray-600">
               {fundName ? (
                 <>
                   <b>{fundName}</b>에 대한 출자 의향 조사 기간이 종료되었습니다.
@@ -82,16 +76,16 @@ function ExpiredSurveyPage({
                 '이 출자 의향 조사 기간이 종료되었습니다.'
               )}
               <br />더 이상 설문조사에 참여하실 수 없습니다.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
+            </p>
+          </div>
+          <div className="text-center space-y-4 mt-6">
             <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
               <p className="text-orange-800 font-medium">
                 출자 의향 조사가 종료되어 접근이 제한됩니다.
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="text-lg font-semibold text-gray-700">
                 {countdown}초 후 홈페이지로 이동합니다...
               </div>
@@ -119,8 +113,8 @@ function ExpiredSurveyPage({
                 다른 출자 기회에 대한 정보는 홈페이지에서 확인하실 수 있습니다.
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -538,13 +532,13 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       case 1:
         return (
           <>
-            <CardHeader>
-              <CardTitle>
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
                 출자하실분의 성함 또는 회사명((주) 및 주식회사 포함)을
                 알려주세요.
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </h2>
+            </div>
+            <div className="space-y-6">
               <TextInput
                 value={surveyData?.name || ''}
                 onChange={value =>
@@ -553,31 +547,37 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 placeholder="홍길동 또는 (주)회사명"
                 required
               />
-              <Button onClick={handleNext} className="w-full" size="lg">
+              <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
                 다음
               </Button>
-            </CardContent>
+            </div>
           </>
         );
 
       case 2:
         return (
           <>
-            <CardHeader>
-              <CardTitle>출자좌수를 알려주세요.</CardTitle>
-              <CardDescription>
-                출자금액 1백만원당 1좌입니다. 만약 2천만원을 출자하실
-                계획이라면, 20(좌)을 입력해 주시면 됩니다.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                출자좌수를 알려주세요.
+              </h2>
+              <p className="mt-2 text-gray-600">
+                출자금액 1백만원당 1좌입니다. 만약 3천만원을 출자하실
+                계획이라면, 30(좌)을 입력해 주시면 됩니다.
+              </p>
+            </div>
+            <div className="space-y-6">
               <NumberInput
                 value={surveyData?.investmentUnits || 0}
                 onChange={value =>
                   activeFundId &&
                   store.updateField(activeFundId, 'investmentUnits', value)
                 }
-                placeholder="20"
+                placeholder="30"
                 min={1}
                 required
               />
@@ -589,20 +589,26 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 ).toLocaleString()}
                 원
               </div>
-              <Button onClick={handleNext} className="w-full" size="lg">
+              <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
                 다음
               </Button>
-            </CardContent>
+            </div>
           </>
         );
 
       case 3:
         return (
           <>
-            <CardHeader>
-              <CardTitle>연락 가능한 전화번호를 알려주세요.</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                연락 가능한 전화번호를 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
               <PhoneInput
                 value={surveyData?.phone || ''}
                 onChange={value =>
@@ -611,20 +617,26 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 }
                 required
               />
-              <Button onClick={handleNext} className="w-full" size="lg">
+              <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
                 다음
               </Button>
-            </CardContent>
+            </div>
           </>
         );
 
       case 4:
         return (
           <>
-            <CardHeader>
-              <CardTitle>주소를 알려주세요.</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                주소를 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
               <TextInput
                 value={surveyData?.address || ''}
                 onChange={value =>
@@ -634,20 +646,26 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 placeholder="서울특별시 강남구..."
                 required
               />
-              <Button onClick={handleNext} className="w-full" size="lg">
+              <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
                 다음
               </Button>
-            </CardContent>
+            </div>
           </>
         );
 
       case 5:
         return (
           <>
-            <CardHeader>
-              <CardTitle>이메일을 알려주세요.</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                이메일을 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
               <EmailInput
                 value={surveyData?.email || ''}
                 onChange={value =>
@@ -656,20 +674,26 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 }
                 required
               />
-              <Button onClick={handleNext} className="w-full" size="lg">
+              <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
                 다음
               </Button>
-            </CardContent>
+            </div>
           </>
         );
 
       case 6:
         return (
           <>
-            <CardHeader>
-              <CardTitle>개인 or 법인을 알려주세요.</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                개인 or 법인을 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
               <RadioSelect
                 value={surveyData?.entityType || ''}
                 onChange={value =>
@@ -686,10 +710,14 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 ]}
                 required
               />
-              <Button onClick={handleNext} className="w-full" size="lg">
+              <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
                 다음
               </Button>
-            </CardContent>
+            </div>
           </>
         );
 
@@ -697,10 +725,12 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         // 생년월일 입력 페이지 (개인)
         return (
           <>
-            <CardHeader>
-              <CardTitle>생년월일을 알려주세요.</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                생년월일을 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
               <BirthDateInput
                 value={surveyData?.birthDate || ''}
                 onChange={value =>
@@ -711,7 +741,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               />
               <Button
                 onClick={handleSubmit}
-                className="w-full"
+                className="w-full text-lg py-6"
                 size="lg"
                 disabled={isLoading}
               >
@@ -720,7 +750,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               {submitError && (
                 <div className="text-sm text-red-500 mt-2">{submitError}</div>
               )}
-            </CardContent>
+            </div>
           </>
         );
 
@@ -728,10 +758,12 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         // 사업자번호 입력 페이지 (법인)
         return (
           <>
-            <CardHeader>
-              <CardTitle>사업자등록번호를 알려주세요.</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                사업자등록번호를 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
               <BusinessNumberInput
                 value={surveyData?.businessNumber || ''}
                 onChange={value =>
@@ -742,7 +774,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               />
               <Button
                 onClick={handleSubmit}
-                className="w-full"
+                className="w-full text-lg py-6"
                 size="lg"
                 disabled={isLoading}
               >
@@ -751,16 +783,16 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
               {submitError && (
                 <div className="text-sm text-red-500 mt-2">{submitError}</div>
               )}
-            </CardContent>
+            </div>
           </>
         );
 
       case 9:
         return (
           <>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">제출이 완료되었습니다!</CardTitle>
-              <CardDescription className="mt-4">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-semibold">제출이 완료되었습니다!</h1>
+              <p className="mt-4 text-gray-600">
                 {isLoggedInUser ? (
                   <>
                     설문이 성공적으로 제출되었습니다.
@@ -775,14 +807,14 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                     정보가 거의 없습니다.
                   </>
                 )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-6">
               <div className="flex gap-4">
                 <Button
                   onClick={handleExit}
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 text-lg py-6"
                   size="lg"
                 >
                   페이지에서 나가기
@@ -790,18 +822,22 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 {isLoggedInUser ? (
                   <Button
                     onClick={handleGoToDashboard}
-                    className="flex-1"
+                    className="flex-1 text-lg py-6"
                     size="lg"
                   >
                     대시보드로 이동
                   </Button>
                 ) : (
-                  <Button onClick={handleSignup} className="flex-1" size="lg">
+                  <Button
+                    onClick={handleSignup}
+                    className="flex-1 text-lg py-6"
+                    size="lg"
+                  >
                     회원 가입하기
                   </Button>
                 )}
               </div>
-            </CardContent>
+            </div>
           </>
         );
 
@@ -821,19 +857,19 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   if (isAlreadySubmitted && !isLoggedInUser) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
-        <div className="container max-w-2xl mx-auto px-4">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl text-green-600">
+        <div className="container max-w-full sm:max-w-2xl lg:max-w-3xl mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="w-full">
+            <div className="text-center">
+              <h1 className="text-2xl font-semibold text-green-600">
                 출자 의향 설문조사가 완료되었습니다!
-              </CardTitle>
-              <CardDescription className="mt-4">
+              </h1>
+              <p className="mt-4 text-gray-600">
                 이 설문조사는 이미 제출이 완료되었습니다.
                 <br />
                 추가적인 수정이 필요하시면 관리자에게 문의해 주세요.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
+              </p>
+            </div>
+            <div className="text-center space-y-4 mt-6">
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-green-800 font-medium">
                   {fundName && (
@@ -856,8 +892,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                   홈으로 이동
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -901,7 +937,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container max-w-2xl mx-auto px-4">
+      <div className="container max-w-full sm:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-6">
         {/* 로그인 옵션 */}
         {!isLoggedInUser && currentPage < 9 && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -958,7 +994,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
           </div>
         )}
 
-        <Card>{renderPage()}</Card>
+        <div className="w-full">{renderPage()}</div>
       </div>
     </div>
   );

@@ -92,7 +92,7 @@ export default function BirthDateInput({
         </Label>
       )}
       <div className="flex gap-2 items-center">
-        <div className="flex-1">
+        <div className="flex-2">
           <Input
             type="text"
             value={year}
@@ -100,12 +100,14 @@ export default function BirthDateInput({
             placeholder="YYYY"
             disabled={disabled}
             maxLength={4}
-            className={`w-full text-center ${error ? 'border-red-500' : ''}`}
+            className={`w-full text-center text-sm ${
+              error ? 'border-red-500' : ''
+            }`}
           />
         </div>
         <span>년</span>
 
-        <div className="w-20">
+        <div className="flex-1">
           <Input
             type="text"
             value={month}
@@ -113,12 +115,14 @@ export default function BirthDateInput({
             placeholder="MM"
             disabled={disabled}
             maxLength={2}
-            className={`w-full text-center ${error ? 'border-red-500' : ''}`}
+            className={`w-full text-center text-xs ${
+              error ? 'border-red-500' : ''
+            }`}
           />
         </div>
         <span>월</span>
 
-        <div className="w-20">
+        <div className="flex-1">
           <Input
             type="text"
             value={day}
@@ -126,7 +130,9 @@ export default function BirthDateInput({
             placeholder="DD"
             disabled={disabled}
             maxLength={2}
-            className={`w-full text-center ${error ? 'border-red-500' : ''}`}
+            className={`w-full text-center text-xs ${
+              error ? 'border-red-500' : ''
+            }`}
           />
         </div>
         <span>일</span>
