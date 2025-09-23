@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { formatDate, validateDate } from '@/lib/format-utils';
 import type { Company } from '@/types/companies';
 import type { Fund } from '@/types/database';
 import type {
@@ -129,7 +130,14 @@ export function InvestmentModal({
     field: keyof InvestmentInput,
     value: string | number | undefined
   ) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let formattedValue = value;
+
+    // 투자일에 자동 포맷팅 적용
+    if (field === 'investment_date' && typeof value === 'string') {
+      formattedValue = formatDate(value);
+    }
+
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
     // 에러 클리어
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -147,11 +155,9 @@ export function InvestmentModal({
       newErrors.fund_id = '펀드를 선택해주세요';
     }
 
-    if (formData.investment_date) {
-      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-      if (!datePattern.test(formData.investment_date)) {
-        newErrors.investment_date = '올바른 날짜 형식이 아닙니다 (YYYY-MM-DD)';
-      }
+    if (formData.investment_date && !validateDate(formData.investment_date)) {
+      newErrors.investment_date =
+        '올바른 날짜가 아닙니다 (예: 20240820 → 2024-08-20)';
     }
 
     if (formData.unit_price !== undefined && formData.unit_price < 0) {
@@ -240,7 +246,7 @@ export function InvestmentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl min-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? '투자 정보 수정' : '새 투자 등록'}
@@ -279,7 +285,7 @@ export function InvestmentModal({
                     <SelectContent>
                       {companies.map(company => (
                         <SelectItem key={company.id} value={company.id}>
-                          <div className="flex flex-col">
+                          <div className="flex flex-col items-start text-left">
                             <span className="font-medium">{company.name}</span>
                             {company.description && (
                               <span className="text-xs text-muted-foreground">
@@ -313,11 +319,11 @@ export function InvestmentModal({
                         <SelectItem key={fund.id} value={fund.id}>
                           <div className="flex flex-col">
                             <span className="font-medium">{fund.name}</span>
-                            {fund.abbreviation && (
+                            {/* {fund.abbreviation && (
                               <span className="text-xs text-muted-foreground">
                                 {fund.abbreviation}
                               </span>
-                            )}
+                            )} */}
                           </div>
                         </SelectItem>
                       ))}
@@ -333,11 +339,12 @@ export function InvestmentModal({
                 <Label htmlFor="investment_date">투자일</Label>
                 <Input
                   id="investment_date"
-                  type="date"
+                  type="text"
                   value={formData.investment_date}
                   onChange={e =>
                     handleInputChange('investment_date', e.target.value)
                   }
+                  placeholder="2024-08-20 (YYYY-MM-DD)"
                   className={errors.investment_date ? 'border-red-500' : ''}
                 />
                 {errors.investment_date && (

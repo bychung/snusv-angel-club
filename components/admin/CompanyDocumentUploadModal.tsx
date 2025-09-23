@@ -99,20 +99,63 @@ export default function CompanyDocumentUploadModal({
     return null;
   };
 
-  const handleFileDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0];
-      const error = validateFile(file);
+  const detectCategoryFromFileName = (
+    fileName: string
+  ): CompanyDocumentCategory | null => {
+    // 맥 환경에서 한글 자소 분리 문제 해결을 위한 유니코드 정규화
+    const normalizedFileName = fileName.normalize('NFC');
 
-      if (error) {
-        setUploadState(prev => ({ ...prev, error }));
-        return;
-      }
+    // IR 자료 키워드
+    const irKeywords = ['ir', 'IR', '소개서'];
+    // 투심보고서 키워드
+    const investmentKeywords = ['투심', '투자심사', '심사'];
 
-      setSelectedFile(file);
-      setUploadState(prev => ({ ...prev, error: null }));
+    // IR 자료 매칭 (대소문자 구분 없이)
+    const irMatch = irKeywords.some(keyword => {
+      return normalizedFileName.toLowerCase().includes(keyword.toLowerCase());
+    });
+
+    if (irMatch) {
+      return CompanyDocumentCategory.IR_DECK;
     }
-  }, []);
+
+    // 투심보고서 매칭 (대소문자 구분 없이)
+    const investmentMatch = investmentKeywords.some(keyword => {
+      return normalizedFileName.toLowerCase().includes(keyword.toLowerCase());
+    });
+
+    if (investmentMatch) {
+      return CompanyDocumentCategory.INVESTMENT_REPORT;
+    }
+
+    return null;
+  };
+
+  const handleFileDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0];
+        const error = validateFile(file);
+
+        if (error) {
+          setUploadState(prev => ({ ...prev, error }));
+          return;
+        }
+
+        setSelectedFile(file);
+        setUploadState(prev => ({ ...prev, error: null }));
+
+        // 카테고리가 지정되어 있지 않다면 파일명을 기반으로 자동 지정
+        if (!category) {
+          const detectedCategory = detectCategoryFromFileName(file.name);
+          if (detectedCategory) {
+            setCategory(detectedCategory);
+          }
+        }
+      }
+    },
+    [category]
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleFileDrop,
@@ -301,8 +344,14 @@ export default function CompanyDocumentUploadModal({
                       <div className="flex items-center justify-between p-3 border rounded">
                         <div className="flex items-center gap-2 flex-1">
                           <FileText className="h-4 w-4 text-blue-500" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium truncate">
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={`text-sm font-medium ${
+                                selectedFile.name.length > 40
+                                  ? 'line-clamp-2 leading-tight'
+                                  : 'truncate'
+                              }`}
+                            >
                               {selectedFile.name}
                             </p>
                             <p className="text-xs text-gray-500">

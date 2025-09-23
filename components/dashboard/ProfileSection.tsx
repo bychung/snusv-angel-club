@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { useAuthStore } from '@/store/authStore';
 import type { Profile } from '@/types/database';
 import { Edit2, Save, User, X } from 'lucide-react';
@@ -62,7 +63,16 @@ export default function ProfileSection() {
   };
 
   const handleChange = (field: keyof Profile, value: string) => {
-    setEditData(prev => ({ ...prev, [field]: value }));
+    let formattedValue = value;
+
+    // 사업자번호와 전화번호에 자동 포맷팅 적용
+    if (field === 'business_number') {
+      formattedValue = formatBusinessNumber(value);
+    } else if (field === 'phone') {
+      formattedValue = formatPhoneNumber(value);
+    }
+
+    setEditData(prev => ({ ...prev, [field]: formattedValue }));
   };
 
   return (

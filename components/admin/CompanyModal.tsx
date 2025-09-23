@@ -14,6 +14,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  formatBusinessNumber,
+  formatCorporateRegistrationNumber,
+  formatDate,
+  validateDate,
+} from '@/lib/format-utils';
 import type { Company, CompanyInput } from '@/types/companies';
 import { INDUSTRY_CATEGORIES } from '@/types/companies';
 import { useEffect, useState } from 'react';
@@ -76,7 +82,18 @@ export function CompanyModal({
   }, [isOpen, company]);
 
   const handleInputChange = (field: keyof CompanyInput, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let formattedValue = value;
+
+    // 사업자번호, 법인등록번호, 날짜에 자동 포맷팅 적용
+    if (field === 'business_number') {
+      formattedValue = formatBusinessNumber(value);
+    } else if (field === 'registration_number') {
+      formattedValue = formatCorporateRegistrationNumber(value);
+    } else if (field === 'established_at') {
+      formattedValue = formatDate(value);
+    }
+
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
     // 에러 클리어
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -125,11 +142,9 @@ export function CompanyModal({
       }
     }
 
-    if (formData.established_at) {
-      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-      if (!datePattern.test(formData.established_at)) {
-        newErrors.established_at = '올바른 날짜 형식이 아닙니다 (YYYY-MM-DD)';
-      }
+    if (formData.established_at && !validateDate(formData.established_at)) {
+      newErrors.established_at =
+        '올바른 날짜가 아닙니다 (예: 20240820 → 2024-08-20)';
     }
 
     setErrors(newErrors);
@@ -276,7 +291,7 @@ export function CompanyModal({
                   onChange={e =>
                     handleInputChange('registration_number', e.target.value)
                   }
-                  placeholder="법인등록번호를 입력하세요"
+                  placeholder="123456-1234567"
                 />
               </div>
             </div>
@@ -286,11 +301,12 @@ export function CompanyModal({
               <div className="relative">
                 <Input
                   id="established_at"
-                  type="date"
+                  type="text"
                   value={formData.established_at}
                   onChange={e =>
                     handleInputChange('established_at', e.target.value)
                   }
+                  placeholder="2024-08-20 (YYYY-MM-DD)"
                   className={errors.established_at ? 'border-red-500' : ''}
                 />
               </div>

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createClient } from '@/lib/supabase/client';
 import type { FundMember, Profile } from '@/types/database';
 import { Shield } from 'lucide-react';
@@ -146,7 +147,10 @@ export default function EditMemberModal({
                 id="phone"
                 value={formData.phone}
                 onChange={e =>
-                  setFormData({ ...formData, phone: e.target.value })
+                  setFormData({
+                    ...formData,
+                    phone: formatPhoneNumber(e.target.value),
+                  })
                 }
                 required
               />
@@ -189,10 +193,10 @@ export default function EditMemberModal({
                   onChange={e =>
                     setFormData({
                       ...formData,
-                      business_number: e.target.value,
+                      business_number: formatBusinessNumber(e.target.value),
                     })
                   }
-                  placeholder="000-00-00000"
+                  placeholder="123-45-67890"
                 />
               </div>
             )}

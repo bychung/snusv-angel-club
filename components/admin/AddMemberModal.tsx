@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createClient } from '@/lib/supabase/client';
 import { Building, User, UserPlus } from 'lucide-react';
 import { useState } from 'react';
@@ -60,7 +61,18 @@ export default function AddMemberModal({
     field: keyof MemberFormData,
     value: string | number
   ) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let formattedValue = value;
+
+    // 사업자번호와 전화번호에 자동 포맷팅 적용
+    if (typeof value === 'string') {
+      if (field === 'business_number') {
+        formattedValue = formatBusinessNumber(value);
+      } else if (field === 'phone') {
+        formattedValue = formatPhoneNumber(value);
+      }
+    }
+
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
     setError(null);
   };
 

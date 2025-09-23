@@ -291,25 +291,25 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
       {/* 포트폴리오 회사 목록 */}
 
       {/* 데스크톱 테이블 헤더 */}
-      <div className="hidden md:grid md:grid-cols-5 gap-4 items-center pb-2 mb-4 border-b text-sm font-medium text-gray-600">
-        <div>회사명</div>
-        <div>투자일</div>
-        <div>투자금액(백만원)</div>
-        <div>지분율</div>
-        <div>다운로드</div>
+      <div className="hidden md:grid md:grid-cols-8 gap-4 items-center pb-2 mb-4 border-b text-sm font-medium text-gray-600">
+        <div className="col-span-3 text-center">회사명</div>
+        <div className="col-span-1 text-center">투자일</div>
+        <div className="col-span-1 text-center">투자금액(백만원)</div>
+        <div className="col-span-1 text-center">지분율</div>
+        <div className="col-span-2 text-center">다운로드</div>
       </div>
 
       <div className="space-y-2">
         {portfolio.investments.map((investment, index) => (
           <div
             key={investment.id}
-            className={`p-3 rounded-lg border-l-4 border-l-blue-500 md:border-l-0 hover:bg-gray-50 transition-colors ${
+            className={`p-0 rounded-lg border-l-4 border-l-blue-500 md:border-l-0 hover:bg-gray-50 transition-colors ${
               index % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'
             }`}
           >
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 md:gap-4 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-8 gap-2 md:gap-4 items-center">
               {/* 회사명 */}
-              <div className="md:col-span-1">
+              <div className="md:col-span-3">
                 {investment.company_website ? (
                   <a
                     href={investment.company_website}
@@ -331,7 +331,7 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
               </div>
 
               {/* 투자일 */}
-              <div className="md:col-span-1">
+              <div className="md:col-span-1 text-center">
                 <span className="text-sm text-gray-600 md:hidden">
                   투자일:{' '}
                 </span>
@@ -341,7 +341,7 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
               </div>
 
               {/* 투자금액 */}
-              <div className="md:col-span-1">
+              <div className="md:col-span-1 text-right">
                 <span className="text-sm text-gray-600 md:hidden">
                   투자금액:{' '}
                 </span>
@@ -353,7 +353,7 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
               </div>
 
               {/* 지분율 */}
-              <div className="md:col-span-1">
+              <div className="md:col-span-1 text-right">
                 <span className="text-sm text-gray-600 md:hidden">
                   지분율:{' '}
                 </span>
@@ -365,7 +365,7 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
               </div>
 
               {/* 다운로드 버튼들 */}
-              <div className="md:col-span-1 flex gap-2 justify-start md:justify-center">
+              <div className="md:col-span-2 flex gap-2 justify-start md:justify-center">
                 <Button
                   variant="outline"
                   size="sm"
