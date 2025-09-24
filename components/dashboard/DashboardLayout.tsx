@@ -1,7 +1,10 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuthStore } from '@/store/authStore';
+import { Home } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ProfileDropdown from './ProfileDropdown';
@@ -53,10 +56,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
+              <Link href="/">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                  title="홈페이지로 이동"
+                >
+                  <Home className="h-4 w-4" />
+                </Button>
+              </Link>
               <h1 className="text-xl font-bold text-gray-900">
                 SNUSV ANGEL CLUB
               </h1>
-              <span className="text-sm text-gray-500">대시보드</span>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">대시보드</span>
+              </div>
             </div>
 
             <div className="flex items-center space-x-4">

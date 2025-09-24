@@ -1,6 +1,5 @@
 'use client';
 
-import BlynxLabChatWidget from '@/components/external/BlynxLabChatWidget';
 import AngelInquiryModal from '@/components/modals/AngelInquiryModal';
 import IRInquiryModal from '@/components/modals/IRInquiryModal';
 import { Badge } from '@/components/ui/badge';
@@ -66,7 +65,7 @@ const executiveMembers: ExecutiveMember[] = [
     name: '조세원',
     position: 'SNUSV ANGEL CLUB 회장',
     image: '/members/chosewon.png',
-    shortBio: '스터디맥스 대표이사 (SNUSV 3기)',
+    shortBio: '위버스브레인 대표이사 (SNUSV 3기)',
     fullBio:
       '연쇄창업가로서 일본, 중국, 미국 등 글로벌 비지니스 경험 및 엔젤투자자로서 스타트업 투자/밸류업, 엑싯 경험이 다수 있습니다.',
     experience: ['서울대학교 컴퓨터공학부 졸업', '이투스에듀(주) 창업'],
@@ -290,7 +289,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-black text-white overflow-x-hidden">
-      <BlynxLabChatWidget slug="3um3" />
       {/* Login/Dashboard Button - Top Right */}
       <div
         className={`fixed top-1 right-3 z-50 transition-all duration-500 ease-in-out ${
@@ -311,7 +309,7 @@ export default function HomePage() {
       </div>
 
       {/* Floating Navigation */}
-      <nav className="fixed right-4 md:right-8 top-1/2 transform -translate-y-1/2 z-50">
+      <nav className="fixed right-1 md:right-8 top-1/2 transform -translate-y-1/2 z-50">
         <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-2xl p-1 md:p-2 shadow-2xl">
           <div className="flex flex-col gap-0.5 md:gap-1">
             {menuItems.map((item, index) => {
@@ -363,7 +361,7 @@ export default function HomePage() {
 
           <div className="max-w-6xl mx-auto text-center relative z-10">
             <div className="mb-12">
-              <h1 className="text-7xl md:text-8xl font-bold mb-8 leading-tight">
+              <h1 className="text-4xl md:text-8xl font-bold mb-8 leading-tight">
                 <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                   SNUSV
                 </span>
@@ -373,7 +371,7 @@ export default function HomePage() {
                 </span>
               </h1>
 
-              <p className="text-xl md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
+              <p className="text-lg md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
                 서울대학교 학생 벤처 네트워크 동아리(SNUSV) Alumni 기반의
                 엔젤클럽으로,
                 <br />
