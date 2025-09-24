@@ -15,8 +15,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SNUSV ANGEL CLUB',
+  title: 'SNUSV 엔젤클럽',
   description: '서울대 벤처창업동아리 SNUSV Alumni 기반의 엔젤클럽',
+  themeColor: '#ffffff',
+
+  openGraph: {
+    images: ['/meta-image.png'],
+    title: 'SNUSV 엔젤클럽',
+    description: '서울대 벤처창업동아리 SNUSV Alumni 기반의 엔젤클럽',
+    url: 'https://snusv.angel-club.kr',
+    siteName: 'SNUSV 엔젤클럽',
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  // icons: {
+  //   icon: '/favicon.ico',
+  // }
 };
 
 export default function RootLayout({
