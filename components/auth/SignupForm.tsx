@@ -177,7 +177,7 @@ export default function SignupForm() {
           <CardDescription>
             {email
               ? '설문조사 정보로 간편하게 회원가입하세요'
-              : '기존 계정과 연동하여 회원가입하세요'}
+              : '기존 출자한 펀드에 등록된 이메일로 회원가입하세요'}
           </CardDescription>
         </CardHeader>
 
@@ -258,7 +258,8 @@ export default function SignupForm() {
                     </p>
                   ) : (
                     <p className="text-xs text-gray-500">
-                      회원가입에 사용할 이메일을 입력하세요.
+                      회원가입에 사용할 이메일(출자했던 펀드에 등록된 이메일)을
+                      입력하세요.
                     </p>
                   )}
                 </div>
