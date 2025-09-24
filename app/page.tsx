@@ -158,28 +158,28 @@ const executiveMembers: ExecutiveMember[] = [
 
 const regularMembers: RegularMember[] = [
   {
-    name: '이멤버',
-    position: '투자위원',
-    image: '/placeholder.svg?height=150&width=150',
-    bio: '핀테크 전문가',
+    name: '송병준',
+    position: '게임빌 대표',
+    image: '/members/songbyungjoon.jpeg',
+    bio: '서울대 전기전자과 / SNUSV 1기',
   },
   {
-    name: '최멤버',
-    position: '투자위원',
-    image: '/placeholder.svg?height=150&width=150',
-    bio: '헬스케어 전문가',
+    name: '석윤찬',
+    position: '비쥬얼캠프 대표',
+    image: '/members/seokyoonchan.jpg',
+    bio: '서울대 전기전자과 / SNUSV 1기',
   },
   {
-    name: '정멤버',
-    position: '투자위원',
-    image: '/placeholder.svg?height=150&width=150',
-    bio: '커머스 전문가',
+    name: '이비호',
+    position: '유리프트 대표',
+    image: '/members/leebiho.jpeg',
+    bio: '서울대 컴퓨터공학과 / SNUSV 4기',
   },
   {
-    name: '한멤버',
-    position: '투자위원',
-    image: '/placeholder.svg?height=150&width=150',
-    bio: '모빌리티 전문가',
+    name: '김재우',
+    position: '어썸피스 대표',
+    image: '/members/kimjaewoo.jpg',
+    bio: '서울대 농생명공학과 / SNUSV 6기',
   },
 ];
 
@@ -227,7 +227,11 @@ const partners: Partner[] = [
     logo: '/logos/propel.jpg',
     description:
       '프로펠벤처스는 컴퍼니빌더 및 액셀러레이터로서 투자기업들이 성장하기 위한 모든 부분에 대하여 지원합니다.',
-    features: ['액셀러레이터', '컴퍼니빌더', '개인투자조합을 통한 투자'],
+    features: [
+      '액셀러레이팅을 전문적으로 지원합니다.',
+      '컴퍼니빌더로서 실제 스타트업을 함께 운영합니다.',
+      '초기 엔젤 / 시드 단계 투자 또한 적극적으로 진행합니다.',
+    ],
     members: [
       '정보영 대표 (컴퍼니빌딩/액셀러레이팅 담당)',
       '곽준영 대표 (관리 총괄 담당)',
@@ -437,14 +441,15 @@ export default function HomePage() {
                 Our Team
               </h2>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                다양한 분야의 전문가들이 함께하는 투자 전문팀
+                다양한 분야의 전문가와 펀드 전담 운용사가 함께 엔젤클럽을 이끌어
+                나가고 있습니다.
               </p>
             </div>
 
             {/* Executive Members */}
             <div className="mb-20">
               <h3 className="text-3xl font-semibold mb-12 text-center text-white">
-                운영진
+                클럽 운영진
               </h3>
               <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 {executiveMembers.map(member => (
@@ -490,7 +495,7 @@ export default function HomePage() {
             {/* Regular Members */}
             <div>
               <h3 className="text-3xl font-semibold mb-12 text-center text-white">
-                주요 엔젤클럽 구성원
+                주요 구성원
               </h3>
               <div className="grid md:grid-cols-4 gap-6">
                 {regularMembers.map((member, index) => (
@@ -499,7 +504,7 @@ export default function HomePage() {
                     className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:-translate-y-1"
                   >
                     <CardContent className="p-6 text-center">
-                      <div className="w-20 h-20 mx-auto mb-4 rounded-xl overflow-hidden bg-gradient-to-r from-gray-600 to-gray-700 p-1">
+                      <div className="w-36 h-36 mx-auto mb-4 rounded-xl overflow-hidden bg-gradient-to-r from-gray-600 to-gray-700 p-1">
                         <img
                           src={member.image || '/placeholder.svg'}
                           alt={member.name}
@@ -591,27 +596,28 @@ export default function HomePage() {
                 key={index}
                 className="bg-white/5 backdrop-blur-sm border-white/10 mb-8 hover:bg-white/10 transition-all duration-300"
               >
-                <CardContent className="p-12">
-                  <div className="grid lg:grid-cols-2 gap-12 items-center">
-                    <div>
-                      <div className="flex items-center justify-center h-64 mb-8 bg-white/3 rounded-xl">
+                <CardContent className="px-12 py-4">
+                  <div className="grid lg:grid-cols-12 gap-12 items-center">
+                    <div className="lg:col-span-5">
+                      <div className="flex items-center justify-center h-80 bg-white/3 rounded-xl">
                         <img
                           src={partner.logo || '/placeholder.svg'}
                           alt={partner.name}
                           className="max-h-full max-w-full object-contain"
                         />
                       </div>
-                      <h3 className="text-3xl font-bold mb-6 text-white">
-                        {partner.name}
-                      </h3>
-                      <p className="text-gray-300 leading-relaxed text-lg">
-                        {partner.description}
-                      </p>
                     </div>
 
-                    <div>
+                    <div className="lg:col-span-7">
+                      <h3 className="text-3xl font-bold mb-4 text-white">
+                        {partner.name}
+                      </h3>
+                      <p className="text-gray-300 leading-relaxed text-lg mb-8">
+                        {partner.description}
+                      </p>
+
                       <h4 className="text-xl font-semibold mb-6 text-white">
-                        주요 특징
+                        주요 역할
                       </h4>
                       <ul className="space-y-4 mb-8">
                         {partner.features.map((feature, idx) => (
@@ -622,8 +628,8 @@ export default function HomePage() {
                         ))}
                       </ul>
 
-                      <h4 className="text-xl font-semibold mb-6 text-white">
-                        구성원
+                      {/* <h4 className="text-xl font-semibold mb-6 text-white">
+                        주요 구성원
                       </h4>
                       <div className="space-y-3">
                         {partner.members.map((member, idx) => (
@@ -634,7 +640,7 @@ export default function HomePage() {
                             {member}
                           </div>
                         ))}
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </CardContent>
