@@ -335,30 +335,34 @@ export function PortfolioSection({ fundId }: PortfolioSectionProps) {
                   <Download className="h-3 w-3" />
                   IR
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleDownloadInvestmentReport(investment)}
-                  disabled={
-                    !documentAvailability[investment.company_id]
-                      ?.hasInvestmentReport
-                  }
-                  className={`gap-1 text-xs px-2 py-1 ${
-                    !documentAvailability[investment.company_id]
-                      ?.hasInvestmentReport
-                      ? 'opacity-50 cursor-not-allowed'
-                      : ''
-                  }`}
-                  title={
-                    documentAvailability[investment.company_id]
-                      ?.hasInvestmentReport
-                      ? '투심보고서 다운로드'
-                      : '투심보고서 없음'
-                  }
-                >
-                  <Download className="h-3 w-3" />
-                  투심
-                </Button>
+
+                {/* 임시로 숨김 */}
+                {false && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadInvestmentReport(investment)}
+                    disabled={
+                      !documentAvailability[investment.company_id]
+                        ?.hasInvestmentReport
+                    }
+                    className={`gap-1 text-xs px-2 py-1 ${
+                      !documentAvailability[investment.company_id]
+                        ?.hasInvestmentReport
+                        ? 'opacity-50 cursor-not-allowed'
+                        : ''
+                    }`}
+                    title={
+                      documentAvailability[investment.company_id]
+                        ?.hasInvestmentReport
+                        ? '투심보고서 다운로드'
+                        : '투심보고서 없음'
+                    }
+                  >
+                    <Download className="h-3 w-3" />
+                    투심
+                  </Button>
+                )}
               </div>
             </div>
           </div>

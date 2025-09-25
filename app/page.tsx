@@ -223,7 +223,7 @@ const portfolios: Portfolio[] = [
 
 const partners: Partner[] = [
   {
-    name: '프로펠벤처스(주)',
+    name: '프로펠벤처스',
     logo: '/logos/propel.jpg',
     description:
       '프로펠벤처스는 컴퍼니빌더 및 액셀러레이터로서 투자기업들이 성장하기 위한 모든 부분에 대하여 지원합니다.',
@@ -356,7 +356,7 @@ export default function HomePage() {
         {/* Home Section */}
         <section
           id="home"
-          className="min-h-screen flex items-center justify-center px-8 relative overflow-hidden"
+          className="min-h-screen flex items-center justify-center px-8 pt-6 md:pt-0 relative overflow-hidden"
         >
           {/* Background Effects */}
           <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-purple-500/10 to-pink-500/10"></div>
