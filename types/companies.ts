@@ -7,6 +7,7 @@ export interface Company {
   registration_number?: string | null; // 법인등록번호
   category: string[]; // 산업 카테고리 배열
   established_at?: string | null; // 설립일
+  brand: string;
   created_at: string;
   updated_at: string;
 }
@@ -20,6 +21,7 @@ export interface CompanyInput {
   registration_number?: string;
   category: string[];
   established_at?: string; // YYYY-MM-DD 형식
+  brand: string;
 }
 
 // 산업 카테고리 상수

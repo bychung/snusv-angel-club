@@ -9,6 +9,7 @@ export interface Profile {
   business_number?: string | null;
   address: string;
   role: 'ADMIN' | 'USER';
+  brand: string;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +27,7 @@ export interface Fund {
   closed_at?: string | null; // 결성일
   registered_at?: string | null; // 등록일
   dissolved_at?: string | null; // 만기일
+  brand: string;
   created_at: string;
   updated_at: string;
 }
@@ -36,6 +38,7 @@ export interface FundMember {
   profile_id: string;
   investment_units: number;
   total_amount: number;
+  brand: string;
   created_at: string;
   updated_at: string;
 }
@@ -56,6 +59,7 @@ export interface Document {
   uploaded_by?: string | null;
   member_id?: string | null; // 조합원별 문서용 (투자확인서 등)
   document_year?: number | null; // 연도별 구분용
+  brand: string;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +71,7 @@ export interface ProfilePermission {
   permission_type: 'admin' | 'view';
   granted_by: string;
   granted_at: string;
+  brand: string;
   created_at: string;
 }
 

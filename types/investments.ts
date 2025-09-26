@@ -9,6 +9,7 @@ export interface Investment {
   unit_price?: number | null; // 투자단가 (원 단위)
   investment_shares?: number | null; // 주식수
   issued_shares?: number | null; // 총발행주식수
+  brand: string;
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +35,7 @@ export interface InvestmentInput {
   unit_price?: number;
   investment_shares?: number;
   issued_shares?: number;
+  brand: string;
 }
 
 // 투자 필터링 옵션

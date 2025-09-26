@@ -10,6 +10,7 @@ export interface CompanyDocument {
   file_size: number;
   file_url: string;
   uploaded_by?: string | null;
+  brand: string;
   created_at: string;
   updated_at: string;
 }

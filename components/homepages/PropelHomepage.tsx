@@ -9,7 +9,7 @@ import { Handshake, Home, Mail, Target, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-export default function OtherHomepage() {
+export default function PropelHomepage() {
   const [activeSection, setActiveSection] = useState('home');
   const [scrollY, setScrollY] = useState(0);
   const [isIRModalOpen, setIsIRModalOpen] = useState(false);
@@ -56,7 +56,7 @@ export default function OtherHomepage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 text-white overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-900 text-white overflow-x-hidden">
       {/* Login/Dashboard Button - Top Right */}
       <div
         className={`fixed top-1 right-3 z-50 transition-all duration-500 ease-in-out ${
@@ -89,7 +89,7 @@ export default function OtherHomepage() {
                   onClick={() => scrollToSection(item.id)}
                   className={`group relative p-2 md:p-3 rounded-xl transition-all duration-300 ${
                     isActive
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg shadow-blue-500/25'
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25'
                       : 'hover:bg-white/10'
                   }`}
                   title={item.label}
@@ -123,26 +123,27 @@ export default function OtherHomepage() {
           className="min-h-screen flex items-center justify-center px-8 pt-6 md:pt-0 relative overflow-hidden"
         >
           {/* Background Effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-500/10"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-cyan-500/10 to-teal-500/10"></div>
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
 
           <div className="max-w-6xl mx-auto text-center relative z-10">
             <div className="mb-12">
               <h1 className="text-4xl md:text-8xl font-bold mb-8 leading-tight">
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
-                  OTHER
+                <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+                  PROPEL
                 </span>
                 <br />
-                <span className="bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400 bg-clip-text text-transparent">
-                  ANGEL CLUB
+                <span className="bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-400 bg-clip-text text-transparent">
+                  VENTURES
                 </span>
               </h1>
 
               <p className="text-lg md:text-2xl text-gray-300 mb-12 leading-relaxed max-w-4xl mx-auto">
-                혁신적인 스타트업 생태계를 함께 만들어가는 엔젤클럽으로,
+                혁신적인 스타트업과 함께 성장하는 벤처캐피탈로,
                 <br />
-                미래를 바꾸는 아이디어와 기업가를 지원하는 투자 플랫폼입니다.
+                미래를 바꾸는 기술과 비즈니스 모델에 투자하며 성공을
+                만들어갑니다.
               </p>
             </div>
 
@@ -152,22 +153,22 @@ export default function OtherHomepage() {
                   icon: TrendingUp,
                   title: '전략적 투자',
                   description:
-                    '체계적인 투자 심사와 전문가 네트워크를 통한 스마트한 투자',
-                  gradient: 'from-blue-500 to-indigo-500',
+                    '다양한 산업 분야의 전문 지식을 바탕으로 한 체계적이고 전략적인 투자',
+                  gradient: 'from-blue-500 to-cyan-500',
                 },
                 {
                   icon: Users,
-                  title: '멘토링 지원',
+                  title: '성장 가속화',
                   description:
-                    '업계 최고 전문가들의 실질적인 멘토링과 네트워킹 기회 제공',
-                  gradient: 'from-purple-500 to-blue-500',
+                    '전문 멘토링, 전략적 파트너십 및 글로벌 네트워크를 통한 빠른 성장',
+                  gradient: 'from-cyan-500 to-teal-500',
                 },
                 {
                   icon: Target,
-                  title: '성장 동반자',
+                  title: '가치 창조',
                   description:
-                    '단순한 투자를 넘어 스타트업의 성공까지 함께하는 진정한 파트너',
-                  gradient: 'from-indigo-500 to-purple-500',
+                    'IPO나 M&A까지 전 과정에서 최적의 가치를 창조하는 전문 파트너',
+                  gradient: 'from-teal-500 to-blue-500',
                 },
               ].map((item, index) => (
                 <Card
@@ -195,16 +196,16 @@ export default function OtherHomepage() {
 
         {/* About Section */}
         <section id="about" className="min-h-screen py-20 px-8 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-900/50 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/50 to-transparent"></div>
 
           <div className="max-w-6xl mx-auto relative z-10">
             <div className="text-center mb-20">
-              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 About Us
               </h2>
               <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                우리는 혁신적인 아이디어와 뛰어난 기업가들을 발굴하고 지원하는
-                전문 투자집단입니다.
+                혁신적인 기술과 강력한 비즈니스 모델을 보유한 스타트업에
+                투자하는 전문 벤처캐피탈입니다.
               </p>
             </div>
 
@@ -214,24 +215,25 @@ export default function OtherHomepage() {
                   우리의 비전
                 </h3>
                 <p className="text-lg text-gray-300 leading-relaxed mb-8">
-                  스타트업 생태계의 건전한 발전과 혁신적인 기술의 상용화를 통해
-                  더 나은 미래를 만들어가는 것이 우리의 사명입니다.
+                  초기 단계 스타트업부터 성장 기업까지, 혁신적인 기술과 비즈니스
+                  모델을 바탕으로 미래를 선도하는 기업들의 성공에 기여하는 것이
+                  우리의 사명입니다.
                 </p>
                 <div className="space-y-4">
                   {[
-                    '전문적인 투자 심사와 포트폴리오 관리',
-                    '체계적인 멘토링과 네트워킹 지원',
-                    '지속가능한 스타트업 생태계 구축',
+                    '체계적인 Due Diligence와 전문 심사',
+                    '포트폴리오 기업 성장 지원 및 멘토링',
+                    'Exit Strategy 기획 및 IPO/M&A 지원',
                   ].map((item, index) => (
                     <div key={index} className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                      <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
                       <span className="text-gray-300">{item}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl p-8">
+              <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl p-8">
                 <h4 className="text-2xl font-bold mb-4 text-white">
                   투자 현황
                 </h4>
@@ -245,7 +247,7 @@ export default function OtherHomepage() {
                     </div>
                   </div>
                   <div className="bg-white/10 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-purple-400">
+                    <div className="text-2xl font-bold text-cyan-400">
                       Coming Soon
                     </div>
                     <div className="text-sm text-gray-300">총 투자금액</div>
@@ -262,33 +264,33 @@ export default function OtherHomepage() {
           className="min-h-screen py-20 px-8 relative overflow-hidden pb-24"
         >
           {/* Background Effects */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-indigo-500/20"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-cyan-500/20 to-teal-500/20"></div>
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-black/50 to-black"></div>
 
           <div className="max-w-4xl mx-auto text-center relative z-10">
-            <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h2 className="text-5xl font-bold mb-8 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
               함께 성장해요
             </h2>
             <p className="text-xl mb-16 text-gray-300 leading-relaxed">
-              혁신적인 아이디어를 가진 스타트업과 투자에 관심있는 파트너를 찾고
-              있습니다.
+              미래를 바꿀 혁신적인 스타트업과 학예있는 기업가들을 지원하며,
+              성공적인 투자 생태계를 만들어 가고 있습니다.
             </p>
 
             <div className="grid md:grid-cols-2 gap-8 mb-16">
               <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:-translate-y-2">
                 <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <TrendingUp className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-semibold mb-4 text-white">
                     스타트업 IR
                   </h3>
                   <p className="mb-6 text-gray-300 leading-relaxed">
-                    혁신적인 아이디어와 확장 가능한 비즈니스 모델을 보유한
-                    스타트업의 IR 신청을 기다립니다.
+                    차세대 기술과 높은 성장 가능성을 보유한 스타트업의 투자
+                    제안을 기다립니다.
                   </p>
                   <Button
-                    className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white border-0"
+                    className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white border-0"
                     onClick={() => setIsIRModalOpen(true)}
                   >
                     IR 문의하기
@@ -298,21 +300,21 @@ export default function OtherHomepage() {
 
               <Card className="bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300 hover:-translate-y-2">
                 <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
                     <Handshake className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-semibold mb-4 text-white">
-                    클럽 가입
+                    파트너십
                   </h3>
                   <p className="mb-6 text-gray-300 leading-relaxed">
-                    스타트업 투자와 생태계 발전에 관심있는 투자자와 전문가를
-                    모집하고 있습니다.
+                    전문적인 시각과 다양한 경험을 바탕으로 함께 성공을 만들어갈
+                    경험 많은 투자자와 어드바이저를 모집하고 있습니다.
                   </p>
                   <Button
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white border-0"
+                    className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white border-0"
                     onClick={() => setIsAngelModalOpen(true)}
                   >
-                    가입 문의하기
+                    파트너 문의하기
                   </Button>
                 </CardContent>
               </Card>
@@ -323,18 +325,18 @@ export default function OtherHomepage() {
                 기타 문의
               </h3>
               <div className="flex items-center justify-center gap-3 text-xl mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <a
-                  href="mailto:other@angel-club.kr"
+                  href="mailto:contact@propelventures.kr"
                   className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
                 >
-                  other@angel-club.kr
+                  contact@propel.kr
                 </a>
               </div>
               <p className="text-gray-300 leading-relaxed">
-                언제든지 연락주세요. 함께 혁신의 여정을 만들어가겠습니다.
+                언제든지 연락주세요. 함께 미래의 성공 스토리를 만들어가겠습니다.
               </p>
             </div>
           </div>
