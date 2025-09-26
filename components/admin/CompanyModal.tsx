@@ -45,7 +45,6 @@ export function CompanyModal({
     registration_number: '',
     category: [],
     established_at: '',
-    brand: '',
   });
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,7 +64,6 @@ export function CompanyModal({
           registration_number: company.registration_number || '',
           category: company.category,
           established_at: company.established_at || '',
-          brand: company.brand,
         });
       } else {
         // 생성 모드: 빈 폼으로 초기화
@@ -77,7 +75,6 @@ export function CompanyModal({
           registration_number: '',
           category: [],
           established_at: '',
-          brand: '',
         });
       }
       setErrors({});

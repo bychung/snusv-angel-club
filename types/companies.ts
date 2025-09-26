@@ -21,7 +21,6 @@ export interface CompanyInput {
   registration_number?: string;
   category: string[];
   established_at?: string; // YYYY-MM-DD 형식
-  brand: string;
 }
 
 // 산업 카테고리 상수

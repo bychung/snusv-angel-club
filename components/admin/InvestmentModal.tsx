@@ -52,6 +52,7 @@ export function InvestmentModal({
     unit_price: undefined,
     investment_shares: undefined,
     issued_shares: undefined,
+    brand: '',
   });
   const [companies, setCompanies] = useState<Company[]>([]);
   const [funds, setFunds] = useState<Fund[]>([]);
@@ -110,6 +111,7 @@ export function InvestmentModal({
           unit_price: investment.unit_price || undefined,
           investment_shares: investment.investment_shares || undefined,
           issued_shares: investment.issued_shares || undefined,
+          brand: investment.brand,
         });
       } else {
         // 생성 모드: 빈 폼으로 초기화
@@ -120,6 +122,7 @@ export function InvestmentModal({
           unit_price: undefined,
           investment_shares: undefined,
           issued_shares: undefined,
+          brand: '',
         });
       }
       setErrors({});
