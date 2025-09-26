@@ -792,7 +792,7 @@ export default function HomePage() {
       </Dialog>
 
       {/* Floating Bottom CTA Button */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+      {/* <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
         <Link href="/survey?fund_id=550e8400-e29b-41d4-a716-446655440000">
           <Button
             size="lg"
@@ -802,7 +802,7 @@ export default function HomePage() {
             <ChevronRight className="w-5 h-5 ml-2" />
           </Button>
         </Link>
-      </div>
+      </div> */}
 
       {/* IR 문의 모달 */}
       <IRInquiryModal
