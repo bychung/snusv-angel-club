@@ -1,16 +1,16 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(

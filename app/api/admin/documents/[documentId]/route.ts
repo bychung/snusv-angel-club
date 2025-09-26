@@ -1,6 +1,6 @@
 import { canDeleteDocument, deleteDocument } from '@/lib/admin/documents';
 import { isAdminServer } from '@/lib/auth/admin-server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 
 // 문서 삭제 (관리자만)
@@ -16,11 +16,11 @@ export async function DELETE(
 
   try {
     // 인증 및 권한 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
@@ -67,11 +67,11 @@ export async function GET(
 
   try {
     // 인증 및 권한 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
@@ -85,9 +85,8 @@ export async function GET(
       );
     }
 
-    // 문서 정보 조회
-    const { data: document, error } = await supabase
-      .from('documents')
+    // 문서 정보 조회 (브랜드별)
+    const { data: document, error } = await brandClient.documents
       .select(
         `
         *,

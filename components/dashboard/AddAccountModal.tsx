@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { AlertTriangle, CircleX, Search, User } from 'lucide-react';
 import { useState } from 'react';
@@ -141,10 +141,9 @@ export default function AddAccountModal({
       // 연결 완료 후 권한 부여
       if (searchResult.status === 'auth_only') {
         // 프로필이 없는 사용자의 경우 직접 profile_permissions에 추가
-        const supabase = createClient();
-        const { error: permissionError } = await supabase
-          .from('profile_permissions')
-          .insert({
+        const brandClient = createBrandClient();
+        const { error: permissionError } =
+          await brandClient.profilePermissions.insert({
             profile_id: selectedProfileId,
             user_id: searchResult.user_id,
             permission_type: permission,

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { CompanyDocumentCategory } from '@/types/company-documents';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
@@ -40,19 +40,18 @@ export async function GET(
 
   try {
     // 사용자 인증 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
     }
 
-    // 사용자 프로필 조회
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    // 사용자 프로필 조회 (브랜드별)
+    const { data: profile, error: profileError } = await brandClient.profiles
       .select('*')
       .eq('user_id', user.id)
       .single();
@@ -64,9 +63,8 @@ export async function GET(
       );
     }
 
-    // 해당 펀드의 조합원인지 확인
-    const { count: memberCount } = await supabase
-      .from('fund_members')
+    // 해당 펀드의 조합원인지 확인 (브랜드별)
+    const { count: memberCount } = await brandClient.fundMembers
       .select('*', { count: 'exact', head: true })
       .eq('fund_id', fundId)
       .eq('profile_id', profile.id);
@@ -78,9 +76,8 @@ export async function GET(
       );
     }
 
-    // 해당 펀드가 해당 회사에 투자했는지 확인
-    const { count: investmentCount } = await supabase
-      .from('investments')
+    // 해당 펀드가 해당 회사에 투자했는지 확인 (브랜드별)
+    const { count: investmentCount } = await brandClient.investments
       .select('*', { count: 'exact', head: true })
       .eq('fund_id', fundId)
       .eq('company_id', companyId);
@@ -92,15 +89,15 @@ export async function GET(
       );
     }
 
-    // 해당 카테고리의 최신 문서 조회
-    const { data: document, error: docError } = await supabase
-      .from('company_documents')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('category', category)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // 해당 카테고리의 최신 문서 조회 (브랜드별)
+    const { data: document, error: docError } =
+      await brandClient.companyDocuments
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('category', category)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
     if (docError || !document) {
       return Response.json(

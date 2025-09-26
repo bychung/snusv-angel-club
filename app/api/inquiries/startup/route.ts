@@ -1,9 +1,10 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // 데이터베이스에 문의 내용 저장 (brandClient 사용)
+    const brandClient = await createBrandServerClient();
 
     // FormData 처리 (파일 업로드 포함)
     const formData = await request.formData();
@@ -62,12 +63,13 @@ export async function POST(request: NextRequest) {
     // 파일을 ArrayBuffer로 변환
     const fileBuffer = await irDeckFile.arrayBuffer();
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('ir-decks')
-      .upload(filePath, fileBuffer, {
-        contentType: 'application/pdf',
-        upsert: false,
-      });
+    const { data: uploadData, error: uploadError } =
+      await brandClient.raw.storage
+        .from('ir-decks')
+        .upload(filePath, fileBuffer, {
+          contentType: 'application/pdf',
+          upsert: false,
+        });
 
     if (uploadError) {
       console.error('파일 업로드 오류:', uploadError);
@@ -80,9 +82,7 @@ export async function POST(request: NextRequest) {
     // Private 버킷이므로 파일 경로만 저장 (공개 URL 생성하지 않음)
     // 다운로드는 서버 API를 통해 처리
 
-    // 데이터베이스에 문의 내용 저장
-    const { data, error: dbError } = await supabase
-      .from('startup_inquiries')
+    const { data, error: dbError } = await brandClient.startupInquiries
       .insert({
         company_name: companyName,
         contact_person: contactPerson,
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       console.error('데이터베이스 저장 오류:', dbError);
 
       // 데이터베이스 저장 실패 시 업로드한 파일 삭제
-      await supabase.storage.from('ir-decks').remove([filePath]);
+      await brandClient.raw.storage.from('ir-decks').remove([filePath]);
 
       return NextResponse.json(
         { error: '문의 저장에 실패했습니다.' },
@@ -124,11 +124,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
-    // 관리자용 문의 목록 조회
-    const { data, error } = await supabase
-      .from('startup_inquiries')
+    // 관리자용 문의 목록 조회 (브랜드별 필터링)
+    const { data, error } = await brandClient.startupInquiries
       .select('*')
       .order('created_at', { ascending: false });
 

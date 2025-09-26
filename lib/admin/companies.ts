@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import type {
   CompaniesResponse,
   Company,
@@ -14,11 +14,10 @@ export async function getCompanies(
   page: number = 1,
   limit: number = 20
 ): Promise<CompaniesResponse> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
   const offset = (page - 1) * limit;
 
-  let query = supabase
-    .from('companies')
+  let query = brandClient.companies
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
 
@@ -64,10 +63,9 @@ export async function getCompanies(
 export async function getCompanyById(
   companyId: string
 ): Promise<Company | null> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('companies')
+  const { data, error } = await brandClient.companies
     .select('*')
     .eq('id', companyId)
     .single();
@@ -88,12 +86,11 @@ export async function getCompanyById(
 export async function createCompany(
   companyData: CompanyInput
 ): Promise<Company> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 사업자등록번호 중복 확인
   if (companyData.business_number) {
-    const { data: existing } = await supabase
-      .from('companies')
+    const { data: existing } = await brandClient.companies
       .select('id')
       .eq('business_number', companyData.business_number)
       .single();
@@ -103,8 +100,7 @@ export async function createCompany(
     }
   }
 
-  const { data, error } = await supabase
-    .from('companies')
+  const { data, error } = await brandClient.companies
     .insert({
       name: companyData.name,
       description: companyData.description || null,
@@ -131,12 +127,11 @@ export async function updateCompany(
   companyId: string,
   companyData: Partial<CompanyInput>
 ): Promise<Company> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 사업자등록번호 중복 확인 (본인 제외)
   if (companyData.business_number) {
-    const { data: existing } = await supabase
-      .from('companies')
+    const { data: existing } = await brandClient.companies
       .select('id')
       .eq('business_number', companyData.business_number)
       .neq('id', companyId)
@@ -163,8 +158,7 @@ export async function updateCompany(
   if (companyData.established_at !== undefined)
     updateData.established_at = companyData.established_at || null;
 
-  const { data, error } = await supabase
-    .from('companies')
+  const { data, error } = await brandClient.companies
     .update(updateData)
     .eq('id', companyId)
     .select()
@@ -181,11 +175,10 @@ export async function updateCompany(
  * 회사 삭제
  */
 export async function deleteCompany(companyId: string): Promise<void> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 투자 내역이 있는지 확인
-  const { count: investmentCount } = await supabase
-    .from('investments')
+  const { count: investmentCount } = await brandClient.investments
     .select('*', { count: 'exact', head: true })
     .eq('company_id', companyId);
 
@@ -193,10 +186,7 @@ export async function deleteCompany(companyId: string): Promise<void> {
     throw new Error('투자 내역이 있는 회사는 삭제할 수 없습니다.');
   }
 
-  const { error } = await supabase
-    .from('companies')
-    .delete()
-    .eq('id', companyId);
+  const { error } = await brandClient.companies.delete().eq('id', companyId);
 
   if (error) {
     throw new Error(`회사 삭제 실패: ${error.message}`);
@@ -210,10 +200,9 @@ export async function searchCompaniesByName(
   query: string,
   limit: number = 10
 ): Promise<Company[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('companies')
+  const { data, error } = await brandClient.companies
     .select('*')
     .ilike('name', `%${query}%`)
     .order('name')
@@ -232,9 +221,9 @@ export async function searchCompaniesByName(
 export async function getCompanyStatsByCategory(): Promise<
   Record<string, number>
 > {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase.from('companies').select('category');
+  const { data, error } = await brandClient.companies.select('category');
 
   if (error) {
     throw new Error(`카테고리 통계 조회 실패: ${error.message}`);
@@ -242,7 +231,7 @@ export async function getCompanyStatsByCategory(): Promise<
 
   const stats: Record<string, number> = {};
 
-  data?.forEach(company => {
+  data?.forEach((company: any) => {
     company.category.forEach((cat: string) => {
       stats[cat] = (stats[cat] || 0) + 1;
     });

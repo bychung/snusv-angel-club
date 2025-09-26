@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 // Card components removed for cleaner layout
-import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
 import { Chrome, MessageSquare, UserCircle } from 'lucide-react';
@@ -19,6 +18,7 @@ import RadioSelect from './inputs/RadioSelect';
 import TextInput from './inputs/TextInput';
 
 // Navigation components
+import { createBrandClient } from '@/lib/supabase/client';
 import SurveyNavigation from './SurveyNavigation';
 import SurveyProgress from './SurveyProgress';
 
@@ -159,9 +159,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   // 펀드 정보 조회
   const fetchFundInfo = async (fundIdToFetch: string) => {
     try {
-      const supabase = createClient();
-      const { data: fund, error } = await supabase
-        .from('funds')
+      const brandClient = createBrandClient();
+      const { data: fund, error } = await brandClient.funds
         .select('name, status')
         .eq('id', fundIdToFetch)
         .single();
@@ -407,7 +406,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     setSubmitError(null);
 
     try {
-      const supabase = createClient();
+      // brandClient를 사용해서 브랜드 자동 처리
+      const brandClient = createBrandClient();
 
       // 1. profiles 테이블에 upsert
       const profileData = {
@@ -431,9 +431,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       let profileError;
 
       if (isLoggedInUser && user) {
-        // 로그인된 사용자인 경우 user_id로 업데이트
-        const result = await supabase
-          .from('profiles')
+        // 로그인된 사용자인 경우 user_id로 업데이트 (브랜드별)
+        const result = await brandClient.profiles
           .update(profileData as any)
           .eq('user_id', user.id)
           .select()
@@ -442,9 +441,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         profile = result.data;
         profileError = result.error;
       } else {
-        // 비로그인 사용자인 경우 이메일 기준으로 upsert
-        const result = await supabase
-          .from('profiles')
+        // 비로그인 사용자인 경우 이메일 기준으로 upsert (brandClient 사용)
+        const result = await brandClient.profiles
           .upsert(profileData as any, {
             onConflict: 'email',
           })
@@ -474,11 +472,12 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         updated_at: new Date().toISOString(),
       };
 
-      const { error: fundMemberError } = await supabase
-        .from('fund_members')
-        .upsert(fundMemberData as any, {
+      const { error: fundMemberError } = await brandClient.fundMembers.upsert(
+        fundMemberData as any,
+        {
           onConflict: 'profile_id,fund_id',
-        });
+        }
+      );
 
       if (fundMemberError) {
         throw new Error(fundMemberError.message);

@@ -1,5 +1,6 @@
+// addBrandToData는 brandClient 내부에서 처리되므로 불필요
 import { deleteFile, uploadFile } from '@/lib/storage/server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import type { Document } from '@/types/database';
 import { DocumentCategory } from '@/types/documents';
 
@@ -17,10 +18,9 @@ export async function getDocumentHistory(
   fundId: string,
   category: DocumentCategory
 ): Promise<DocumentWithUploader[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('documents')
+  const { data, error } = await brandClient.documents
     .select(
       `
       *,
@@ -39,7 +39,7 @@ export async function getDocumentHistory(
     throw error;
   }
 
-  return data.map(doc => ({
+  return data.map((doc: any) => ({
     ...doc,
     uploader: doc.uploader
       ? {
@@ -79,9 +79,8 @@ export async function uploadDocument(
     }
 
     // 2. DB에 문서 정보 저장
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('documents')
+    const brandClient = await createBrandServerClient();
+    const { data, error } = await brandClient.documents
       .insert({
         fund_id: fundId,
         category,
@@ -115,11 +114,10 @@ export async function uploadDocument(
  * 문서 삭제 (Storage + DB)
  */
 export async function deleteDocument(documentId: string): Promise<void> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 1. 문서 정보 조회
-  const { data: document, error: fetchError } = await supabase
-    .from('documents')
+  const { data: document, error: fetchError } = await brandClient.documents
     .select('file_url')
     .eq('id', documentId)
     .single();
@@ -143,8 +141,7 @@ export async function deleteDocument(documentId: string): Promise<void> {
     }
 
     // 3. DB에서 문서 정보 삭제
-    const { error: deleteError } = await supabase
-      .from('documents')
+    const { error: deleteError } = await brandClient.documents
       .delete()
       .eq('id', documentId);
 
@@ -260,10 +257,9 @@ export async function getMemberInvestmentCertificates(
   memberId: string,
   documentYear?: number
 ): Promise<DocumentWithUploader[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  let query = supabase
-    .from('documents')
+  let query = brandClient.documents
     .select(
       `
       *,
@@ -289,7 +285,7 @@ export async function getMemberInvestmentCertificates(
     throw error;
   }
 
-  return data.map(doc => ({
+  return data.map((doc: any) => ({
     ...doc,
     uploader: doc.uploader
       ? {
@@ -319,19 +315,19 @@ export async function getFundInvestmentCertificateStatus(
     }>;
   }>;
 }> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 1. 펀드의 모든 조합원 조회
-  const { data: fundMembers, error: membersError } = await supabase
-    .from('fund_members')
-    .select(
-      `
+  // 1. 펀드의 모든 조합원 조회 (브랜드별)
+  const { data: fundMembers, error: membersError } =
+    await brandClient.fundMembers
+      .select(
+        `
       profile:profiles (
         id, name, email
       )
     `
-    )
-    .eq('fund_id', fundId);
+      )
+      .eq('fund_id', fundId);
 
   if (membersError || !fundMembers) {
     console.error('펀드 조합원 조회 실패:', membersError);
@@ -345,23 +341,23 @@ export async function getFundInvestmentCertificateStatus(
       .map(async (member: any) => {
         const memberId = member.profile.id;
 
-        // 해당 조합원의 모든 투자확인서 조회
-        const { data: certificates, error: certError } = await supabase
-          .from('documents')
-          .select(
-            `
+        // 해당 조합원의 모든 투자확인서 조회 (브랜드별)
+        const { data: certificates, error: certError } =
+          await brandClient.documents
+            .select(
+              `
             *,
             uploader:profiles!documents_uploaded_by_fkey (
               name,
               email
             )
           `
-          )
-          .eq('fund_id', fundId)
-          .eq('member_id', memberId)
-          .eq('category', DocumentCategory.INVESTMENT_CERTIFICATE)
-          .order('document_year', { ascending: false })
-          .order('created_at', { ascending: false });
+            )
+            .eq('fund_id', fundId)
+            .eq('member_id', memberId)
+            .eq('category', DocumentCategory.INVESTMENT_CERTIFICATE)
+            .order('document_year', { ascending: false })
+            .order('created_at', { ascending: false });
 
         if (certError) {
           console.error(`조합원 ${memberId} 투자확인서 조회 실패:`, certError);

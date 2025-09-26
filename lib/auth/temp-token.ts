@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
 import jwt from 'jsonwebtoken';
 import { NextRequest } from 'next/server';
+import { createBrandServerClient } from '../supabase/server';
 
 export interface TempTokenPayload {
   user_id: string;
@@ -34,14 +34,14 @@ export async function authenticateRequest(
   request: NextRequest,
   allowedPurposes: string[] = []
 ): Promise<AuthResult> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 1. 먼저 Supabase 세션 인증 시도
   try {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (!authError && user) {
       return {

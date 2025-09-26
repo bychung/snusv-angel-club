@@ -1,5 +1,5 @@
 import { isAdminServer } from '@/lib/auth/admin-server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,13 +9,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 관리자 권한 확인
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -32,12 +32,9 @@ export async function GET(
       );
     }
 
-    // 문의 정보 조회
-    const { data: inquiry, error: inquiryError } = await supabase
-      .from('startup_inquiries')
-      .select('*')
-      .eq('id', id)
-      .single();
+    // 문의 정보 조회 (브랜드별)
+    const { data: inquiry, error: inquiryError } =
+      await brandClient.startupInquiries.select('*').eq('id', id).single();
 
     if (inquiryError || !inquiry) {
       return NextResponse.json(
@@ -108,7 +105,9 @@ export async function GET(
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(fileName)}"`,
+        'Content-Disposition': `attachment; filename="${encodeURIComponent(
+          fileName
+        )}"`,
         'Content-Length': buffer.byteLength.toString(),
       },
     });

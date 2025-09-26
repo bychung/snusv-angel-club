@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import type { AccessibleProfile, Database, Profile } from '@/types/database';
 import type { User } from '@supabase/supabase-js';
 import { create } from 'zustand';
@@ -23,7 +23,7 @@ function openHiddenIframe(url: string) {
 
 async function triggerProviderLogout(
   provider: 'google' | 'kakao' | null | undefined,
-  supabaseClient: any
+  brandClient: any
 ) {
   if (typeof window === 'undefined') return;
   if (!provider) return;
@@ -35,7 +35,7 @@ async function triggerProviderLogout(
       // 현재 세션에서 Google 토큰 가져오기
       const {
         data: { session },
-      } = await supabaseClient.auth.getSession();
+      } = await brandClient.raw.auth.getSession();
       const providerToken = session?.provider_token;
 
       if (providerToken) {
@@ -140,8 +140,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const brandClient = createBrandClient();
+      const { data, error } = await brandClient.raw.auth.signInWithPassword({
         email,
         password,
       });
@@ -167,9 +167,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           try {
             const existingProfile = await get().findProfileByEmail(email);
             if (existingProfile && !existingProfile.user_id) {
-              // 기존 프로필에 user_id 연결
-              const { error: updateError } = await supabase
-                .from('profiles')
+              // 기존 프로필에 user_id 연결 (브랜드별)
+              const { error: updateError } = await brandClient.profiles
                 .update({
                   user_id: user.id,
                   updated_at: new Date().toISOString(),
@@ -231,8 +230,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         console.log('[authStore] Saved redirect URL for survey:', currentUrl);
       }
 
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithOAuth({
+      const brandClient = createBrandClient();
+      const { error } = await brandClient.raw.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/redirect`,
@@ -259,10 +258,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
       // 1. Supabase Auth 회원가입
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await brandClient.raw.auth.signUp({
         email,
         password,
       });
@@ -283,9 +282,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         const existingProfile = await get().findProfileByEmail(email);
 
         if (existingProfile && !existingProfile.user_id) {
-          // 기존 프로필에 user_id 연결
-          const { error: updateError } = await supabase
-            .from('profiles')
+          // 기존 프로필에 user_id 연결 (브랜드별)
+          const { error: updateError } = await brandClient.profiles
             .update({
               user_id: user.id,
               updated_at: new Date().toISOString(),
@@ -340,7 +338,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
       const currentUser = get().user as any;
       const provider: 'google' | 'kakao' | null =
         currentUser?.app_metadata?.provider ||
@@ -348,9 +346,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         null;
 
       // 프로바이더 로그아웃을 먼저 시도 (토큰이 유효할 때)
-      await triggerProviderLogout(provider, supabase);
+      await triggerProviderLogout(provider, brandClient);
 
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      const { error } = await brandClient.raw.auth.signOut({ scope: 'global' });
 
       if (error) {
         throw error;
@@ -379,9 +377,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      const supabase = createClient();
-      const { data: updatedProfile, error } = await supabase
-        .from('profiles')
+      const brandClient = createBrandClient();
+      const { data: updatedProfile, error } = await brandClient.profiles
         // @ts-ignore - Supabase 타입 시스템 이슈로 인한 임시 해결책
         .update({
           ...data,
@@ -430,7 +427,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     try {
       console.log('[authStore] About to create supabase client...');
-      const supabase = createClient();
+      const brandClient = createBrandClient();
       console.log('[authStore] Supabase client created successfully');
 
       console.log('[authStore] About to execute database query...');
@@ -450,8 +447,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         queryAbortController.abort();
       }, 15000);
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      const { data: profile, error } = await brandClient.profiles
         .select('*')
         .eq('user_id', targetUserId)
         // Postgrest abortSignal 연결
@@ -475,11 +471,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           );
 
           try {
-            // 공유받은 프로필이 있는지 확인
-            const { data: sharedAccess, error: sharedError } = await supabase
-              .from('profile_permissions')
-              .select('profile_id, permission_type')
-              .eq('user_id', targetUserId);
+            // 공유받은 프로필이 있는지 확인 (브랜드별)
+            const { data: sharedAccess, error: sharedError } =
+              await brandClient.profilePermissions
+                .select('profile_id, permission_type')
+                .eq('user_id', targetUserId);
 
             if (sharedError) {
               console.error(
@@ -534,14 +530,14 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // 프로필과 함께 사용자의 펀드 참여 정보도 조회
       try {
-        const { data: fundMembers, error: fundError } = await supabase
-          .from('fund_members')
-          .select('fund_id')
-          .eq('profile_id', profile.id);
+        const { data: fundMembers, error: fundError } =
+          await brandClient.fundMembers
+            .select('fund_id')
+            .eq('profile_id', profile.id);
 
         let userFunds: string[] = [];
         if (!fundError && fundMembers) {
-          userFunds = fundMembers.map(member => member.fund_id);
+          userFunds = fundMembers.map((member: any) => member.fund_id);
           console.log('[authStore] User funds loaded successfully:', userFunds);
         } else if (fundError) {
           console.warn('[authStore] Failed to load user funds:', fundError);
@@ -628,10 +624,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     console.log('[authStore] findProfileByEmail called:', { email });
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
-      const { data: profile, error } = await supabase
-        .from('profiles')
+      const { data: profile, error } = await brandClient.profiles
         .select('*')
         .eq('email', email)
         .single();
@@ -676,39 +671,37 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const targetUserId = userId || user?.id;
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
-      // 1. 내가 소유한 프로필들
-      const { data: ownedProfiles, error: ownedError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', targetUserId);
+      // 1. 내가 소유한 프로필들 (브랜드별)
+      const { data: ownedProfiles, error: ownedError } =
+        await brandClient.profiles.select('*').eq('user_id', targetUserId);
 
       if (ownedError) throw ownedError;
 
-      // 2. 나에게 공유된 프로필들
-      const { data: sharedAccess, error: sharedError } = await supabase
-        .from('profile_permissions')
-        .select(
-          `
+      // 2. 나에게 공유된 프로필들 (브랜드별)
+      const { data: sharedAccess, error: sharedError } =
+        await brandClient.profilePermissions
+          .select(
+            `
           permission_type,
           profiles!profile_permissions_profile_id_fkey(*),
           granted_by_profile:profiles!profile_permissions_granted_by_fkey(name)
         `
-        )
-        .eq('user_id', targetUserId);
+          )
+          .eq('user_id', targetUserId);
 
       if (sharedError) throw sharedError;
 
       // 접근 가능한 프로필 목록 구성
       const accessibleProfiles: AccessibleProfile[] = [
         // 내가 소유한 프로필들
-        ...(ownedProfiles || []).map(profile => ({
+        ...(ownedProfiles || []).map((profile: any) => ({
           profile,
           permission: 'owner' as const,
         })),
         // 나에게 공유된 프로필들
-        ...(sharedAccess || []).map(access => ({
+        ...(sharedAccess || []).map((access: any) => ({
           profile: (access as any).profiles,
           permission: (access as any).permission_type as 'admin' | 'view',
           grantedBy: (access as any).granted_by_profile?.name,
@@ -781,7 +774,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (!user) throw new Error('로그인이 필요합니다.');
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
       // 1. 이메일로 사용자 검색
       const targetProfile = await get().findProfileByEmail(email);
@@ -794,12 +787,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
 
       // 2. 내가 해당 프로필의 owner인지 확인
-      const { data: ownerProfile, error: ownerError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .eq('user_id', user.id)
-        .single();
+      const { data: ownerProfile, error: ownerError } =
+        await brandClient.profiles
+          .select('*')
+          .eq('id', profileId)
+          .eq('user_id', user.id)
+          .single();
 
       if (ownerError || !ownerProfile) {
         throw new Error(
@@ -807,10 +800,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         );
       }
 
-      // 3. 권한 부여
-      const { error: insertError } = await supabase
-        .from('profile_permissions')
-        .insert({
+      // 3. 권한 부여 (브랜드별)
+      const { error: insertError } =
+        await brandClient.profilePermissions.insert({
           profile_id: profileId,
           user_id: targetProfile.user_id,
           permission_type: permission,
@@ -839,15 +831,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     if (!user) throw new Error('로그인이 필요합니다.');
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
       // 1. 내가 해당 프로필의 owner인지 확인
-      const { data: ownerProfile, error: ownerError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', profileId)
-        .eq('user_id', user.id)
-        .single();
+      const { data: ownerProfile, error: ownerError } =
+        await brandClient.profiles
+          .select('*')
+          .eq('id', profileId)
+          .eq('user_id', user.id)
+          .single();
 
       if (ownerError || !ownerProfile) {
         throw new Error(
@@ -855,9 +847,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         );
       }
 
-      // 2. 권한 삭제
-      const { error: deleteError } = await supabase
-        .from('profile_permissions')
+      // 2. 권한 삭제 (브랜드별)
+      const { error: deleteError } = await brandClient.profilePermissions
         .delete()
         .eq('profile_id', profileId)
         .eq('user_id', userId);

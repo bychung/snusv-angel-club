@@ -1,9 +1,9 @@
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     const body = await request.json();
     const { name, selfIntroduction, email } = body;
@@ -25,9 +25,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 데이터베이스에 문의 내용 저장
-    const { data, error: dbError } = await supabase
-      .from('angel_inquiries')
+    // 데이터베이스에 문의 내용 저장 (brandClient 사용)
+    const { data, error: dbError } = await brandClient.angelInquiries
       .insert({
         name: name.trim(),
         self_introduction: selfIntroduction.trim(),
@@ -63,11 +62,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
-    // 관리자용 문의 목록 조회
-    const { data, error } = await supabase
-      .from('angel_inquiries')
+    // 관리자용 문의 목록 조회 (브랜드별 필터링)
+    const { data, error } = await brandClient.angelInquiries
       .select('*')
       .order('created_at', { ascending: false });
 

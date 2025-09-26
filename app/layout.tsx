@@ -1,5 +1,6 @@
 import AuthProvider from '@/components/auth/AuthProvider';
 import BlynxLabChatWidget from '@/components/external/BlynxLabChatWidget';
+import { getBrandingConfig } from '@/lib/branding';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
@@ -14,17 +15,19 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const branding = getBrandingConfig();
+
 export const metadata: Metadata = {
-  title: 'SNUSV 엔젤클럽',
-  description: '서울대 벤처창업동아리 SNUSV Alumni 기반의 엔젤클럽',
+  title: branding.title,
+  description: branding.description,
   themeColor: '#ffffff',
 
   openGraph: {
     images: ['/meta-image.png'],
-    title: 'SNUSV 엔젤클럽',
-    description: '서울대 벤처창업동아리 SNUSV Alumni 기반의 엔젤클럽',
-    url: 'https://snusv.angel-club.kr',
-    siteName: 'SNUSV 엔젤클럽',
+    title: branding.ogTitle,
+    description: branding.ogDescription,
+    url: branding.domain,
+    siteName: branding.title,
     locale: 'ko_KR',
     type: 'website',
   },
@@ -48,7 +51,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <BlynxLabChatWidget slug="3um3" includePaths={['/']} />
+          {branding.chatbotSlug && (
+            <BlynxLabChatWidget
+              slug={branding.chatbotSlug}
+              includePaths={['/']}
+            />
+          )}
           {children}
         </AuthProvider>
       </body>

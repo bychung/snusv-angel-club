@@ -1,6 +1,6 @@
 import { deleteDocument } from '@/lib/admin/documents';
 import { isAdminServer } from '@/lib/auth/admin-server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 
 // 투자확인서 삭제
@@ -12,11 +12,11 @@ export async function DELETE(
 
   try {
     // 인증 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
@@ -32,8 +32,7 @@ export async function DELETE(
     }
 
     // 문서 정보 조회 및 권한 확인
-    const { data: document, error: fetchError } = await supabase
-      .from('documents')
+    const { data: document, error: fetchError } = await brandClient.documents
       .select('*')
       .eq('id', documentId)
       .eq('fund_id', fundId)

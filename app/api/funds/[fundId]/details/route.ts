@@ -1,6 +1,6 @@
 import { getFundDetails } from '@/lib/admin/funds';
 import { isAdminServer } from '@/lib/auth/admin-server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 
 export async function GET(
@@ -15,11 +15,11 @@ export async function GET(
 
   try {
     // 사용자 인증 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
@@ -30,8 +30,7 @@ export async function GET(
 
     // 관리자가 아닌 경우, 해당 펀드에 참여하는지 확인
     if (!isAdmin) {
-      const { data: profile } = await supabase
-        .from('profiles')
+      const { data: profile } = await brandClient.profiles
         .select('id')
         .eq('user_id', user.id)
         .single();
@@ -43,8 +42,7 @@ export async function GET(
         );
       }
 
-      const { count } = await supabase
-        .from('fund_members')
+      const { count } = await brandClient.fundMembers
         .select('*', { count: 'exact', head: true })
         .eq('fund_id', fundId)
         .eq('profile_id', profile.id);

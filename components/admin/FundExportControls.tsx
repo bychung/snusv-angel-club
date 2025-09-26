@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
@@ -62,11 +62,10 @@ export default function FundExportControls({
   };
 
   const fetchExportData = async () => {
-    const supabase = createClient();
+    const brandClient = createBrandClient();
 
-    // 특정 펀드의 조합원 데이터 조회
-    let query = supabase
-      .from('fund_members')
+    // 특정 펀드의 조합원 데이터 조회 (브랜드별)
+    let query = brandClient.fundMembers
       .select(
         `
         *,
@@ -84,9 +83,13 @@ export default function FundExportControls({
     // 사용자 필터 적용
     let filteredData = fundMembers || [];
     if (options.userFilter === 'registered') {
-      filteredData = filteredData.filter(member => member.profile?.user_id);
+      filteredData = filteredData.filter(
+        (member: any) => member.profile?.user_id
+      );
     } else if (options.userFilter === 'survey_only') {
-      filteredData = filteredData.filter(member => !member.profile?.user_id);
+      filteredData = filteredData.filter(
+        (member: any) => !member.profile?.user_id
+      );
     }
 
     return filteredData;
@@ -166,7 +169,9 @@ export default function FundExportControls({
 
     XLSX.utils.book_append_sheet(wb, ws, '조합원_데이터');
 
-    const fileName = `${fundName}_조합원데이터_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const fileName = `${fundName}_조합원데이터_${
+      new Date().toISOString().split('T')[0]
+    }.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 

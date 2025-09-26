@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { Building, User, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -139,7 +139,7 @@ export default function AddMemberModal({
     setError(null);
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
       const {
         name,
         phone,
@@ -152,11 +152,11 @@ export default function AddMemberModal({
       } = formData;
 
       // 1. 이메일로 기존 프로필 검색
-      const { data: existingProfile, error: searchError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email.trim())
-        .maybeSingle();
+      const { data: existingProfile, error: searchError } =
+        await brandClient.profiles
+          .select('id')
+          .eq('email', email.trim())
+          .maybeSingle();
 
       if (searchError) {
         throw new Error('기존 프로필 조회 중 오류가 발생했습니다.');
@@ -192,11 +192,11 @@ export default function AddMemberModal({
           profileInsertData.business_number = business_number.trim();
         }
 
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert([profileInsertData])
-          .select('id')
-          .single();
+        const { data: newProfile, error: insertError } =
+          await brandClient.profiles
+            .insert([profileInsertData])
+            .select('id')
+            .single();
 
         if (insertError) {
           console.error('프로필 생성 오류:', insertError);
@@ -215,15 +215,13 @@ export default function AddMemberModal({
       }
 
       // 2. fund_members에 추가
-      const { error: fundMemberError } = await supabase
-        .from('fund_members')
-        .insert([
-          {
-            fund_id: fundId,
-            profile_id: profileId,
-            investment_units,
-          },
-        ]);
+      const { error: fundMemberError } = await brandClient.fundMembers.insert([
+        {
+          fund_id: fundId,
+          profile_id: profileId,
+          investment_units,
+        },
+      ]);
 
       if (fundMemberError) {
         console.error('펀드 멤버 추가 오류:', fundMemberError);

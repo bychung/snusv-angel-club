@@ -5,7 +5,7 @@ import {
 } from '@/lib/admin/documents';
 import { isAdminServer } from '@/lib/auth/admin-server';
 import { validateFile } from '@/lib/storage/utils';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { DocumentCategory, isValidDocumentCategory } from '@/types/documents';
 import { NextRequest } from 'next/server';
 
@@ -40,11 +40,11 @@ export async function POST(
 
   try {
     // 인증 및 권한 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
@@ -59,8 +59,7 @@ export async function POST(
     }
 
     // 사용자 프로필 조회
-    const { data: profile } = await supabase
-      .from('profiles')
+    const { data: profile } = await brandClient.profiles
       .select('id')
       .eq('user_id', user.id)
       .single();
@@ -95,8 +94,7 @@ export async function POST(
       }
 
       // memberId가 해당 펀드의 조합원인지 검증
-      const { count } = await supabase
-        .from('fund_members')
+      const { count } = await brandClient.fundMembers
         .select('*', { count: 'exact', head: true })
         .eq('fund_id', fundId)
         .eq('profile_id', memberId);
@@ -180,11 +178,11 @@ export async function GET(
 
   try {
     // 인증 및 권한 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import type { Fund } from '@/types/database';
 import { DocumentCategory } from '@/types/documents';
 
@@ -38,11 +38,10 @@ export interface FundDetailsResponse {
  * 모든 펀드 목록과 통계를 조회합니다 (서버에서만 실행)
  */
 export async function getAllFunds(): Promise<FundWithStats[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 펀드 목록과 관련 통계 조회
-  const { data: fundsData, error } = await supabase
-    .from('funds')
+  // 펀드 목록과 관련 통계 조회 (브랜드별)
+  const { data: fundsData, error } = await brandClient.funds
     .select(
       `
       *,
@@ -65,7 +64,7 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
 
   // 각 펀드별 통계 계산
   const fundsWithStats: FundWithStats[] =
-    fundsData?.map(fund => {
+    fundsData?.map((fund: any) => {
       const members = fund.fund_members || [];
       const totalInvestment = members.reduce(
         (sum: number, member: any) => sum + member.investment_units,
@@ -98,11 +97,10 @@ export async function getFundDetails(
   userId?: string,
   isAdmin: boolean = false
 ): Promise<FundDetailsResponse> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 1. 펀드 기본 정보 조회
-  const { data: fund, error: fundError } = await supabase
-    .from('funds')
+  // 1. 펀드 기본 정보 조회 (브랜드별)
+  const { data: fund, error: fundError } = await brandClient.funds
     .select('*')
     .eq('id', fundId)
     .single();
@@ -111,16 +109,15 @@ export async function getFundDetails(
     throw new Error('펀드를 찾을 수 없습니다');
   }
 
-  // 2. GP 정보 조회 (gp_id 배열에서)
+  // 2. GP 정보 조회 (gp_id 배열에서, 브랜드별)
   let gp_info: FundMemberInfo[] = [];
   if (fund.gp_id && fund.gp_id.length > 0) {
-    const { data: gpProfiles } = await supabase
-      .from('profiles')
+    const { data: gpProfiles } = await brandClient.profiles
       .select('id, name, email, role, entity_type')
       .in('id', fund.gp_id);
 
     gp_info =
-      gpProfiles?.map(profile => ({
+      gpProfiles?.map((profile: any) => ({
         id: profile.id,
         name: profile.name,
         email: profile.email,
@@ -129,27 +126,27 @@ export async function getFundDetails(
       })) || [];
   }
 
-  // 3. 펀드 멤버 정보 조회 (전체 결성 금액 계산용)
-  const { data: fundMembers } = await supabase
-    .from('fund_members')
+  // 3. 펀드 멤버 정보 조회 (전체 결성 금액 계산용, 브랜드별)
+  const { data: fundMembers } = await brandClient.fundMembers
     .select('total_amount')
     .eq('fund_id', fundId);
 
   const totalInvestment =
-    fundMembers?.reduce((sum, member) => sum + member.total_amount, 0) || 0;
+    fundMembers?.reduce(
+      (sum: number, member: any) => sum + member.total_amount,
+      0
+    ) || 0;
 
   // 4. 사용자가 해당 펀드에 참여하는지 확인
   let isParticipant = false;
   if (userId && !isAdmin) {
-    const { data: userProfile } = await supabase
-      .from('profiles')
+    const { data: userProfile } = await brandClient.profiles
       .select('id')
       .eq('user_id', userId)
       .single();
 
     if (userProfile) {
-      const { count } = await supabase
-        .from('fund_members')
+      const { count } = await brandClient.fundMembers
         .select('*', { count: 'exact', head: true })
         .eq('fund_id', fundId)
         .eq('profile_id', userProfile.id);
@@ -168,8 +165,7 @@ export async function getFundDetails(
   const documents_status = {} as FundDetailsResponse['documents_status'];
 
   for (const category of documentCategories) {
-    const { data: docs } = await supabase
-      .from('documents')
+    const { data: docs } = await brandClient.documents
       .select('created_at')
       .eq('fund_id', fundId)
       .eq('category', category)
@@ -200,10 +196,9 @@ export async function getFundDetails(
 export async function getFundMembers(
   fundId: string
 ): Promise<FundMemberInfo[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('fund_members')
+  const { data, error } = await brandClient.fundMembers
     .select(
       `
       profile:profiles (
@@ -256,7 +251,7 @@ export async function updateFundDetails(
     dissolved_at?: string;
   }
 ): Promise<Fund> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 빈 문자열인 날짜 필드들을 null로 변환
   const sanitizedUpdates = { ...updates };
@@ -270,8 +265,7 @@ export async function updateFundDetails(
     sanitizedUpdates.dissolved_at = undefined;
   }
 
-  const { data, error } = await supabase
-    .from('funds')
+  const { data, error } = await brandClient.funds
     .update({
       ...sanitizedUpdates,
       updated_at: new Date().toISOString(),

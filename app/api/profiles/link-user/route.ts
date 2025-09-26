@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -12,13 +12,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
     const {
       data: { user: currentUser },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !currentUser) {
       return NextResponse.json(
@@ -27,9 +27,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. profiles 테이블에서 이메일로 검색
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    // 1. profiles 테이블에서 이메일로 검색 (브랜드별 자동 적용)
+    const { data: profile, error: profileError } = await brandClient.profiles
       .select('*')
       .eq('email', email)
       .single();
@@ -44,7 +43,7 @@ export async function POST(request: NextRequest) {
     // 2. 이메일을 가진 auth 사용자 검색 (admin API 사용)
     try {
       const { data: authUsers, error: authListError } =
-        await supabase.auth.admin.listUsers();
+        await brandClient.raw.auth.admin.listUsers();
 
       if (authListError) {
         throw authListError;
@@ -63,8 +62,7 @@ export async function POST(request: NextRequest) {
 
       // 3. 프로필이 있으면서 user_id가 null인 경우 → 연결
       if (profile && !profile.user_id) {
-        const { error: updateError } = await supabase
-          .from('profiles')
+        const { error: updateError } = await brandClient.profiles
           .update({
             user_id: targetAuthUser.id,
             updated_at: new Date().toISOString(),

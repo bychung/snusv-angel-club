@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import type { FundMember, Profile } from '@/types/database';
 
 export interface MemberWithFund extends Profile {
@@ -20,10 +20,9 @@ export async function getFundMembers(
   fundId: string,
   filters: MemberFilters = {}
 ): Promise<MemberWithFund[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  let query = supabase
-    .from('fund_members')
+  let query = brandClient.fundMembers
     .select(
       `
       *,
@@ -50,7 +49,7 @@ export async function getFundMembers(
 
   // 프로필과 fund_member 정보를 합쳐서 형태 변환
   let membersWithStatus: MemberWithFund[] =
-    fundMembers?.map(fundMember => ({
+    fundMembers?.map((fundMember: any) => ({
       ...fundMember.profile,
       fund_members: [fundMember],
       registration_status: fundMember.profile?.user_id
@@ -74,10 +73,9 @@ export async function getFundMembers(
 export async function getAllUsers(
   filters: MemberFilters = {}
 ): Promise<MemberWithFund[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  let query = supabase
-    .from('profiles')
+  let query = brandClient.profiles
     .select(
       `
       *,
@@ -110,7 +108,7 @@ export async function getAllUsers(
     throw error;
   }
 
-  let usersWithStatus: MemberWithFund[] = profiles.map(profile => ({
+  let usersWithStatus: MemberWithFund[] = profiles.map((profile: any) => ({
     ...profile,
     registration_status: profile.user_id ? 'registered' : 'survey_only',
   }));

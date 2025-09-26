@@ -11,7 +11,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
+// createClient는 더이상 필요 없음 (brandClient 사용)
 import { Download, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import * as XLSX from 'xlsx';
@@ -61,9 +62,11 @@ export default function ExportControls() {
   };
 
   const fetchExportData = async () => {
-    const supabase = createClient();
+    // brandClient를 사용해서 브랜드 자동 처리
+    const brandClient = createBrandClient();
 
-    let query = supabase.from('profiles').select(`
+    let query = brandClient.profiles.select(
+      `
         *,
         fund_members (
           id,
@@ -71,7 +74,8 @@ export default function ExportControls() {
           created_at,
           updated_at
         )
-      `);
+      `
+    );
 
     // 사용자 필터 적용
     if (options.userFilter === 'registered') {
@@ -162,7 +166,9 @@ export default function ExportControls() {
 
     XLSX.utils.book_append_sheet(wb, ws, '사용자_데이터');
 
-    const fileName = `SNUSV_사용자데이터_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const fileName = `SNUSV_사용자데이터_${
+      new Date().toISOString().split('T')[0]
+    }.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 

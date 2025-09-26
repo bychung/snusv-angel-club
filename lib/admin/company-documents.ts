@@ -1,5 +1,5 @@
 import { deleteFile, uploadFile } from '@/lib/storage/server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import {
   CompanyDocumentCategory,
   type CompanyDocumentFilters,
@@ -16,12 +16,11 @@ export async function getCompanyDocuments(
   page: number = 1,
   limit: number = 20
 ): Promise<CompanyDocumentsResponse> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
   const offset = (page - 1) * limit;
 
   // company_document_details 뷰를 사용하여 조인된 데이터 조회
-  let query = supabase
-    .from('company_document_details')
+  let query = brandClient.companyDocumentDetails
     .select('*', { count: 'exact' })
     .order('created_at', { ascending: false });
 
@@ -72,10 +71,9 @@ export async function getCompanyDocuments(
 export async function getCompanyDocumentById(
   documentId: string
 ): Promise<CompanyDocumentWithDetails | null> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('company_document_details')
+  const { data, error } = await brandClient.companyDocumentDetails
     .select('*')
     .eq('id', documentId)
     .single();
@@ -96,11 +94,10 @@ export async function getCompanyDocumentById(
 export async function getDocumentsByCompany(
   companyId: string
 ): Promise<CompanyDocumentStatus | null> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 회사 정보 조회
-  const { data: company, error: companyError } = await supabase
-    .from('companies')
+  // 회사 정보 조회 (브랜드별)
+  const { data: company, error: companyError } = await brandClient.companies
     .select('*')
     .eq('id', companyId)
     .single();
@@ -113,11 +110,11 @@ export async function getDocumentsByCompany(
   }
 
   // 해당 회사의 문서 목록 조회
-  const { data: documents, error: documentError } = await supabase
-    .from('company_document_details')
-    .select('*')
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false });
+  const { data: documents, error: documentError } =
+    await brandClient.companyDocumentDetails
+      .select('*')
+      .eq('company_id', companyId)
+      .order('created_at', { ascending: false });
 
   if (documentError) {
     throw new Error(`회사 문서 목록 조회 실패: ${documentError.message}`);
@@ -133,7 +130,7 @@ export async function getDocumentsByCompany(
     documentsByCategory[category] = [];
   });
 
-  documents?.forEach(doc => {
+  documents?.forEach((doc: any) => {
     if (documentsByCategory[doc.category as CompanyDocumentCategory]) {
       documentsByCategory[doc.category as CompanyDocumentCategory].push(doc);
     }
@@ -162,10 +159,9 @@ export async function uploadCompanyDocument(
   uploadedBy: string
 ): Promise<CompanyDocumentWithDetails> {
   try {
-    // 회사 존재 확인
-    const supabase = await createClient();
-    const { count: companyCount } = await supabase
-      .from('companies')
+    // 회사 존재 확인 (브랜드별)
+    const brandClient = await createBrandServerClient();
+    const { count: companyCount } = await brandClient.companies
       .select('*', { count: 'exact', head: true })
       .eq('id', companyId);
 
@@ -186,8 +182,7 @@ export async function uploadCompanyDocument(
     }
 
     // 2. DB에 문서 정보 저장
-    const { data, error } = await supabase
-      .from('company_documents')
+    const { data, error } = await brandClient.companyDocuments
       .insert({
         company_id: companyId,
         category,
@@ -225,14 +220,14 @@ export async function uploadCompanyDocument(
  * 회사 문서 삭제
  */
 export async function deleteCompanyDocument(documentId: string): Promise<void> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 문서 정보 조회 (파일 경로 확인용)
-  const { data: document, error: fetchError } = await supabase
-    .from('company_documents')
-    .select('file_url')
-    .eq('id', documentId)
-    .single();
+  // 문서 정보 조회 (파일 경로 확인용, 브랜드별)
+  const { data: document, error: fetchError } =
+    await brandClient.companyDocuments
+      .select('file_url')
+      .eq('id', documentId)
+      .single();
 
   if (fetchError) {
     if (fetchError.code === 'PGRST116') {
@@ -256,8 +251,7 @@ export async function deleteCompanyDocument(documentId: string): Promise<void> {
   }
 
   // DB에서 문서 정보 삭제
-  const { error: deleteError } = await supabase
-    .from('company_documents')
+  const { error: deleteError } = await brandClient.companyDocuments
     .delete()
     .eq('id', documentId);
 
@@ -283,10 +277,9 @@ export async function getCompanyDocumentsByCategory(
   companyId: string,
   category: CompanyDocumentCategory
 ): Promise<CompanyDocumentWithDetails[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('company_document_details')
+  const { data, error } = await brandClient.companyDocumentDetails
     .select('*')
     .eq('company_id', companyId)
     .eq('category', category)
@@ -305,11 +298,9 @@ export async function getCompanyDocumentsByCategory(
 export async function getDocumentStatsByCategory(): Promise<
   Record<CompanyDocumentCategory, number>
 > {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('company_documents')
-    .select('category');
+  const { data, error } = await brandClient.companyDocuments.select('category');
 
   if (error) {
     throw new Error(`문서 통계 조회 실패: ${error.message}`);
@@ -321,7 +312,7 @@ export async function getDocumentStatsByCategory(): Promise<
     stats[category] = 0;
   });
 
-  data?.forEach(doc => {
+  data?.forEach((doc: any) => {
     if (stats[doc.category as CompanyDocumentCategory] !== undefined) {
       stats[doc.category as CompanyDocumentCategory]++;
     }

@@ -1,7 +1,7 @@
 import AdminLayout from '@/components/admin/AdminLayout';
 import FundDetailManager from '@/components/admin/FundDetailManager';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -14,11 +14,10 @@ interface FundManagePageProps {
 
 export default async function FundManagePage({ params }: FundManagePageProps) {
   const { fundId } = await params;
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 펀드 기본 정보 조회 (존재 여부 확인)
-  const { data: fund, error } = await supabase
-    .from('funds')
+  const { data: fund, error } = await brandClient.funds
     .select('name, abbreviation, created_at')
     .eq('id', fundId)
     .single();

@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import type { FundMember, Profile } from '@/types/database';
 import { Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -70,11 +70,10 @@ export default function EditMemberModal({
     if (!member) return;
 
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
-      // 프로필 정보 업데이트 (role 포함)
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // 프로필 정보 업데이트 (role 포함, 브랜드별 자동 적용)
+      const { error: profileError } = await brandClient.profiles
         .update({
           name: formData.name,
           phone: formData.phone,
@@ -95,8 +94,7 @@ export default function EditMemberModal({
         member.fund_members &&
         member.fund_members.length > 0
       ) {
-        const { error: fundMemberError } = await supabase
-          .from('fund_members')
+        const { error: fundMemberError } = await brandClient.fundMembers
           .update({
             investment_units: formData.investment_units,
             updated_at: new Date().toISOString(),

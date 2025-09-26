@@ -1,10 +1,10 @@
 import { authenticateRequest } from '@/lib/auth/temp-token';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 인증 확인 (Supabase 세션 또는 임시 토큰)
     const authResult = await authenticateRequest(request, ['email-search']);
@@ -50,15 +50,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 이미 같은 사용자가 같은 이메일로 문의를 했는지 확인 (최근 24시간 내)
+    // 이미 같은 사용자가 같은 이메일로 문의를 했는지 확인 (최근 24시간 내, 브랜드별)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: existingInquiry, error: checkError } = await supabase
-      .from('signup_inquiries')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('attempted_email', attemptedEmail.trim().toLowerCase())
-      .gte('created_at', oneDayAgo)
-      .limit(1);
+    const { data: existingInquiry, error: checkError } =
+      await brandClient.signupInquiries
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('attempted_email', attemptedEmail.trim().toLowerCase())
+        .gte('created_at', oneDayAgo)
+        .limit(1);
 
     if (checkError) {
       console.error('기존 문의 확인 오류:', checkError);
@@ -82,11 +82,11 @@ export async function POST(request: NextRequest) {
       status: 'pending',
     };
 
-    const { data: savedInquiry, error: saveError } = await supabase
-      .from('signup_inquiries')
-      .insert(inquiryData)
-      .select('*')
-      .single();
+    const { data: savedInquiry, error: saveError } =
+      await brandClient.signupInquiries
+        .insert(inquiryData)
+        .select('*')
+        .single();
 
     if (saveError) {
       console.error('문의 저장 오류:', saveError);
@@ -117,13 +117,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 및 관리자 권한 확인
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
     if (authError || !user) {
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
@@ -132,8 +132,7 @@ export async function GET() {
     }
 
     // 관리자 권한 확인
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    const { data: profile, error: profileError } = await brandClient.profiles
       .select('role')
       .eq('user_id', user.id)
       .single();
@@ -145,11 +144,11 @@ export async function GET() {
       );
     }
 
-    // 회원가입 문의 목록 조회
-    const { data: inquiries, error: fetchError } = await supabase
-      .from('signup_inquiries')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // 회원가입 문의 목록 조회 (브랜드별 필터링)
+    const { data: inquiries, error: fetchError } =
+      await brandClient.signupInquiries
+        .select('*')
+        .order('created_at', { ascending: false });
 
     if (fetchError) {
       console.error('회원가입 문의 목록 조회 오류:', fetchError);

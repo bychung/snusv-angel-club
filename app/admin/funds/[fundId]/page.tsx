@@ -5,7 +5,7 @@ import MemberSearchAndFilter from '@/components/admin/MemberSearchAndFilter';
 import MemberTable from '@/components/admin/MemberTable';
 import { Button } from '@/components/ui/button';
 import { getFundMembers } from '@/lib/admin/members';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { ArrowLeft, Building } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -26,11 +26,10 @@ export default async function FundDetailPage({
 }: FundDetailPageProps) {
   const { fundId } = await params;
   const { search, filter } = await searchParams;
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 펀드 정보 조회 (서버에서만 실행)
-  const { data: fund, error } = await supabase
-    .from('funds')
+  // 펀드 정보 조회 (서버에서만 실행, 브랜드별 자동 적용)
+  const { data: fund, error } = await brandClient.funds
     .select('*')
     .eq('id', fundId)
     .single();

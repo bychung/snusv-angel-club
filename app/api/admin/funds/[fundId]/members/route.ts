@@ -1,6 +1,6 @@
 import { getFundMembers } from '@/lib/admin/funds';
 import { isAdminServer } from '@/lib/auth/admin-server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 
 export async function GET(
@@ -15,11 +15,11 @@ export async function GET(
 
   try {
     // 사용자 인증 및 관리자 권한 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });

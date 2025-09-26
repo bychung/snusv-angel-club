@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import type { FundDetailsResponse } from '@/lib/admin/funds';
 import type { FundStatus } from '@/lib/fund-status';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import type { FundMember } from '@/types/database';
 import { Building, Calendar, Edit2, Save, TrendingUp, X } from 'lucide-react';
@@ -46,9 +46,9 @@ export default function FundSection() {
 
     setIsLoading(true);
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('fund_members')
+      const brandClient = createBrandClient();
+
+      const { data, error } = await brandClient.fundMembers
         .select(
           `
           *,
@@ -69,27 +69,35 @@ export default function FundSection() {
       setFundInfos(fundInfosData);
 
       // 각 펀드의 상태 정보를 가져오기
-      const statusPromises = fundInfosData.map(async fund => {
-        try {
-          const response = await fetch(`/api/funds/${fund.funds.id}/details`);
-          if (response.ok) {
-            const fundDetails: FundDetailsResponse = await response.json();
-            return {
-              fundId: fund.funds.id,
-              status: fundDetails.fund.status as FundStatus,
-            };
+      const statusPromises = fundInfosData.map(
+        async (fund: FundMemberWithFund) => {
+          try {
+            const response = await fetch(`/api/funds/${fund.funds.id}/details`);
+            if (response.ok) {
+              const fundDetails: FundDetailsResponse = await response.json();
+              return {
+                fundId: fund.funds.id,
+                status: fundDetails.fund.status as FundStatus,
+              };
+            }
+          } catch (error) {
+            console.error(`펀드 ${fund.funds.id} 상태 조회 실패:`, error);
           }
-        } catch (error) {
-          console.error(`펀드 ${fund.funds.id} 상태 조회 실패:`, error);
+          return { fundId: fund.funds.id, status: 'ready' as FundStatus }; // 기본값
         }
-        return { fundId: fund.funds.id, status: 'ready' as FundStatus }; // 기본값
-      });
+      );
 
       const statusResults = await Promise.all(statusPromises);
-      const statusMap = statusResults.reduce((acc, { fundId, status }) => {
-        acc[fundId] = status;
-        return acc;
-      }, {} as Record<string, FundStatus>);
+      const statusMap = statusResults.reduce(
+        (
+          acc: Record<string, FundStatus>,
+          { fundId, status }: { fundId: string; status: FundStatus }
+        ) => {
+          acc[fundId] = status;
+          return acc;
+        },
+        {} as Record<string, FundStatus>
+      );
 
       setFundStatuses(statusMap);
     } catch (error) {
@@ -113,9 +121,9 @@ export default function FundSection() {
     if (!profile || !editingFundId) return;
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('fund_members')
+      const brandClient = createBrandClient();
+
+      const { error } = await brandClient.fundMembers
         .update({
           investment_units: editUnits,
           updated_at: new Date().toISOString(),

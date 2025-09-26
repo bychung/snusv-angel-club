@@ -1,14 +1,14 @@
 'use client';
 
 import { isAdmin } from '@/lib/auth/admin';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useSurveyStore } from '@/store/surveyStore';
 import { Session } from '@supabase/supabase-js';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
-const supabase = createClient();
+const brandClient = createBrandClient();
 
 export default function AuthProvider({
   children,
@@ -23,7 +23,6 @@ export default function AuthProvider({
     resetState,
     signOut,
     profile,
-    userFunds,
     getUserFunds,
   } = useAuthStore();
   const surveyStore = useSurveyStore();
@@ -151,7 +150,7 @@ export default function AuthProvider({
       // 새 탭에서 열거나 새로고침 하는 등, 이미 로그인이 되어 있는 경우에  이곳으로 진입하게 됨
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = await brandClient.raw.auth.getUser();
       console.log('[AuthProvider] handleInitialSessionEvent:getUser:', user);
       if (!user) {
         console.log(
@@ -323,10 +322,9 @@ export default function AuthProvider({
               );
 
               try {
-                // 기존 프로필에 user_id 직접 연결 (ID로 업데이트)
+                // 기존 프로필에 user_id 직접 연결 (브랜드별 자동 적용)
                 const { data: updatedProfile, error: updateError } =
-                  await supabase
-                    .from('profiles')
+                  await brandClient.profiles
                     .update({
                       user_id: session.user.id,
                       updated_at: new Date().toISOString(),
@@ -404,10 +402,9 @@ export default function AuthProvider({
               );
 
               try {
-                // 설문조사로 생성된 프로필에 user_id 연결
+                // 설문조사로 생성된 프로필에 user_id 연결 (브랜드별 자동 적용)
                 const { data: updatedProfile, error: updateError } =
-                  await supabase
-                    .from('profiles')
+                  await brandClient.profiles
                     .update({
                       user_id: session.user.id,
                       updated_at: new Date().toISOString(),
@@ -639,23 +636,25 @@ export default function AuthProvider({
     // 모든 사용자에게 이벤트 리스너 등록
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(
-        '[AuthProvider] registerAuthStateChangeListener:onAuthStateChange:',
-        {
-          event,
-          hasUser: !!session?.user,
+    } = brandClient.raw.auth.onAuthStateChange(
+      async (event: any, session: any) => {
+        console.log(
+          '[AuthProvider] registerAuthStateChangeListener:onAuthStateChange:',
+          {
+            event,
+            hasUser: !!session?.user,
+          }
+        );
+
+        if (event === 'INITIAL_SESSION') {
+          handleInitialSessionEvent(session);
         }
-      );
 
-      if (event === 'INITIAL_SESSION') {
-        handleInitialSessionEvent(session);
+        if (event === 'SIGNED_IN') {
+          handleSignedInEvent(session);
+        }
       }
-
-      if (event === 'SIGNED_IN') {
-        handleSignedInEvent(session);
-      }
-    });
+    );
     return subscription;
   };
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -12,13 +12,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
     const {
       data: { user: currentUser },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !currentUser) {
       return NextResponse.json(
@@ -27,12 +27,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 현재 사용자의 프로필 정보 가져오기
-    const { data: currentProfile, error: currentProfileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('user_id', currentUser.id)
-      .single();
+    // 현재 사용자의 프로필 정보 가져오기 (브랜드별 자동 적용)
+    const { data: currentProfile, error: currentProfileError } =
+      await brandClient.profiles
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .single();
 
     if (currentProfileError) {
       return NextResponse.json(
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // 1. email로 auth user(targetAuthUser)를 찾는다
     const { data: authUsers, error: authListError } =
-      await supabase.auth.admin.listUsers();
+      await brandClient.raw.auth.admin.listUsers();
 
     if (authListError) {
       throw authListError;
@@ -62,9 +62,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. email로 profile을 검색한다
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
+    // 2. email로 profile을 검색한다 (브랜드별 자동 적용)
+    const { data: profile, error: profileError } = await brandClient.profiles
       .select('*')
       .eq('email', email)
       .single();
@@ -97,11 +96,11 @@ export async function POST(request: NextRequest) {
       provider: provider,
     };
 
-    // 3. targetAuthUser.id로 profile_permission을 검색한다
-    const { data: profilePermissions, error: permissionError } = await supabase
-      .from('profile_permissions')
-      .select('profile_id')
-      .eq('user_id', targetAuthUser.id);
+    // 3. targetAuthUser.id로 profile_permission을 검색한다 (브랜드별 자동 적용)
+    const { data: profilePermissions, error: permissionError } =
+      await brandClient.profilePermissions
+        .select('profile_id')
+        .eq('user_id', targetAuthUser.id);
 
     if (permissionError) {
       return NextResponse.json(

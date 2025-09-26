@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import {
   AlertTriangle,
   Database,
@@ -68,12 +68,13 @@ export default function SystemSettings() {
 
   const loadSystemStats = async () => {
     try {
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
       // 전체 사용자 수
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { count: totalUsers } = await brandClient.profiles.select('*', {
+        count: 'exact',
+        head: true,
+      });
 
       setStats(prev => ({
         ...prev,
@@ -128,12 +129,10 @@ export default function SystemSettings() {
   const handleDataBackup = async () => {
     try {
       // 실제 구현에서는 데이터베이스 백업 로직
-      const supabase = createClient();
+      const brandClient = createBrandClient();
 
-      const { data: profiles } = await supabase.from('profiles').select('*');
-      const { data: fundMembers } = await supabase
-        .from('fund_members')
-        .select('*');
+      const { data: profiles } = await brandClient.profiles.select('*');
+      const { data: fundMembers } = await brandClient.fundMembers.select('*');
 
       const backupData = {
         timestamp: new Date().toISOString(),
@@ -148,7 +147,9 @@ export default function SystemSettings() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `snusv_backup_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `snusv_backup_${
+        new Date().toISOString().split('T')[0]
+      }.json`;
       link.click();
 
       setStats(prev => ({ ...prev, lastBackup: new Date() }));

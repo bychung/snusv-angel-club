@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/client';
 import type { User } from '@supabase/supabase-js';
+import { createBrandClient } from '../supabase/client';
 
 /**
  * 사용자가 관리자인지 확인 (DB 기반, 클라이언트용)
@@ -8,9 +8,8 @@ export async function isAdmin(user: User | null): Promise<boolean> {
   if (!user?.email) return false;
 
   try {
-    const supabase = createClient();
-    const { data: profile, error } = await supabase
-      .from('profiles')
+    const brandClient = await createBrandClient();
+    const { data: profile, error } = await brandClient.profiles
       .select('role')
       .eq('email', user.email)
       .single();
@@ -35,11 +34,11 @@ export async function checkAdminAccess(): Promise<{
   user: User | null;
 }> {
   try {
-    const supabase = createClient();
+    const brandClient = createBrandClient();
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (error || !user) {
       return { isAdmin: false, user: null };

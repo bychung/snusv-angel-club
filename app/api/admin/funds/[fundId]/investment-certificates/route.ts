@@ -1,6 +1,6 @@
 import { getFundInvestmentCertificateStatus } from '@/lib/admin/documents';
 import { isAdminServer } from '@/lib/auth/admin-server';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 
 // 펀드 내 모든 조합원의 투자확인서 현황 조회 (관리자 전용)
@@ -16,11 +16,11 @@ export async function GET(
 
   try {
     // 인증 및 권한 확인
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !user) {
       return Response.json({ error: '인증이 필요합니다' }, { status: 401 });

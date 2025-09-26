@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FundWithStats } from '@/lib/admin/funds';
 import { canShowSurveyLink } from '@/lib/fund-status';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { Check, Link2, Plus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -84,10 +84,10 @@ export function CreateFundDialog() {
 
     setIsCreating(true);
     try {
-      const supabase = createClient();
+      // brandClient를 사용해서 브랜드 자동 처리
+      const brandClient = createBrandClient();
 
-      const { data, error } = await supabase
-        .from('funds')
+      const { data, error } = await brandClient.funds
         .insert([
           {
             name: newFundName.trim(),

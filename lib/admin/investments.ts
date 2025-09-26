@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import type {
   CompanyInvestmentResponse,
   FundPortfolioResponse,
@@ -17,13 +17,20 @@ export async function getInvestments(
   page: number = 1,
   limit: number = 20
 ): Promise<InvestmentsResponse> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
   const offset = (page - 1) * limit;
 
   // investment_details 뷰를 사용하여 조인된 데이터와 계산된 필드를 한 번에 가져옴
-  let query = supabase
-    .from('investment_details')
-    .select('*', { count: 'exact' })
+  // 브랜드 필터링은 자동으로 처리됨
+  let query = brandClient.investmentDetails
+    .select(
+      `
+      *,
+      companies(name, category),
+      funds(name)
+    `,
+      { count: 'exact' }
+    )
     .order('created_at', { ascending: false });
 
   // 회사 ID 필터링
@@ -81,11 +88,16 @@ export async function getInvestments(
 export async function getInvestmentById(
   investmentId: string
 ): Promise<InvestmentWithDetails | null> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase
-    .from('investment_details')
-    .select('*')
+  const { data, error } = await brandClient.investmentDetails
+    .select(
+      `
+      *,
+      companies(name, category),
+      funds(name)
+    `
+    )
     .eq('id', investmentId)
     .single();
 
@@ -105,11 +117,10 @@ export async function getInvestmentById(
 export async function getFundPortfolio(
   fundId: string
 ): Promise<FundPortfolioResponse | null> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 펀드 정보 조회
-  const { data: fund, error: fundError } = await supabase
-    .from('funds')
+  const { data: fund, error: fundError } = await brandClient.funds
     .select('*')
     .eq('id', fundId)
     .single();
@@ -121,12 +132,12 @@ export async function getFundPortfolio(
     throw new Error(`펀드 조회 실패: ${fundError.message}`);
   }
 
-  // 해당 펀드의 투자 목록 조회
-  const { data: investments, error: investmentError } = await supabase
-    .from('investment_details')
-    .select('*')
-    .eq('fund_id', fundId)
-    .order('investment_date', { ascending: false });
+  // 해당 펀드의 투자 목록 조회 (브랜드별) - investment_details 뷰는 아직 brandClient API가 없어서 raw 사용
+  const { data: investments, error: investmentError } =
+    await brandClient.investmentDetails
+      .select('*')
+      .eq('fund_id', fundId)
+      .order('investment_date', { ascending: false });
 
   if (investmentError) {
     throw new Error(`포트폴리오 조회 실패: ${investmentError.message}`);
@@ -135,7 +146,7 @@ export async function getFundPortfolio(
   // 총 투자금액 계산
   const totalInvestmentAmount =
     investments?.reduce(
-      (sum, inv) => sum + (inv.total_investment_amount || 0),
+      (sum: number, inv: any) => sum + (inv.total_investment_amount || 0),
       0
     ) || 0;
 
@@ -153,11 +164,10 @@ export async function getFundPortfolio(
 export async function getCompanyInvestments(
   companyId: string
 ): Promise<CompanyInvestmentResponse | null> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  // 회사 정보 조회
-  const { data: company, error: companyError } = await supabase
-    .from('companies')
+  // 회사 정보 조회 (브랜드별)
+  const { data: company, error: companyError } = await brandClient.companies
     .select('*')
     .eq('id', companyId)
     .single();
@@ -169,12 +179,12 @@ export async function getCompanyInvestments(
     throw new Error(`회사 조회 실패: ${companyError.message}`);
   }
 
-  // 해당 회사의 투자 목록 조회
-  const { data: investments, error: investmentError } = await supabase
-    .from('investment_details')
-    .select('*')
-    .eq('company_id', companyId)
-    .order('investment_date', { ascending: false });
+  // 해당 회사의 투자 목록 조회 (브랜드별) - investment_details 뷰는 아직 brandClient API가 없어서 raw 사용
+  const { data: investments, error: investmentError } =
+    await brandClient.investmentDetails
+      .select('*')
+      .eq('company_id', companyId)
+      .order('investment_date', { ascending: false });
 
   if (investmentError) {
     throw new Error(`회사 투자 현황 조회 실패: ${investmentError.message}`);
@@ -183,7 +193,7 @@ export async function getCompanyInvestments(
   // 총 투자 유치금액 계산
   const totalRaised =
     investments?.reduce(
-      (sum, inv) => sum + (inv.total_investment_amount || 0),
+      (sum: number, inv: any) => sum + (inv.total_investment_amount || 0),
       0
     ) || 0;
 
@@ -201,11 +211,10 @@ export async function getCompanyInvestments(
 export async function createInvestment(
   investmentData: InvestmentInput
 ): Promise<InvestmentWithDetails> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 회사 및 펀드 존재 확인
-  const { count: companyCount } = await supabase
-    .from('companies')
+  const { count: companyCount } = await brandClient.companies
     .select('*', { count: 'exact', head: true })
     .eq('id', investmentData.company_id);
 
@@ -213,8 +222,7 @@ export async function createInvestment(
     throw new Error('존재하지 않는 회사입니다.');
   }
 
-  const { count: fundCount } = await supabase
-    .from('funds')
+  const { count: fundCount } = await brandClient.funds
     .select('*', { count: 'exact', head: true })
     .eq('id', investmentData.fund_id);
 
@@ -223,8 +231,7 @@ export async function createInvestment(
   }
 
   // 중복 투자 확인
-  const { data: existing } = await supabase
-    .from('investments')
+  const { data: existing } = await brandClient.investments
     .select('id')
     .eq('company_id', investmentData.company_id)
     .eq('fund_id', investmentData.fund_id)
@@ -234,8 +241,8 @@ export async function createInvestment(
     throw new Error('이미 해당 회사에 투자한 펀드입니다.');
   }
 
-  const { data, error } = await supabase
-    .from('investments')
+  // 브랜드가 자동으로 추가되는 insert 사용
+  const { data, error } = await brandClient.investments
     .insert({
       company_id: investmentData.company_id,
       fund_id: investmentData.fund_id,
@@ -267,7 +274,7 @@ export async function updateInvestment(
   investmentId: string,
   investmentData: Partial<InvestmentInput>
 ): Promise<InvestmentWithDetails> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   // 투자 존재 확인
   const existing = await getInvestmentById(investmentId);
@@ -275,13 +282,12 @@ export async function updateInvestment(
     throw new Error('존재하지 않는 투자입니다.');
   }
 
-  // 회사나 펀드 변경 시 중복 확인
+  // 회사나 펀드 변경 시 중복 확인 (브랜드별)
   if (investmentData.company_id || investmentData.fund_id) {
     const companyId = investmentData.company_id || existing.company_id;
     const fundId = investmentData.fund_id || existing.fund_id;
 
-    const { data: duplicate } = await supabase
-      .from('investments')
+    const { data: duplicate } = await brandClient.investments
       .select('id')
       .eq('company_id', companyId)
       .eq('fund_id', fundId)
@@ -308,8 +314,8 @@ export async function updateInvestment(
   if (investmentData.issued_shares !== undefined)
     updateData.issued_shares = investmentData.issued_shares || null;
 
-  const { error } = await supabase
-    .from('investments')
+  // 브랜드 필터링이 자동으로 적용되는 update 사용
+  const { error } = await brandClient.investments
     .update(updateData)
     .eq('id', investmentId);
 
@@ -330,10 +336,10 @@ export async function updateInvestment(
  * 투자 삭제
  */
 export async function deleteInvestment(investmentId: string): Promise<void> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { error } = await supabase
-    .from('investments')
+  // 브랜드 필터링이 자동으로 적용되는 delete 사용
+  const { error } = await brandClient.investments
     .delete()
     .eq('id', investmentId);
 
@@ -346,9 +352,10 @@ export async function deleteInvestment(investmentId: string): Promise<void> {
  * 투자 통계 조회
  */
 export async function getInvestmentStats(): Promise<InvestmentStats> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
-  const { data, error } = await supabase.from('investment_details').select('*');
+  // investment_details 뷰의 경우 아직 brandClient API가 없어서 raw 사용
+  const { data, error } = await brandClient.investmentDetails.select('*');
 
   if (error) {
     throw new Error(`투자 통계 조회 실패: ${error.message}`);
@@ -366,17 +373,17 @@ export async function getInvestmentStats(): Promise<InvestmentStats> {
   }
 
   const totalAmount = data.reduce(
-    (sum, inv) => sum + (inv.total_investment_amount || 0),
+    (sum: number, inv: any) => sum + (inv.total_investment_amount || 0),
     0
   );
-  const uniqueCompanies = new Set(data.map(inv => inv.company_id)).size;
-  const uniqueFunds = new Set(data.map(inv => inv.fund_id)).size;
+  const uniqueCompanies = new Set(data.map((inv: any) => inv.company_id)).size;
+  const uniqueFunds = new Set(data.map((inv: any) => inv.fund_id)).size;
 
   // 카테고리별 분석
   const categoryBreakdown: Record<string, { count: number; amount: number }> =
     {};
 
-  data.forEach(inv => {
+  data.forEach((inv: any) => {
     if (inv.company_category && Array.isArray(inv.company_category)) {
       inv.company_category.forEach((category: string) => {
         if (!categoryBreakdown[category]) {

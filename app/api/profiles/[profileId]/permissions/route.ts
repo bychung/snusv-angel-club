@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -15,13 +15,13 @@ export async function GET(
       );
     }
 
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
     const {
       data: { user: currentUser },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !currentUser) {
       return NextResponse.json(
@@ -30,9 +30,8 @@ export async function GET(
       );
     }
 
-    // 현재 사용자가 해당 프로필의 owner인지 확인
-    const { data: ownerProfile, error: ownerError } = await supabase
-      .from('profiles')
+    // 현재 사용자가 해당 프로필의 owner인지 확인 (브랜드별 자동 적용)
+    const { data: ownerProfile, error: ownerError } = await brandClient.profiles
       .select('*')
       .eq('id', profileId)
       .eq('user_id', currentUser.id)
@@ -42,11 +41,11 @@ export async function GET(
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
-    // profile_permissions에서 권한 목록 조회
-    const { data: permissions, error: permissionsError } = await supabase
-      .from('profile_permissions')
-      .select('id, user_id, permission_type')
-      .eq('profile_id', profileId);
+    // profile_permissions에서 권한 목록 조회 (브랜드별 자동 적용)
+    const { data: permissions, error: permissionsError } =
+      await brandClient.profilePermissions
+        .select('id, user_id, permission_type')
+        .eq('profile_id', profileId);
 
     if (permissionsError) {
       throw permissionsError;
@@ -58,37 +57,44 @@ export async function GET(
 
     // auth.users 정보 조회
     const { data: authUsers, error: authError2 } =
-      await supabase.auth.admin.listUsers();
+      await brandClient.raw.auth.admin.listUsers();
 
     if (authError2) {
       throw authError2;
     }
 
     // 권한 목록과 사용자 정보 결합
-    const enrichedPermissions = permissions.map(permission => {
+    const enrichedPermissions = permissions.map((permission: any) => {
       const authUser = authUsers.users.find(
         (user: any) => user.id === permission.user_id
       );
 
-      // profiles 테이블에서도 검색 시도
-      return supabase
-        .from('profiles')
+      // profiles 테이블에서도 검색 시도 (브랜드별 자동 적용)
+      return brandClient.profiles
         .select('name, email, entity_type')
         .eq('user_id', permission.user_id)
         .single()
-        .then(({ data: profile, error: profileError }) => ({
-          id: permission.id,
-          user_id: permission.user_id,
-          permission_type: permission.permission_type,
-          user_info: {
-            name:
-              profile?.name || authUser?.email?.split('@')[0] || '알 수 없음',
-            email: profile?.email || authUser?.email || '이메일 없음',
-            entity_type: profile?.entity_type || 'individual',
-            has_profile: !profileError && !!profile,
-            auth_email: authUser?.email,
-          },
-        }));
+        .then(
+          ({
+            data: profile,
+            error: profileError,
+          }: {
+            data: any;
+            error: any;
+          }) => ({
+            id: permission.id,
+            user_id: permission.user_id,
+            permission_type: permission.permission_type,
+            user_info: {
+              name:
+                profile?.name || authUser?.email?.split('@')[0] || '알 수 없음',
+              email: profile?.email || authUser?.email || '이메일 없음',
+              entity_type: profile?.entity_type || 'individual',
+              has_profile: !profileError && !!profile,
+              auth_email: authUser?.email,
+            },
+          })
+        );
     });
 
     const resolvedPermissions = await Promise.all(enrichedPermissions);
@@ -125,13 +131,13 @@ export async function PUT(
       );
     }
 
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
     const {
       data: { user: currentUser },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await brandClient.raw.auth.getUser();
 
     if (authError || !currentUser) {
       return NextResponse.json(
@@ -140,9 +146,8 @@ export async function PUT(
       );
     }
 
-    // 현재 사용자가 해당 프로필의 owner인지 확인
-    const { data: ownerProfile, error: ownerError } = await supabase
-      .from('profiles')
+    // 현재 사용자가 해당 프로필의 owner인지 확인 (브랜드별 자동 적용)
+    const { data: ownerProfile, error: ownerError } = await brandClient.profiles
       .select('*')
       .eq('id', profileId)
       .eq('user_id', currentUser.id)
@@ -152,9 +157,8 @@ export async function PUT(
       return NextResponse.json({ error: '권한이 없습니다.' }, { status: 403 });
     }
 
-    // 권한 업데이트
-    const { data, error: updateError } = await supabase
-      .from('profile_permissions')
+    // 권한 업데이트 (브랜드별 자동 적용)
+    const { data, error: updateError } = await brandClient.profilePermissions
       .update({ permission_type: permissionType })
       .eq('profile_id', profileId)
       .eq('user_id', userId)

@@ -1,10 +1,10 @@
 import { authenticateRequest } from '@/lib/auth/temp-token';
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    const brandClient = await createBrandServerClient();
 
     // 인증 확인 (Supabase 세션 또는 임시 토큰)
     const authResult = await authenticateRequest(request, ['email-search']);
@@ -41,9 +41,8 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
 
     try {
-      // profiles 테이블에서 완전 일치하는 이메일 검색 (user_id가 null인 것만)
-      const { data: profiles, error: searchError } = await supabase
-        .from('profiles')
+      // profiles 테이블에서 완전 일치하는 이메일 검색 (user_id가 null인 것만, 브랜드별)
+      const { data: profiles, error: searchError } = await brandClient.profiles
         .select('id, email')
         .eq('email', email.trim().toLowerCase())
         .is('user_id', null)

@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { getBrandingConfig } from '@/lib/branding';
 import { useAuthStore } from '@/store/authStore';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const { user, isLoading: authLoading } = useAuthStore();
+  const branding = getBrandingConfig();
 
   useEffect(() => {
     console.log('[DashboardLayout] user:', user);
@@ -67,7 +69,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </Button>
               </Link>
               <h1 className="text-xl font-bold text-gray-900">
-                SNUSV ANGEL CLUB
+                {branding.clubName}
               </h1>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-500">대시보드</span>
@@ -89,7 +91,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-500">
-            © 2025 SNUSV ANGEL CLUB. All rights reserved.
+            © 2025 {branding.clubName}. All rights reserved.
           </div>
         </div>
       </footer>

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createBrandServerClient } from '@/lib/supabase/server';
 
 export interface Stats {
   totalUsers: number;
@@ -20,27 +20,30 @@ export interface ActivityItem {
  * 관리자 대시보드 통계를 조회합니다 (서버에서만 실행)
  */
 export async function getDashboardStats(): Promise<Stats> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   try {
-    // 전체 프로필 수
-    const { count: totalUsers } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
+    // 전체 프로필 수 (브랜드별)
+    const { count: totalUsers } = await brandClient.profiles.select('*', {
+      count: 'exact',
+      head: true,
+    });
 
-    // 회원가입한 사용자 수 (user_id가 있는 경우)
-    const { count: registeredUsers } = await supabase
-      .from('profiles')
+    // 회원가입한 사용자 수 (user_id가 있는 경우, 브랜드별)
+    const { count: registeredUsers } = await brandClient.profiles
       .select('*', { count: 'exact', head: true })
       .not('user_id', 'is', null);
 
-    // 총 출자 정보
-    const { data: fundData } = await supabase
-      .from('fund_members')
-      .select('investment_units');
+    // 총 출자 정보 (브랜드별)
+    const { data: fundData } = await brandClient.fundMembers.select(
+      'investment_units'
+    );
 
     const totalUnits =
-      fundData?.reduce((sum, item) => sum + item.investment_units, 0) || 0;
+      fundData?.reduce(
+        (sum: number, item: any) => sum + item.investment_units,
+        0
+      ) || 0;
     const totalInvestment = totalUnits * 1000000; // 1좌당 100만원
 
     return {
@@ -59,19 +62,17 @@ export async function getDashboardStats(): Promise<Stats> {
  * 최근 활동 내역을 조회합니다 (서버에서만 실행)
  */
 export async function getRecentActivity(): Promise<ActivityItem[]> {
-  const supabase = await createClient();
+  const brandClient = await createBrandServerClient();
 
   try {
-    // 최근 프로필 생성/업데이트 활동
-    const { data: profiles } = await supabase
-      .from('profiles')
+    // 최근 프로필 생성/업데이트 활동 (브랜드별)
+    const { data: profiles } = await brandClient.profiles
       .select('id, name, email, created_at, updated_at, user_id')
       .order('updated_at', { ascending: false })
       .limit(10);
 
-    // 최근 펀드 멤버 업데이트
-    const { data: fundMembers } = await supabase
-      .from('fund_members')
+    // 최근 펀드 멤버 업데이트 (브랜드별)
+    const { data: fundMembers } = await brandClient.fundMembers
       .select(
         `
         id,
@@ -90,7 +91,7 @@ export async function getRecentActivity(): Promise<ActivityItem[]> {
     const activityList: ActivityItem[] = [];
 
     // 프로필 활동 추가
-    profiles?.forEach(profile => {
+    profiles?.forEach((profile: any) => {
       // 회원가입 활동 (user_id가 있고 created_at과 updated_at이 비슷한 경우)
       const isNewSignup =
         profile.user_id &&
@@ -121,7 +122,7 @@ export async function getRecentActivity(): Promise<ActivityItem[]> {
     });
 
     // 펀드 멤버 활동 추가
-    fundMembers?.forEach(member => {
+    fundMembers?.forEach((member: any) => {
       if (member.created_at !== member.updated_at) {
         activityList.push({
           id: `fund-${member.id}`,

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@/lib/supabase/client';
+import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { Chrome, Lock, Mail, MessageSquare } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -49,8 +49,8 @@ export default function LoginForm() {
   const handleCompleteReset = async () => {
     try {
       // Supabase 세션 완전 정리
-      const supabase = createClient();
-      await supabase.auth.signOut({ scope: 'global' });
+      const brandClient = createBrandClient();
+      await brandClient.raw.auth.signOut({ scope: 'global' });
 
       // 로컬 스토리지 Supabase 관련 키 정리
       const keysToRemove = [];
@@ -159,7 +159,9 @@ export default function LoginForm() {
           resetState();
 
           // find-email 페이지로 이동 (로그인 실패 상황이므로 account_created=false)
-          const redirectUrl = `/find-email?email=${encodeURIComponent(email)}&provider=email`;
+          const redirectUrl = `/find-email?email=${encodeURIComponent(
+            email
+          )}&provider=email`;
           router.push(redirectUrl);
           return;
         } catch (tokenError) {
