@@ -10,18 +10,20 @@ export const EXCEL_COLUMNS = [
   { key: 'business_number', header: '사업자등록번호', required: false },
   { key: 'address', header: '주소', required: true },
   { key: 'investment_units', header: '출자좌수', required: true },
+  { key: 'total_units', header: '약정출자좌수', required: false },
 ];
 
 // 엑셀 데이터 타입
 export interface ExcelRowData {
-  이름: string;
-  전화번호: string;
-  이메일: string;
-  '개인/법인': '개인' | '법인';
-  생년월일?: string;
-  사업자등록번호?: string;
-  주소: string;
-  출자좌수: number;
+  name: string;
+  phone: string;
+  email: string;
+  entity_type: '개인' | '법인';
+  birth?: string;
+  business_number?: string;
+  address: string;
+  investment_units: number;
+  total_units: number;
 }
 
 // 내부 데이터 타입으로 변환
@@ -34,6 +36,7 @@ export interface ParsedMemberData {
   business_number?: string;
   address: string;
   investment_units: number;
+  total_units: number;
 }
 
 // 검증 결과 타입
@@ -60,6 +63,7 @@ export const downloadExcelTemplate = (fundName: string) => {
       '사업자등록번호',
       '주소',
       '출자좌수',
+      '약정출자좌수',
     ],
     // 샘플 데이터 (개인)
     [
@@ -71,6 +75,7 @@ export const downloadExcelTemplate = (fundName: string) => {
       '',
       '서울시 강남구 역삼동 123-45',
       '5',
+      '10',
     ],
     // 샘플 데이터 (법인)
     [
@@ -82,6 +87,7 @@ export const downloadExcelTemplate = (fundName: string) => {
       '123-45-67890',
       '서울시 서초구 서초동 678-90',
       '10',
+      '20',
     ],
   ];
 
@@ -97,6 +103,7 @@ export const downloadExcelTemplate = (fundName: string) => {
     { wch: 20 }, // 사업자등록번호
     { wch: 40 }, // 주소
     { wch: 10 }, // 출자좌수
+    { wch: 15 }, // 약정출자좌수
   ];
 
   // 헤더 스타일 설정 (배경색 등)
@@ -159,6 +166,7 @@ export const parseExcelFile = (file: File): Promise<ExcelRowData[]> => {
           '사업자등록번호',
           '주소',
           '출자좌수',
+          '약정출자좌수',
         ];
         const headerMismatch = expectedHeaders.some(
           expected => !headers.includes(expected)
@@ -240,16 +248,16 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
     const errors: string[] = [];
 
     // 기본 필드 검증
-    if (!row.이름?.trim()) {
+    if (!row.name?.trim()) {
       errors.push('이름은 필수입니다.');
     }
 
-    if (!row.전화번호?.trim()) {
+    if (!row.phone?.trim()) {
       errors.push('전화번호는 필수입니다.');
     } else {
-      const normalizedPhone = normalizePhoneNumber(row.전화번호);
+      const normalizedPhone = normalizePhoneNumber(row.phone);
       if (
-        normalizedPhone === row.전화번호 &&
+        normalizedPhone === row.phone &&
         !/^\d{2,3}-\d{3,4}-\d{4}$/.test(normalizedPhone)
       ) {
         errors.push('전화번호 형식이 올바르지 않습니다.');
@@ -259,12 +267,12 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
       phoneNumbers.add(normalizedPhone);
     }
 
-    if (!row.이메일?.trim()) {
+    if (!row.email?.trim()) {
       errors.push('이메일은 필수입니다.');
-    } else if (!isValidEmail(row.이메일)) {
+    } else if (!isValidEmail(row.email)) {
       errors.push('이메일 형식이 올바르지 않습니다.');
     } else {
-      const normalizedEmail = row.이메일.trim().toLowerCase();
+      const normalizedEmail = row.email.trim().toLowerCase();
 
       // 파일 내 이메일 중복 검사
       if (emailAddresses.has(normalizedEmail)) {
@@ -274,29 +282,46 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
       }
     }
 
-    if (!row['개인/법인'] || !['개인', '법인'].includes(row['개인/법인'])) {
+    if (!row['entity_type'] || !['개인', '법인'].includes(row['entity_type'])) {
       errors.push('개인/법인은 "개인" 또는 "법인"이어야 합니다.');
     }
 
-    if (!row.주소?.trim()) {
+    if (!row.address?.trim()) {
       errors.push('주소는 필수입니다.');
     }
 
     if (
-      !row.출자좌수 ||
-      isNaN(Number(row.출자좌수)) ||
-      Number(row.출자좌수) < 1
+      !row.investment_units ||
+      isNaN(Number(row.investment_units)) ||
+      Number(row.investment_units) < 1
     ) {
       errors.push('출자좌수는 1 이상의 숫자여야 합니다.');
     }
 
+    // 약정출자좌수 검증 (선택 사항, 없으면 출자좌수와 같게 처리)
+    if (
+      row.total_units &&
+      (isNaN(Number(row.total_units)) || Number(row.total_units) < 1)
+    ) {
+      errors.push('약정출자좌수는 1 이상의 숫자여야 합니다.');
+    }
+
+    // 약정출자좌수가 출자좌수보다 작으면 안됨
+    if (
+      row.total_units &&
+      row.investment_units &&
+      Number(row.total_units) < Number(row.investment_units)
+    ) {
+      errors.push('약정출자좌수는 출자좌수보다 크거나 같아야 합니다.');
+    }
+
     // 개인/법인별 추가 검증
-    if (row['개인/법인'] === '개인') {
-      if (row.생년월일 && !/^\d{4}-\d{2}-\d{2}$/.test(row.생년월일)) {
+    if (row['entity_type'] === '개인') {
+      if (row.birth && !/^\d{4}-\d{2}-\d{2}$/.test(row.birth)) {
         errors.push('생년월일은 YYYY-MM-DD 형식이어야 합니다.');
       }
-    } else if (row['개인/법인'] === '법인') {
-      if (!row.사업자등록번호?.trim()) {
+    } else if (row['entity_type'] === '법인') {
+      if (!row.business_number?.trim()) {
         errors.push('법인의 경우 사업자등록번호는 필수입니다.');
       }
     }
@@ -304,15 +329,21 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
     // 변환된 데이터
     let parsedData: ParsedMemberData | undefined;
     if (errors.length === 0) {
+      const investmentUnits = Number(row.investment_units);
+      const totalUnits = row.total_units
+        ? Number(row.total_units)
+        : investmentUnits;
+
       parsedData = {
-        name: row.이름.trim(),
-        phone: normalizePhoneNumber(row.전화번호),
-        email: row.이메일.trim(),
-        entity_type: row['개인/법인'] === '개인' ? 'individual' : 'corporate',
-        birth_date: row.생년월일 || undefined,
-        business_number: row.사업자등록번호 || undefined,
-        address: row.주소.trim(),
-        investment_units: Number(row.출자좌수),
+        name: row.name.trim(),
+        phone: normalizePhoneNumber(row.phone),
+        email: row.email.trim(),
+        entity_type: row['entity_type'] === '개인' ? 'individual' : 'corporate',
+        birth_date: row.birth || undefined,
+        business_number: row.business_number || undefined,
+        address: row.address.trim(),
+        investment_units: investmentUnits,
+        total_units: totalUnits,
       };
     }
 

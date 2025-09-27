@@ -10,11 +10,14 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getBrandingConfig } from '@/lib/branding';
 import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { Chrome, Lock, Mail, MessageSquare } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
+const branding = getBrandingConfig();
 
 export default function LoginForm() {
   const router = useRouter();
@@ -216,7 +219,7 @@ export default function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">로그인</CardTitle>
-          <CardDescription>SNUSV ANGEL CLUB에 로그인하세요</CardDescription>
+          <CardDescription>{`${branding.clubName}에 로그인하세요`}</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">

@@ -182,6 +182,7 @@ async function processMembersIndividually(
         fund_id: fundId,
         profile_id: profileId,
         investment_units: member.investment_units,
+        total_units: member.total_units || member.investment_units,
       });
 
       if (fundMemberError) {

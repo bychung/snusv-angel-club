@@ -7,15 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import type { FundMember, Profile } from '@/types/database';
+import { MemberWithFund } from '@/lib/admin/members';
 import { Building, Mail, Phone, Shield, User } from 'lucide-react';
-
-interface MemberWithFund extends Profile {
-  fund_members?: (FundMember & {
-    fund?: { name: string; abbreviation?: string | null };
-  })[];
-  registration_status: 'registered' | 'survey_only';
-}
 
 interface MemberTableProps {
   members: MemberWithFund[];
@@ -62,8 +55,8 @@ export default function MemberTable({
     return null;
   };
 
-  const formatCurrency = (amount: number) => {
-    return (amount * 1000000).toLocaleString() + '원';
+  const formatCurrency = (amount: number, parValue: number = 1000000) => {
+    return (amount * parValue).toLocaleString() + '원';
   };
 
   // 제목과 설명 텍스트 결정
@@ -138,10 +131,29 @@ export default function MemberTable({
                             ? // 펀드 조합원 모드: 출자금액 표시
                               member.fund_members &&
                               member.fund_members.length > 0 && (
-                                <div className="text-sm font-medium text-blue-400">
-                                  {formatCurrency(
-                                    member.fund_members[0].investment_units
-                                  )}
+                                <div>
+                                  <div className="text-sm font-medium text-blue-500">
+                                    {formatCurrency(
+                                      member.fund_members[0].investment_units,
+                                      member.fund_members[0].fund?.par_value ||
+                                        1000000
+                                    )}
+                                  </div>
+                                  <div className="text-sm font-medium text-blue-300">
+                                    {member.fund_members[0].total_units !==
+                                      member.fund_members[0]
+                                        .investment_units && (
+                                      <span>
+                                        {'(약정: '}
+                                        {formatCurrency(
+                                          member.fund_members[0].total_units,
+                                          member.fund_members[0].fund
+                                            ?.par_value || 1000000
+                                        )}
+                                        {')'}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               )
                             : // 사용자 관리 모드: 펀드 칩 표시
@@ -187,6 +199,15 @@ export default function MemberTable({
                                 {member.fund_members[0].investment_units.toLocaleString()}
                                 좌
                               </span>
+                              {member.fund_members[0].total_units !==
+                                member.fund_members[0].investment_units && (
+                                <span>
+                                  {' '}
+                                  /{' '}
+                                  {member.fund_members[0].total_units.toLocaleString()}
+                                  좌
+                                </span>
+                              )}
                             </div>
                           )}
                       </div>
@@ -217,7 +238,8 @@ export default function MemberTable({
                           <span>
                             <span className="font-medium">출자금액:</span>{' '}
                             {formatCurrency(
-                              member.fund_members[0].investment_units
+                              member.fund_members[0].investment_units,
+                              member.fund_members[0].fund?.par_value || 1000000
                             )}
                           </span>
                         </div>

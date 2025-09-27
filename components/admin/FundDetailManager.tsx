@@ -62,6 +62,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     closed_at: '',
     registered_at: '',
     dissolved_at: '',
+    par_value: 1000000,
   });
 
   // 데이터 초기 로드
@@ -102,6 +103,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           closed_at: fundData.fund.closed_at || '',
           registered_at: fundData.fund.registered_at || '',
           dissolved_at: fundData.fund.dissolved_at || '',
+          par_value: fundData.fund.par_value || 1000000,
         });
       } catch (err) {
         setError(
@@ -237,7 +239,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               <CardTitle>펀드 기본 정보</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">펀드명 *</Label>
                   <Input
@@ -269,6 +271,23 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                       handleInputChange('tax_number', e.target.value)
                     }
                     placeholder="123-45-67890"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="par_value">1좌당 금액 (원)</Label>
+                  <Input
+                    id="par_value"
+                    type="number"
+                    value={formData.par_value}
+                    onChange={e =>
+                      handleInputChange(
+                        'par_value',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    placeholder="1000000"
+                    min="0"
                   />
                 </div>
 

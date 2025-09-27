@@ -1,18 +1,11 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import type { FundMember, Profile } from '@/types/database';
+import { MemberWithFund } from '@/lib/admin/members';
 import { Edit, Eye } from 'lucide-react';
 import { useState } from 'react';
 import EditMemberModal from './EditMemberModal';
 import ViewMemberModal from './ViewMemberModal';
-
-interface MemberWithFund extends Profile {
-  fund_members?: (FundMember & {
-    fund?: { name: string; abbreviation?: string | null };
-  })[];
-  registration_status: 'registered' | 'survey_only';
-}
 
 interface MemberModalsProps {
   member: MemberWithFund;

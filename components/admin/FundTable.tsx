@@ -13,7 +13,7 @@ interface FundTableProps {
 
 export default function FundTable({ funds }: FundTableProps) {
   const formatCurrency = (amount: number) => {
-    return (amount * 1000000).toLocaleString() + '원';
+    return amount.toLocaleString() + '원';
   };
 
   const formatDate = (dateString: string) => {
@@ -183,6 +183,21 @@ export default function FundTable({ funds }: FundTableProps) {
                     {formatCurrency(fund.totalInvestment)}
                   </span>
                 </div>
+
+                {/* 총 약정금액 */}
+                {fund.totalCommittedAmount !== fund.totalInvestment && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">
+                        총 약정금액
+                      </span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">
+                      {formatCurrency(fund.totalCommittedAmount)}
+                    </span>
+                  </div>
+                )}
 
                 {/* 가입 현황 */}
                 <div className="pt-3 border-t border-gray-100">

@@ -34,9 +34,9 @@ export async function getDashboardStats(): Promise<Stats> {
       .select('*', { count: 'exact', head: true })
       .not('user_id', 'is', null);
 
-    // 총 출자 정보 (브랜드별)
+    // 총 출자 정보 (브랜드별) - fund의 par_value와 함께 조회
     const { data: fundData } = await brandClient.fundMembers.select(
-      'investment_units'
+      `investment_units, funds(par_value)`
     );
 
     const totalUnits =
@@ -44,7 +44,13 @@ export async function getDashboardStats(): Promise<Stats> {
         (sum: number, item: any) => sum + item.investment_units,
         0
       ) || 0;
-    const totalInvestment = totalUnits * 1000000; // 1좌당 100만원
+
+    // 각 펀드의 par_value를 고려한 총 투자금액 계산
+    const totalInvestment =
+      fundData?.reduce((sum: number, item: any) => {
+        const parValue = item.funds?.par_value || 1000000; // 기본값 100만원
+        return sum + item.investment_units * parValue;
+      }, 0) || 0;
 
     return {
       totalUsers: totalUsers || 0,

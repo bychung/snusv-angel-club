@@ -1,5 +1,6 @@
 'use client';
 
+import BirthDateInput from '@/components/survey/inputs/BirthDateInput';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,16 +12,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MemberWithFund } from '@/lib/admin/members';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createBrandClient } from '@/lib/supabase/client';
-import type { FundMember, Profile } from '@/types/database';
 import { Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
-interface MemberWithFund extends Profile {
-  fund_members?: FundMember[];
-  registration_status: 'registered' | 'survey_only';
-}
 
 interface EditMemberModalProps {
   isOpen: boolean;
@@ -47,11 +43,16 @@ export default function EditMemberModal({
     birth_date: '',
     business_number: '',
     investment_units: 0,
+    total_units: 0,
     role: 'USER' as 'ADMIN' | 'USER',
   });
 
   useEffect(() => {
     if (member) {
+      const investmentUnits = member.fund_members?.[0]?.investment_units || 0;
+      const totalUnits =
+        member.fund_members?.[0]?.total_units || investmentUnits;
+
       setFormData({
         name: member.name,
         phone: member.phone,
@@ -59,7 +60,8 @@ export default function EditMemberModal({
         address: member.address,
         birth_date: member.birth_date || '',
         business_number: member.business_number || '',
-        investment_units: member.fund_members?.[0]?.investment_units || 0,
+        investment_units: investmentUnits,
+        total_units: totalUnits,
         role: member.role,
       });
     }
@@ -97,6 +99,7 @@ export default function EditMemberModal({
         const { error: fundMemberError } = await brandClient.fundMembers
           .update({
             investment_units: formData.investment_units,
+            total_units: formData.total_units,
             updated_at: new Date().toISOString(),
           })
           .eq('id', member.fund_members[0].id);
@@ -170,13 +173,11 @@ export default function EditMemberModal({
             {/* 개인/법인에 따른 추가 필드 */}
             {member.entity_type === 'individual' && (
               <div className="space-y-2">
-                <Label htmlFor="birth_date">생년월일</Label>
-                <Input
-                  id="birth_date"
-                  type="date"
+                <BirthDateInput
+                  label="생년월일"
                   value={formData.birth_date}
-                  onChange={e =>
-                    setFormData({ ...formData, birth_date: e.target.value })
+                  onChange={value =>
+                    setFormData({ ...formData, birth_date: value })
                   }
                 />
               </div>
@@ -201,26 +202,59 @@ export default function EditMemberModal({
 
             {/* 출자 정보는 펀드 멤버 목록에서만 표시 */}
             {showInvestmentInfo && (
-              <div className="space-y-2">
-                <Label htmlFor="investment_units">출자좌수 *</Label>
-                <Input
-                  id="investment_units"
-                  type="number"
-                  min="1"
-                  value={formData.investment_units}
-                  onChange={e =>
-                    setFormData({
-                      ...formData,
-                      investment_units: Number(e.target.value),
-                    })
-                  }
-                  required={showInvestmentInfo}
-                />
-                <p className="text-xs text-gray-500">
-                  출자금액:{' '}
-                  {(formData.investment_units * 1000000).toLocaleString()}원
-                </p>
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="investment_units">출자좌수 *</Label>
+                  <Input
+                    id="investment_units"
+                    type="number"
+                    min="1"
+                    value={formData.investment_units}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        investment_units: Number(e.target.value),
+                      })
+                    }
+                    required={showInvestmentInfo}
+                  />
+                  <p className="text-xs text-gray-500">
+                    출자금액:{' '}
+                    {(
+                      formData.investment_units *
+                      (member?.fund_members?.[0]?.fund?.par_value || 1000000)
+                    ).toLocaleString()}
+                    원
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="total_units">약정출자좌수 *</Label>
+                  <Input
+                    id="total_units"
+                    type="number"
+                    min="1"
+                    value={formData.total_units}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        total_units: Number(e.target.value),
+                      })
+                    }
+                    required={showInvestmentInfo}
+                  />
+                  <p className="text-xs text-gray-500">
+                    약정금액:{' '}
+                    {(
+                      formData.total_units *
+                      (member?.fund_members?.[0]?.fund?.par_value || 1000000)
+                    ).toLocaleString()}
+                    원
+                    <br />
+                    약정출자좌수는 출자좌수와 같거나 커야 합니다
+                  </p>
+                </div>
+              </>
             )}
 
             {/* 권한 설정 */}

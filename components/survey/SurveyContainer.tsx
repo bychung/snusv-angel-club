@@ -154,6 +154,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
 
   // 펀드 상태 확인 (만료된 설문조사인지 체크)
   const [fundStatus, setFundStatus] = useState<string | null>(null);
+  const [fundParValue, setFundParValue] = useState<number>(1000000); // 기본값
   const [isFundSurveyExpired, setIsFundSurveyExpired] = useState(false);
 
   // 펀드 정보 조회
@@ -161,7 +162,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     try {
       const brandClient = createBrandClient();
       const { data: fund, error } = await brandClient.funds
-        .select('name, status')
+        .select('name, status, par_value')
         .eq('id', fundIdToFetch)
         .single();
 
@@ -170,6 +171,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         // 펀드가 존재하지 않더라도 계속 진행하도록 설정
         if (error.code === 'PGRST116') {
           store.setFundId(fundIdToFetch, '알 수 없는 펀드');
+          setFundParValue(1000000); // 기본값 설정
           setIsFundSurveyExpired(true); // 존재하지 않는 펀드도 만료로 처리
         }
         return;
@@ -178,6 +180,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       if (fund) {
         store.setFundId(fundIdToFetch, fund.name);
         setFundStatus(fund.status);
+        setFundParValue(fund.par_value || 1000000); // par_value 설정
 
         // fund status가 ready 또는 processing이 아닌 경우 만료된 것으로 처리
         const isExpired =
@@ -188,6 +191,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       console.error('펀드 정보 조회 중 오류:', error);
       // 오류가 발생해도 기본값으로 진행
       store.setFundId(fundIdToFetch, '알 수 없는 펀드');
+      setFundParValue(1000000); // 기본값 설정
       setIsFundSurveyExpired(true); // 오류 발생 시도 만료로 처리
     }
   };
@@ -469,6 +473,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         fund_id: activeFundId,
         profile_id: (profile as any).id,
         investment_units: surveyData.investmentUnits,
+        total_units: surveyData.investmentUnits, // 설문에서는 출자좌수와 약정출자좌수가 같음
         updated_at: new Date().toISOString(),
       };
 
@@ -584,7 +589,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 출자금액: {(surveyData?.investmentUnits || 0).toLocaleString()}
                 좌 ={' '}
                 {(
-                  (surveyData?.investmentUnits || 0) * 1000000
+                  (surveyData?.investmentUnits || 0) * fundParValue
                 ).toLocaleString()}
                 원
               </div>

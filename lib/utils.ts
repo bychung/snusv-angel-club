@@ -18,9 +18,12 @@ export function formatRegisteredDate(dateString: string): string {
   return format222Date(dateString) + ' 등록';
 }
 
-export function formatToMillion(amount: number): string {
+export function formatToMillion(
+  amount: number,
+  parValue: number = 1000000
+): string {
   // todo 반올림 처리 필요
-  const roundedAmount = Math.round(amount / 1000000);
+  const roundedAmount = Math.round(amount / parValue);
   return roundedAmount.toString();
 }
 

@@ -77,10 +77,34 @@ export function CreateFundDialog() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newFundName, setNewFundName] = useState('');
   const [newFundAbbreviation, setNewFundAbbreviation] = useState('');
+  const [newFundParValue, setNewFundParValue] = useState<number>(1000000);
   const [isCreating, setIsCreating] = useState(false);
+
+  // 숫자를 한국어 형식으로 포맷팅
+  const formatNumber = (num: number) => {
+    return num.toLocaleString('ko-KR');
+  };
+
+  // 입력값에서 숫자만 추출
+  const parseNumber = (value: string) => {
+    const cleanValue = value.replace(/[^\d]/g, '');
+    return cleanValue ? parseInt(cleanValue) : 0;
+  };
+
+  // 1좌당 금액 변경 핸들러
+  const handleParValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numericValue = parseNumber(e.target.value);
+    setNewFundParValue(numericValue);
+  };
 
   const handleCreateFund = async () => {
     if (!newFundName.trim()) return;
+
+    // 1좌당 금액 검증
+    if (newFundParValue < 1000000) {
+      alert('1좌당 금액은 최소 1,000,000원 이상이어야 합니다.');
+      return;
+    }
 
     setIsCreating(true);
     try {
@@ -92,6 +116,7 @@ export function CreateFundDialog() {
           {
             name: newFundName.trim(),
             abbreviation: newFundAbbreviation.trim() || null,
+            par_value: newFundParValue,
           },
         ])
         .select();
@@ -105,6 +130,7 @@ export function CreateFundDialog() {
       setIsAddDialogOpen(false);
       setNewFundName('');
       setNewFundAbbreviation('');
+      setNewFundParValue(1000000);
     } catch (error) {
       console.error('펀드 생성 실패:', error);
     } finally {
@@ -151,19 +177,43 @@ export function CreateFundDialog() {
               onChange={e => setNewFundAbbreviation(e.target.value)}
               className="col-span-3"
               placeholder="펀드 약칭을 입력하세요 (예: 블라인드2호)"
-              onKeyPress={e => {
-                if (e.key === 'Enter') {
-                  handleCreateFund();
-                }
-              }}
             />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="fundParValue" className="text-right">
+              1좌당 금액 *
+            </Label>
+            <div className="col-span-3">
+              <Input
+                id="fundParValue"
+                value={formatNumber(newFundParValue)}
+                onChange={handleParValueChange}
+                className={newFundParValue < 1000000 ? 'border-red-500' : ''}
+                placeholder="1,000,000"
+                onKeyPress={e => {
+                  if (e.key === 'Enter') {
+                    handleCreateFund();
+                  }
+                }}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-xs text-gray-500">최소 1,000,000원</p>
+                {newFundParValue < 1000000 && (
+                  <p className="text-xs text-red-500">
+                    최소 1,000,000원 이상 입력해주세요
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
           <Button
             type="submit"
             onClick={handleCreateFund}
-            disabled={isCreating || !newFundName.trim()}
+            disabled={
+              isCreating || !newFundName.trim() || newFundParValue < 1000000
+            }
           >
             {isCreating ? '생성 중...' : '펀드 생성'}
           </Button>

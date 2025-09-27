@@ -22,6 +22,7 @@ interface FundMemberWithFund extends FundMember {
   funds: {
     id: string;
     name: string;
+    par_value: number;
   };
 }
 
@@ -54,7 +55,8 @@ export default function FundSection() {
           *,
           funds (
             id,
-            name
+            name,
+            par_value
           )
         `
         )
@@ -140,8 +142,8 @@ export default function FundSection() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return (amount * 1000000).toLocaleString() + '원';
+  const formatCurrency = (amount: number, parValue: number) => {
+    return (amount * parValue).toLocaleString() + '원';
   };
 
   if (authLoading || isLoading) {
@@ -217,7 +219,7 @@ export default function FundSection() {
                   fundName={fund.funds?.name || '펀드명 불명'}
                   investmentInfo={{
                     units: fund.investment_units,
-                    amount: fund.total_amount,
+                    amount: fund.investment_units * fund.funds.par_value,
                   }}
                 />
                 {/* 편집 버튼을 카드 위에 오버레이 - ready 또는 processing 상태일 때만 표시 */}
@@ -277,7 +279,7 @@ export default function FundSection() {
                       </span>
                     </div>
                     <span className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(editUnits)}
+                      {formatCurrency(editUnits, fund.funds.par_value)}
                     </span>
                   </div>
 
@@ -315,7 +317,7 @@ export default function FundSection() {
                         1좌당 금액
                       </div>
                       <div className="text-sm font-medium text-gray-700">
-                        1,000,000원
+                        {fund.funds.par_value.toLocaleString()}원
                       </div>
                     </div>
                   </div>

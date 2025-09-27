@@ -69,7 +69,8 @@ export default function FundExportControls({
       .select(
         `
         *,
-        profile:profiles (*)
+        profile:profiles (*),
+        fund:funds (par_value)
       `
       )
       .eq('fund_id', fundId);
@@ -128,8 +129,16 @@ export default function FundExportControls({
       // 출자 정보
       if (options.includeFields.investmentInfo) {
         row['출자좌수'] = fundMember.investment_units;
+        row['약정출자좌수'] = fundMember.total_units;
         row['출자금액'] =
-          (fundMember.investment_units * 1000000).toLocaleString() + '원';
+          (
+            fundMember.investment_units *
+            (fundMember.fund?.par_value || 1000000)
+          ).toLocaleString() + '원';
+        row['약정금액'] =
+          (
+            fundMember.total_units * (fundMember.fund?.par_value || 1000000)
+          ).toLocaleString() + '원';
         row['펀드명'] = fundName;
 
         if (fundMember.created_at !== fundMember.updated_at) {

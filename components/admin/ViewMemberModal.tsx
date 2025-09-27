@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { FundMember, Profile } from '@/types/database';
+import { MemberWithFund } from '@/lib/admin/members';
 import {
   Banknote,
   Building,
@@ -18,13 +18,6 @@ import {
   Phone,
   User,
 } from 'lucide-react';
-
-interface MemberWithFund extends Profile {
-  fund_members?: (FundMember & {
-    fund?: { name: string; abbreviation?: string | null };
-  })[];
-  registration_status: 'registered' | 'survey_only';
-}
 
 interface ViewMemberModalProps {
   isOpen: boolean;
@@ -49,8 +42,8 @@ export default function ViewMemberModal({
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return (amount * 1000000).toLocaleString() + '원';
+  const formatCurrency = (amount: number, parValue: number = 1000000) => {
+    return (amount * parValue).toLocaleString() + '원';
   };
 
   const getStatusBadge = (status: 'registered' | 'survey_only') => {
@@ -224,7 +217,7 @@ export default function ViewMemberModal({
               </h3>
               {showInvestmentInfo ? (
                 // 펀드 조합원 모드: 상세한 출자 정보
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       출자좌수
@@ -236,18 +229,32 @@ export default function ViewMemberModal({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      출자금액
+                      약정출자좌수
                     </label>
-                    <p className="mt-1 text-lg font-semibold text-blue-600">
-                      {formatCurrency(member.fund_members[0].investment_units)}
+                    <p className="mt-1 text-lg font-semibold text-green-600">
+                      {member.fund_members[0].total_units.toLocaleString()}좌
                     </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-700">
-                      출자 신청일
+                      출자금액
                     </label>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {formatDate(member.fund_members[0].created_at)}
+                    <p className="mt-1 text-lg font-semibold text-blue-600">
+                      {formatCurrency(
+                        member.fund_members[0].investment_units,
+                        member.fund_members[0].fund?.par_value
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      약정 출자금액
+                    </label>
+                    <p className="mt-1 text-lg font-semibold text-green-600">
+                      {formatCurrency(
+                        member.fund_members[0].total_units,
+                        member.fund_members[0].fund?.par_value
+                      )}
                     </p>
                   </div>
                 </div>
@@ -276,10 +283,14 @@ export default function ViewMemberModal({
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold text-blue-600">
-                          {formatCurrency(fundMember.investment_units)}
+                          {formatCurrency(
+                            fundMember.investment_units,
+                            fundMember.fund?.par_value
+                          )}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {fundMember.investment_units.toLocaleString()}좌
+                          {fundMember.investment_units.toLocaleString()}좌 /{' '}
+                          {fundMember.total_units.toLocaleString()}좌
                         </p>
                       </div>
                     </div>

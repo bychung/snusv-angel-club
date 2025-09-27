@@ -3,7 +3,7 @@ import type { FundMember, Profile } from '@/types/database';
 
 export interface MemberWithFund extends Profile {
   fund_members?: (FundMember & {
-    fund?: { name: string; abbreviation?: string | null };
+    fund?: { name: string; abbreviation?: string | null; par_value: number };
   })[];
   registration_status: 'registered' | 'survey_only';
 }
@@ -26,7 +26,8 @@ export async function getFundMembers(
     .select(
       `
       *,
-      profile:profiles (*)
+      profile:profiles (*),
+      fund:funds (name, abbreviation, par_value)
     `
     )
     .eq('fund_id', fundId)
@@ -86,7 +87,8 @@ export async function getAllUsers(
         updated_at,
         fund:funds (
           name,
-          abbreviation
+          abbreviation,
+          par_value
         )
       )
     `

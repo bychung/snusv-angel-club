@@ -27,6 +27,7 @@ export interface Fund {
   closed_at?: string | null; // 결성일
   registered_at?: string | null; // 등록일
   dissolved_at?: string | null; // 만기일
+  par_value: number; // 좌당가격
   brand: string;
   created_at: string;
   updated_at: string;
@@ -37,7 +38,7 @@ export interface FundMember {
   fund_id: string;
   profile_id: string;
   investment_units: number;
-  total_amount: number;
+  total_units: number; // 약정출자좌수
   brand: string;
   created_at: string;
   updated_at: string;
@@ -104,15 +105,10 @@ export interface Database {
       };
       fund_members: {
         Row: FundMember;
-        Insert: Omit<
-          FundMember,
-          'id' | 'total_amount' | 'created_at' | 'updated_at'
-        > & {
+        Insert: Omit<FundMember, 'id' | 'created_at' | 'updated_at'> & {
           updated_at?: string;
         };
-        Update: Partial<
-          Omit<FundMember, 'id' | 'total_amount' | 'created_at'>
-        > & {
+        Update: Partial<Omit<FundMember, 'id' | 'created_at'>> & {
           updated_at?: string;
         };
       };

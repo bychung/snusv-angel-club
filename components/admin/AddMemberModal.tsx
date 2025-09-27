@@ -1,5 +1,6 @@
 'use client';
 
+import BirthDateInput from '@/components/survey/inputs/BirthDateInput';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,6 +35,7 @@ interface MemberFormData {
   business_number?: string;
   address: string;
   investment_units: number;
+  total_units: number;
 }
 
 export default function AddMemberModal({
@@ -53,6 +55,7 @@ export default function AddMemberModal({
     business_number: '',
     address: '',
     investment_units: 1,
+    total_units: 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +95,7 @@ export default function AddMemberModal({
       email,
       address,
       investment_units,
+      total_units,
       entity_type,
       birth_date,
       business_number,
@@ -102,6 +106,9 @@ export default function AddMemberModal({
     if (!email.trim()) return '이메일을 입력해주세요.';
     if (!address.trim()) return '주소를 입력해주세요.';
     if (investment_units <= 0) return '출자좌수는 1좌 이상이어야 합니다.';
+    if (total_units <= 0) return '약정출자좌수는 1좌 이상이어야 합니다.';
+    if (total_units < investment_units)
+      return '약정출자좌수는 출자좌수보다 크거나 같아야 합니다.';
 
     // 이메일 형식 검증
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -149,6 +156,7 @@ export default function AddMemberModal({
         business_number,
         address,
         investment_units,
+        total_units,
       } = formData;
 
       // 1. 이메일로 기존 프로필 검색
@@ -218,6 +226,7 @@ export default function AddMemberModal({
           fund_id: fundId,
           profile_id: profileId,
           investment_units,
+          total_units,
         },
       ]);
 
@@ -240,6 +249,7 @@ export default function AddMemberModal({
         business_number: '',
         address: '',
         investment_units: 1,
+        total_units: 1,
       });
       onAdd();
       onClose();
@@ -261,6 +271,7 @@ export default function AddMemberModal({
       business_number: '',
       address: '',
       investment_units: 1,
+      total_units: 1,
     });
     setError(null);
     onClose();
@@ -343,6 +354,25 @@ export default function AddMemberModal({
                 disabled={isSubmitting}
               />
             </div>
+
+            {/* 약정출자좌수 */}
+            <div className="space-y-2">
+              <Label htmlFor="total_units">약정출자좌수 *</Label>
+              <Input
+                id="total_units"
+                type="number"
+                min="1"
+                value={formData.total_units}
+                onChange={e =>
+                  handleChange('total_units', parseInt(e.target.value) || 0)
+                }
+                placeholder="1"
+                disabled={isSubmitting}
+              />
+              <p className="text-xs text-gray-500">
+                약정출자좌수는 출자좌수와 같거나 커야 합니다
+              </p>
+            </div>
           </div>
 
           {/* 개인/법인 구분 */}
@@ -382,12 +412,10 @@ export default function AddMemberModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {formData.entity_type === 'individual' && (
               <div className="space-y-2">
-                <Label htmlFor="birth_date">생년월일</Label>
-                <Input
-                  id="birth_date"
-                  type="date"
+                <BirthDateInput
+                  label="생년월일"
                   value={formData.birth_date || ''}
-                  onChange={e => handleChange('birth_date', e.target.value)}
+                  onChange={value => handleChange('birth_date', value)}
                   disabled={isSubmitting}
                 />
               </div>

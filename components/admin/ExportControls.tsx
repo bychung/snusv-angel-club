@@ -71,8 +71,10 @@ export default function ExportControls() {
         fund_members (
           id,
           investment_units,
+          total_units,
           created_at,
-          updated_at
+          updated_at,
+          fund:funds (par_value)
         )
       `
     );
@@ -125,8 +127,16 @@ export default function ExportControls() {
       if (options.includeFields.investmentInfo && user.fund_members?.[0]) {
         const investment = user.fund_members[0];
         row['출자좌수'] = investment.investment_units;
+        row['약정출자좌수'] = investment.total_units;
         row['출자금액'] =
-          (investment.investment_units * 1000000).toLocaleString() + '원';
+          (
+            investment.investment_units *
+            (investment.fund?.par_value || 1000000)
+          ).toLocaleString() + '원';
+        row['약정금액'] =
+          (
+            investment.total_units * (investment.fund?.par_value || 1000000)
+          ).toLocaleString() + '원';
         // row['제출일'] = new Date(investment.created_at).toLocaleDateString('ko-KR');
 
         if (investment.created_at !== investment.updated_at) {

@@ -5,6 +5,7 @@ import { DocumentCategory } from '@/types/documents';
 export interface FundWithStats extends Fund {
   memberCount: number;
   totalInvestment: number;
+  totalCommittedAmount: number;
   registeredMembers: number;
   surveyOnlyMembers: number;
 }
@@ -46,8 +47,9 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
       `
       *,
       fund_members (
-        id,
+        id, 
         investment_units,
+        total_units,
         profile:profiles (
           id,
           user_id
@@ -67,7 +69,12 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
     fundsData?.map((fund: any) => {
       const members = fund.fund_members || [];
       const totalInvestment = members.reduce(
-        (sum: number, member: any) => sum + member.investment_units,
+        (sum: number, member: any) =>
+          sum + member.investment_units * fund.par_value,
+        0
+      );
+      const totalCommittedAmount = members.reduce(
+        (sum: number, member: any) => sum + member.total_units * fund.par_value,
         0
       );
       const registeredMembers = members.filter(
@@ -81,6 +88,7 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
         ...fund,
         memberCount: members.length,
         totalInvestment,
+        totalCommittedAmount,
         registeredMembers,
         surveyOnlyMembers,
       };
@@ -128,12 +136,13 @@ export async function getFundDetails(
 
   // 3. 펀드 멤버 정보 조회 (전체 결성 금액 계산용, 브랜드별)
   const { data: fundMembers } = await brandClient.fundMembers
-    .select('total_amount')
+    .select('investment_units')
     .eq('fund_id', fundId);
 
   const totalInvestment =
     fundMembers?.reduce(
-      (sum: number, member: any) => sum + member.total_amount,
+      (sum: number, member: any) =>
+        sum + member.investment_units * fund.par_value,
       0
     ) || 0;
 
@@ -249,6 +258,7 @@ export async function updateFundDetails(
     closed_at?: string;
     registered_at?: string;
     dissolved_at?: string;
+    par_value?: number;
   }
 ): Promise<Fund> {
   const brandClient = await createBrandServerClient();

@@ -66,6 +66,11 @@ CREATE TABLE IF NOT EXISTS funds (
   status fund_status DEFAULT 'ready' NOT NULL,
   account TEXT,
   account_bank TEXT,
+  par_value BIGINT NOT NULL DEFAULT 1000000 CHECK (par_value >= 1000000),
+  closed_at TIMESTAMPTZ,
+  registered_at TIMESTAMPTZ,
+  dissolved_at TIMESTAMPTZ,
+  brand TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -76,19 +81,24 @@ CREATE TABLE IF NOT EXISTS fund_members (
   fund_id UUID REFERENCES funds(id) ON DELETE CASCADE NOT NULL,
   profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   investment_units INTEGER NOT NULL CHECK (investment_units > 0),
-  total_amount BIGINT GENERATED ALWAYS AS (investment_units * 1000000) STORED,
+  total_units INTEGER NOT NULL CHECK (total_units > 0),
+  brand TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   -- 한 프로필은 한 펀드에 한 번만 가입 가능
-  UNIQUE(fund_id, profile_id)
+  UNIQUE(fund_id, profile_id),
+  -- 약정출자좌수는 출자좌수보다 크거나 같아야 함
+  CONSTRAINT fund_members_total_units_gte_investment_units CHECK (total_units >= investment_units)
 );
 
 -- fund_members에 복합 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_fund_members_fund_profile ON fund_members(fund_id, profile_id);
+CREATE INDEX IF NOT EXISTS idx_fund_members_total_units ON fund_members(total_units);
 
 -- funds 테이블 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_funds_status ON funds(status);
 CREATE INDEX IF NOT EXISTS idx_funds_gp_id ON funds USING gin(gp_id);
+CREATE INDEX IF NOT EXISTS idx_funds_par_value ON funds(par_value);
 
 -- updated_at 자동 업데이트 함수
 CREATE OR REPLACE FUNCTION update_updated_at()
