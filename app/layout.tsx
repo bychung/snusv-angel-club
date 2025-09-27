@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   themeColor: '#ffffff',
 
   openGraph: {
-    images: ['/meta-image.png'],
+    images: [branding.image],
     title: branding.ogTitle,
     description: branding.ogDescription,
     url: branding.domain,

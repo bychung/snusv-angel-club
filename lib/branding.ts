@@ -4,6 +4,7 @@ export interface BrandingConfig {
   clubNameShort: string;
   description: string;
   domain: string;
+  image: string;
 
   // 메타데이터
   title: string;
@@ -21,7 +22,7 @@ export interface BrandingConfig {
 }
 
 // 브랜드별 설정
-const brandConfigs = {
+const brandConfigs: Record<string, BrandingConfig> = {
   snusv: {
     clubName: 'SNUSV ANGEL CLUB',
     clubNameShort: 'SNUSV',
@@ -34,6 +35,7 @@ const brandConfigs = {
     email: 'snusv@angel-club.kr',
     chatbotSlug: '3um3',
     brandKey: 'snusv',
+    image: '/logos/snusv.png',
   },
   propel: {
     clubName: 'PROPEL VENTURES',
@@ -45,6 +47,7 @@ const brandConfigs = {
     ogDescription: '혁신적인 스타트업 생태계를 함께 만들어가는 엔젤클럽',
     email: 'help@propel.kr',
     brandKey: 'propel',
+    image: '/logos/propel.jpg',
   },
 } as const;
 
