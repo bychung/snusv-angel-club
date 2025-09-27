@@ -12,10 +12,17 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createBrandClient } from '@/lib/supabase/client';
 import { Building, User, UserPlus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -36,6 +43,17 @@ interface MemberFormData {
   address: string;
   investment_units: number;
   total_units: number;
+}
+
+interface ExistingProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  entity_type: 'individual' | 'corporate';
+  birth_date?: string;
+  business_number?: string;
+  address: string;
 }
 
 export default function AddMemberModal({
@@ -59,6 +77,83 @@ export default function AddMemberModal({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingProfiles, setExistingProfiles] = useState<ExistingProfile[]>(
+    []
+  );
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
+    null
+  );
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
+
+  // 기존 프로필 불러오기
+  useEffect(() => {
+    if (isOpen) {
+      loadExistingProfiles();
+    }
+  }, [isOpen]);
+
+  const loadExistingProfiles = async () => {
+    setIsLoadingProfiles(true);
+    try {
+      const brandClient = createBrandClient();
+      const { data, error } = await brandClient.profiles
+        .select(
+          'id, name, email, phone, entity_type, birth_date, business_number, address'
+        )
+        .order('name');
+
+      if (error) {
+        console.error('프로필 로딩 오류:', error);
+        return;
+      }
+
+      setExistingProfiles(data || []);
+    } catch (error) {
+      console.error('프로필 로딩 중 오류 발생:', error);
+    } finally {
+      setIsLoadingProfiles(false);
+    }
+  };
+
+  // 기존 조합원 선택 핸들러
+  const handleExistingMemberSelect = (profileId: string) => {
+    const actualProfileId = profileId === 'none' ? null : profileId;
+    setSelectedProfileId(actualProfileId);
+
+    if (actualProfileId) {
+      // 기존 조합원 선택 시 해당 프로필 정보로 폼 채우기
+      const selectedProfile = existingProfiles.find(
+        p => p.id === actualProfileId
+      );
+      if (selectedProfile) {
+        setFormData({
+          name: selectedProfile.name,
+          phone: selectedProfile.phone,
+          email: selectedProfile.email,
+          entity_type: selectedProfile.entity_type,
+          birth_date: selectedProfile.birth_date || '',
+          business_number: selectedProfile.business_number || '',
+          address: selectedProfile.address,
+          investment_units: formData.investment_units,
+          total_units: formData.total_units,
+        });
+      }
+    } else {
+      // 기본값 선택 시 폼 초기화
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        entity_type: 'individual',
+        birth_date: '',
+        business_number: '',
+        address: '',
+        investment_units: 1,
+        total_units: 1,
+      });
+    }
+    setError(null);
+  };
 
   const handleChange = (
     field: keyof MemberFormData,
@@ -159,65 +254,71 @@ export default function AddMemberModal({
         total_units,
       } = formData;
 
-      // 1. 이메일로 기존 프로필 검색
-      const { data: existingProfile, error: searchError } =
-        await brandClient.profiles
-          .select('id')
-          .eq('email', email.trim())
-          .maybeSingle();
-
-      if (searchError) {
-        throw new Error('기존 프로필 조회 중 오류가 발생했습니다.');
-      }
-
       let profileId: string;
 
-      if (existingProfile) {
-        // 기존 프로필 존재: 해당 profile_id 사용
-        profileId = existingProfile.id;
+      if (selectedProfileId) {
+        // 기존 조합원 선택한 경우 - fund_members에만 추가
+        profileId = selectedProfileId;
       } else {
-        // 새 프로필 생성
-        const profileInsertData: any = {
-          name: name.trim(),
-          phone: phone.trim(),
-          email: email.trim(),
-          entity_type,
-          address: address.trim(),
-          user_id: null, // 어드민이 추가하는 조합원은 아직 회원가입 안함
-        };
-
-        // 개인인 경우 생년월일 추가 (값이 있을 경우만)
-        if (entity_type === 'individual' && birth_date && birth_date.trim()) {
-          profileInsertData.birth_date = birth_date;
-        }
-
-        // 법인인 경우 사업자번호 추가 (값이 있을 경우만)
-        if (
-          entity_type === 'corporate' &&
-          business_number &&
-          business_number.trim()
-        ) {
-          profileInsertData.business_number = business_number.trim();
-        }
-
-        const { data: newProfile, error: insertError } =
+        // 직접 입력한 경우 - 기존 로직 사용 (profiles + fund_members 모두)
+        // 1. 이메일로 기존 프로필 검색
+        const { data: existingProfile, error: searchError } =
           await brandClient.profiles
-            .insert([profileInsertData])
             .select('id')
-            .single();
+            .eq('email', email.trim())
+            .maybeSingle();
 
-        if (insertError) {
-          console.error('프로필 생성 오류:', insertError);
-          if (insertError.code === '23505') {
-            // unique constraint violation
-            if (insertError.message.includes('email')) {
-              throw new Error('이미 등록된 이메일입니다.');
-            }
-          }
-          throw new Error('프로필 생성 중 오류가 발생했습니다.');
+        if (searchError) {
+          throw new Error('기존 프로필 조회 중 오류가 발생했습니다.');
         }
 
-        profileId = newProfile.id;
+        if (existingProfile) {
+          // 기존 프로필 존재: 해당 profile_id 사용
+          profileId = existingProfile.id;
+        } else {
+          // 새 프로필 생성
+          const profileInsertData: any = {
+            name: name.trim(),
+            phone: phone.trim(),
+            email: email.trim(),
+            entity_type,
+            address: address.trim(),
+            user_id: null, // 어드민이 추가하는 조합원은 아직 회원가입 안함
+          };
+
+          // 개인인 경우 생년월일 추가 (값이 있을 경우만)
+          if (entity_type === 'individual' && birth_date && birth_date.trim()) {
+            profileInsertData.birth_date = birth_date;
+          }
+
+          // 법인인 경우 사업자번호 추가 (값이 있을 경우만)
+          if (
+            entity_type === 'corporate' &&
+            business_number &&
+            business_number.trim()
+          ) {
+            profileInsertData.business_number = business_number.trim();
+          }
+
+          const { data: newProfile, error: insertError } =
+            await brandClient.profiles
+              .insert([profileInsertData])
+              .select('id')
+              .single();
+
+          if (insertError) {
+            console.error('프로필 생성 오류:', insertError);
+            if (insertError.code === '23505') {
+              // unique constraint violation
+              if (insertError.message.includes('email')) {
+                throw new Error('이미 등록된 이메일입니다.');
+              }
+            }
+            throw new Error('프로필 생성 중 오류가 발생했습니다.');
+          }
+
+          profileId = newProfile.id;
+        }
       }
 
       // 2. fund_members에 추가
@@ -251,6 +352,7 @@ export default function AddMemberModal({
         investment_units: 1,
         total_units: 1,
       });
+      setSelectedProfileId(null);
       onAdd();
       onClose();
     } catch (error: any) {
@@ -273,6 +375,7 @@ export default function AddMemberModal({
       investment_units: 1,
       total_units: 1,
     });
+    setSelectedProfileId(null);
     setError(null);
     onClose();
   };
@@ -298,18 +401,122 @@ export default function AddMemberModal({
             </div>
           )}
 
+          {/* 기존 조합원 선택 드롭다운 */}
+          <div className="space-y-2">
+            <Label>기존 조합원 선택</Label>
+            <Select
+              value={selectedProfileId || 'none'}
+              onValueChange={handleExistingMemberSelect}
+              disabled={isSubmitting || isLoadingProfiles}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="---기존 조합원을 선택하세요---" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  --- 기존 조합원을 선택하세요 (현재는 직접입력 상태) ---
+                </SelectItem>
+                {existingProfiles.map(profile => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.name} ({profile.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-gray-500">
+              기존 조합원을 선택하면 출자좌수만 입력하면 됩니다. 새로운 조합원을
+              추가하려면 위의 기본값을 유지하세요.
+            </p>
+          </div>
+
+          {/* 개인/법인 구분 */}
+          <div className="space-y-3">
+            <Label>구분 *</Label>
+            <div className="flex gap-4">
+              <label
+                className={`flex items-center space-x-2 ${
+                  Boolean(selectedProfileId)
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="entity_type"
+                  value="individual"
+                  checked={formData.entity_type === 'individual'}
+                  onChange={() => handleEntityTypeChange('individual')}
+                  className="w-4 h-4 text-blue-600"
+                  disabled={isSubmitting || Boolean(selectedProfileId)}
+                />
+                <User className="h-4 w-4 text-green-600" />
+                <span>개인</span>
+              </label>
+              <label
+                className={`flex items-center space-x-2 ${
+                  Boolean(selectedProfileId)
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="entity_type"
+                  value="corporate"
+                  checked={formData.entity_type === 'corporate'}
+                  onChange={() => handleEntityTypeChange('corporate')}
+                  className="w-4 h-4 text-blue-600"
+                  disabled={isSubmitting || Boolean(selectedProfileId)}
+                />
+                <Building className="h-4 w-4 text-blue-600" />
+                <span>법인</span>
+              </label>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* 이름/회사명 */}
             <div className="space-y-2">
-              <Label htmlFor="name">이름/회사명 *</Label>
+              <Label htmlFor="name">
+                {formData.entity_type === 'individual' ? `이름 *` : `회사명 *`}
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={e => handleChange('name', e.target.value)}
                 placeholder="이름 또는 회사명"
-                disabled={isSubmitting}
+                disabled={isSubmitting || Boolean(selectedProfileId)}
               />
             </div>
+
+            {/* 생년월일 (개인인 경우) 또는 사업자번호 (법인인 경우) */}
+            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4"> */}
+            {formData.entity_type === 'individual' && (
+              <div className="space-y-2">
+                <BirthDateInput
+                  label="생년월일"
+                  value={formData.birth_date || ''}
+                  onChange={value => handleChange('birth_date', value)}
+                  disabled={isSubmitting || Boolean(selectedProfileId)}
+                />
+              </div>
+            )}
+
+            {formData.entity_type === 'corporate' && (
+              <div className="space-y-2">
+                <Label htmlFor="business_number">사업자번호</Label>
+                <Input
+                  id="business_number"
+                  value={formData.business_number || ''}
+                  onChange={e =>
+                    handleChange('business_number', e.target.value)
+                  }
+                  placeholder="123-45-67890"
+                  disabled={isSubmitting || Boolean(selectedProfileId)}
+                />
+              </div>
+            )}
+            {/* </div> */}
 
             {/* 전화번호 */}
             <div className="space-y-2">
@@ -319,7 +526,7 @@ export default function AddMemberModal({
                 value={formData.phone}
                 onChange={e => handleChange('phone', e.target.value)}
                 placeholder="010-0000-0000"
-                disabled={isSubmitting}
+                disabled={isSubmitting || Boolean(selectedProfileId)}
               />
             </div>
 
@@ -332,7 +539,7 @@ export default function AddMemberModal({
                 value={formData.email}
                 onChange={e => handleChange('email', e.target.value)}
                 placeholder="example@email.com"
-                disabled={isSubmitting}
+                disabled={isSubmitting || Boolean(selectedProfileId)}
               />
             </div>
 
@@ -375,68 +582,6 @@ export default function AddMemberModal({
             </div>
           </div>
 
-          {/* 개인/법인 구분 */}
-          <div className="space-y-3">
-            <Label>구분 *</Label>
-            <div className="flex gap-4">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="entity_type"
-                  value="individual"
-                  checked={formData.entity_type === 'individual'}
-                  onChange={() => handleEntityTypeChange('individual')}
-                  className="w-4 h-4 text-blue-600"
-                  disabled={isSubmitting}
-                />
-                <User className="h-4 w-4 text-green-600" />
-                <span>개인</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="entity_type"
-                  value="corporate"
-                  checked={formData.entity_type === 'corporate'}
-                  onChange={() => handleEntityTypeChange('corporate')}
-                  className="w-4 h-4 text-blue-600"
-                  disabled={isSubmitting}
-                />
-                <Building className="h-4 w-4 text-blue-600" />
-                <span>법인</span>
-              </label>
-            </div>
-          </div>
-
-          {/* 생년월일 (개인인 경우) 또는 사업자번호 (법인인 경우) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {formData.entity_type === 'individual' && (
-              <div className="space-y-2">
-                <BirthDateInput
-                  label="생년월일"
-                  value={formData.birth_date || ''}
-                  onChange={value => handleChange('birth_date', value)}
-                  disabled={isSubmitting}
-                />
-              </div>
-            )}
-
-            {formData.entity_type === 'corporate' && (
-              <div className="space-y-2">
-                <Label htmlFor="business_number">사업자번호</Label>
-                <Input
-                  id="business_number"
-                  value={formData.business_number || ''}
-                  onChange={e =>
-                    handleChange('business_number', e.target.value)
-                  }
-                  placeholder="123-45-67890"
-                  disabled={isSubmitting}
-                />
-              </div>
-            )}
-          </div>
-
           {/* 주소 */}
           <div className="space-y-2">
             <Label htmlFor="address">주소 *</Label>
@@ -445,16 +590,17 @@ export default function AddMemberModal({
               value={formData.address}
               onChange={e => handleChange('address', e.target.value)}
               placeholder="서울특별시 강남구..."
-              disabled={isSubmitting}
+              disabled={isSubmitting || Boolean(selectedProfileId)}
             />
           </div>
 
           {/* 안내 메시지 */}
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
-              <strong>참고:</strong> 이메일이 같은 기존 조합원이 있으면 해당
-              정보를 사용하고, 펀드 멤버로만 추가됩니다. 새로운 이메일이면 새
-              프로필을 생성합니다.
+              <strong>참고:</strong>{' '}
+              {selectedProfileId
+                ? '기존 조합원을 선택했습니다. 출자좌수만 입력하면 해당 펀드의 멤버로만 추가됩니다.'
+                : '새로운 조합원 정보를 직접 입력하면 프로필과 펀드 멤버 모두 생성됩니다. 이메일이 같은 기존 프로필이 있으면 해당 정보를 사용합니다.'}
             </p>
           </div>
         </div>
