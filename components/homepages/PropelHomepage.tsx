@@ -12,12 +12,14 @@ import {
 } from '@/components/ui/dialog';
 import { useAuthStore } from '@/store/authStore';
 import {
+  Building2,
   ChevronRight,
   Handshake,
   Home,
   Mail,
+  Rocket,
   Sparkles,
-  Target,
+  Sprout,
   TrendingUp,
   Users,
 } from 'lucide-react';
@@ -251,21 +253,21 @@ export default function PropelHomepage() {
             <div className="grid md:grid-cols-3 gap-8 mt-20">
               {[
                 {
-                  icon: TrendingUp,
+                  icon: Building2,
                   title: '컴퍼니빌딩',
                   description:
                     '창업자를 존중하는 2대주주로서 창업자를 위한 모든 것을 지원합니다.',
                   gradient: 'from-blue-500 to-cyan-500',
                 },
                 {
-                  icon: Users,
+                  icon: Rocket,
                   title: '액셀러레이팅',
                   description:
                     '획일적인 프로그램 형태의 액셀러레이팅이 아닌, 각 기업에 알맞는 도움을 제공합니다.',
                   gradient: 'from-cyan-500 to-teal-500',
                 },
                 {
-                  icon: Target,
+                  icon: Sprout,
                   title: '시드 투자',
                   description:
                     '단순 시드 투자를 넘어, 폭넓은 네트워크를 지원합니다.',
