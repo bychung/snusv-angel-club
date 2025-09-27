@@ -3,6 +3,15 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -25,8 +34,17 @@ import {
   DOCUMENT_CATEGORY_NAMES,
   DocumentCategory,
 } from '@/types/documents';
-import { Building2, FileText, RefreshCw, Save, Users } from 'lucide-react';
+import {
+  Building2,
+  ChevronDown,
+  FileText,
+  RefreshCw,
+  Save,
+  Users,
+  X,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
+import BirthDateInput from '../survey/inputs/BirthDateInput';
 import DocumentHistory from './DocumentHistory';
 import DocumentUpload from './DocumentUpload';
 import InvestmentCertificateManager from './InvestmentCertificateManager';
@@ -90,7 +108,14 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         setFundDetails(fundData);
         setMembers(membersData.members || []);
 
-        // 폼 데이터 초기화
+        // 폼 데이터 초기화 (날짜는 YYYY-MM-DD 형식으로 변환)
+        const formatDateForInput = (dateStr: string) => {
+          if (!dateStr) return '';
+          const date = new Date(dateStr);
+          if (isNaN(date.getTime())) return '';
+          return date.toISOString().split('T')[0];
+        };
+
         setFormData({
           name: fundData.fund.name || '',
           abbreviation: fundData.fund.abbreviation || '',
@@ -100,9 +125,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           status: fundData.fund.status || 'ready',
           account: fundData.fund.account || '',
           account_bank: fundData.fund.account_bank || '',
-          closed_at: fundData.fund.closed_at || '',
-          registered_at: fundData.fund.registered_at || '',
-          dissolved_at: fundData.fund.dissolved_at || '',
+          closed_at: formatDateForInput(fundData.fund.closed_at) || '',
+          registered_at: formatDateForInput(fundData.fund.registered_at) || '',
+          dissolved_at: formatDateForInput(fundData.fund.dissolved_at) || '',
           par_value: fundData.fund.par_value || 1000000,
         });
       } catch (err) {
@@ -126,12 +151,25 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
       setSaving(true);
       setError(null);
 
+      // 날짜 필드를 ISO 형식으로 변환
+      const convertDateToISO = (dateStr: string) => {
+        if (!dateStr) return null;
+        return `${dateStr}T00:00:00.000Z`;
+      };
+
+      const dataToSave = {
+        ...formData,
+        closed_at: convertDateToISO(formData.closed_at),
+        registered_at: convertDateToISO(formData.registered_at),
+        dissolved_at: convertDateToISO(formData.dissolved_at),
+      };
+
       const response = await fetch(`/api/admin/funds/${fundId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(dataToSave),
       });
 
       if (!response.ok) {
@@ -352,101 +390,146 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="closed_at">결성일</Label>
-                  <Input
-                    id="closed_at"
-                    type="date"
-                    value={
-                      formData.closed_at ? formData.closed_at.split('T')[0] : ''
-                    }
-                    onChange={e => {
-                      const value = e.target.value
-                        ? `${e.target.value}T00:00:00.000Z`
-                        : '';
-                      handleInputChange('closed_at', value);
-                    }}
-                    placeholder="펀드 결성일을 선택하세요"
-                  />
-                </div>
+                <BirthDateInput
+                  label="결성일"
+                  value={formData.closed_at}
+                  onChange={value => handleInputChange('closed_at', value)}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="registered_at">등록일</Label>
-                  <Input
-                    id="registered_at"
-                    type="date"
-                    value={
-                      formData.registered_at
-                        ? formData.registered_at.split('T')[0]
-                        : ''
-                    }
-                    onChange={e => {
-                      const value = e.target.value
-                        ? `${e.target.value}T00:00:00.000Z`
-                        : '';
-                      handleInputChange('registered_at', value);
-                    }}
-                    placeholder="펀드 등록일을 선택하세요"
-                  />
-                </div>
+                <BirthDateInput
+                  label="등록일"
+                  value={formData.registered_at}
+                  onChange={value => handleInputChange('registered_at', value)}
+                />
 
-                <div className="space-y-2">
-                  <Label htmlFor="dissolved_at">만기일</Label>
-                  <Input
-                    id="dissolved_at"
-                    type="date"
-                    value={
-                      formData.dissolved_at
-                        ? formData.dissolved_at.split('T')[0]
-                        : ''
-                    }
-                    onChange={e => {
-                      const value = e.target.value
-                        ? `${e.target.value}T00:00:00.000Z`
-                        : '';
-                      handleInputChange('dissolved_at', value);
-                    }}
-                    placeholder="펀드 만기일을 선택하세요"
-                  />
-                </div>
+                <BirthDateInput
+                  label="만기일"
+                  value={formData.dissolved_at}
+                  onChange={value => handleInputChange('dissolved_at', value)}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label>업무집행조합원 (GP)</Label>
                 <div className="text-sm text-gray-500 mb-2">
-                  현재 {members.length}명의 조합원이 있습니다.
+                  현재 {members.length}명의 조합원 중 {formData.gp_id.length}
+                  명이 GP로 선택되었습니다.
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {members.map(member => (
-                    <div
-                      key={member.id}
-                      className={`
-                        p-3 rounded-lg border cursor-pointer transition-colors
-                        ${
-                          formData.gp_id.includes(member.id)
-                            ? 'border-blue-300 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }
-                      `}
-                      onClick={() => {
-                        const newGpIds = formData.gp_id.includes(member.id)
-                          ? formData.gp_id.filter(id => id !== member.id)
-                          : [...formData.gp_id, member.id];
-                        handleInputChange('gp_id', newGpIds);
-                      }}
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between text-left"
                     >
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-gray-400" />
-                        <span className="font-medium">{member.name}</span>
-                        {member.role === 'ADMIN' && (
-                          <Badge variant="outline" className="text-xs">
-                            관리자
-                          </Badge>
+                        {formData.gp_id.length === 0 ? (
+                          <span className="text-gray-500">
+                            업무집행조합원을 선택하세요
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-full overflow-hidden">
+                            {formData.gp_id.slice(0, 2).map(gpId => {
+                              const member = members.find(m => m.id === gpId);
+                              return member ? (
+                                <Badge
+                                  key={gpId}
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {member.name}
+                                </Badge>
+                              ) : null;
+                            })}
+                            {formData.gp_id.length > 2 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{formData.gp_id.length - 2}명 더
+                              </Badge>
+                            )}
+                          </div>
                         )}
                       </div>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-80">
+                    <DropdownMenuLabel className="flex items-center justify-between">
+                      <span>업무집행조합원 선택</span>
+                      {formData.gp_id.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleInputChange('gp_id', [])}
+                        >
+                          전체 해제
+                        </Button>
+                      )}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="max-h-60 overflow-y-auto">
+                      {members.map(member => (
+                        <DropdownMenuItem
+                          key={member.id}
+                          className="flex items-center space-x-3 cursor-pointer"
+                          onSelect={e => {
+                            e.preventDefault(); // 드롭다운이 닫히지 않도록
+                            const newGpIds = formData.gp_id.includes(member.id)
+                              ? formData.gp_id.filter(id => id !== member.id)
+                              : [...formData.gp_id, member.id];
+                            handleInputChange('gp_id', newGpIds);
+                          }}
+                        >
+                          <Checkbox
+                            checked={formData.gp_id.includes(member.id)}
+                            onChange={() => {}} // onSelect에서 처리하므로 빈 함수
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{member.name}</span>
+                              {member.role === 'ADMIN' && (
+                                <Badge variant="outline" className="text-xs">
+                                  관리자
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                    {formData.gp_id.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <div className="p-3">
+                          <div className="flex flex-wrap gap-1">
+                            {formData.gp_id.map(gpId => {
+                              const member = members.find(m => m.id === gpId);
+                              return member ? (
+                                <Badge
+                                  key={gpId}
+                                  variant="secondary"
+                                  className="text-xs flex items-center gap-1"
+                                >
+                                  {member.name}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer hover:text-red-500"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      const newGpIds = formData.gp_id.filter(
+                                        id => id !== gpId
+                                      );
+                                      handleInputChange('gp_id', newGpIds);
+                                    }}
+                                  />
+                                </Badge>
+                              ) : null;
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
