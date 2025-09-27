@@ -202,9 +202,7 @@ export default function AddMemberModal({
           console.error('프로필 생성 오류:', insertError);
           if (insertError.code === '23505') {
             // unique constraint violation
-            if (insertError.message.includes('phone')) {
-              throw new Error('이미 등록된 전화번호입니다.');
-            } else if (insertError.message.includes('email')) {
+            if (insertError.message.includes('email')) {
               throw new Error('이미 등록된 이메일입니다.');
             }
           }

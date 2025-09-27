@@ -167,7 +167,9 @@ export const parseExcelFile = (file: File): Promise<ExcelRowData[]> => {
         if (headerMismatch) {
           reject(
             new Error(
-              `엑셀 헤더가 올바르지 않습니다. 예상: ${expectedHeaders.join(', ')}`
+              `엑셀 헤더가 올바르지 않습니다. 예상: ${expectedHeaders.join(
+                ', '
+              )}`
             )
           );
           return;
@@ -213,7 +215,9 @@ export const normalizePhoneNumber = (phone: string): string => {
     if (cleaned.startsWith('02')) {
       return `02-${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
     } else {
-      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7)}`;
+      return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(
+        7
+      )}`;
     }
   }
 
@@ -230,6 +234,7 @@ export const isValidEmail = (email: string): boolean => {
 export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
   const results: ValidationResult[] = [];
   const phoneNumbers = new Set<string>();
+  const emailAddresses = new Set<string>();
 
   data.forEach((row, index) => {
     const errors: string[] = [];
@@ -250,18 +255,23 @@ export const validateExcelData = (data: ExcelRowData[]): ValidationResult[] => {
         errors.push('전화번호 형식이 올바르지 않습니다.');
       }
 
-      // 파일 내 중복 검사
-      if (phoneNumbers.has(normalizedPhone)) {
-        errors.push('파일 내에서 중복된 전화번호입니다.');
-      } else {
-        phoneNumbers.add(normalizedPhone);
-      }
+      // 전화번호 중복은 허용하므로 파일 내 중복 검사 제거
+      phoneNumbers.add(normalizedPhone);
     }
 
     if (!row.이메일?.trim()) {
       errors.push('이메일은 필수입니다.');
     } else if (!isValidEmail(row.이메일)) {
       errors.push('이메일 형식이 올바르지 않습니다.');
+    } else {
+      const normalizedEmail = row.이메일.trim().toLowerCase();
+
+      // 파일 내 이메일 중복 검사
+      if (emailAddresses.has(normalizedEmail)) {
+        errors.push('파일 내에서 중복된 이메일입니다.');
+      } else {
+        emailAddresses.add(normalizedEmail);
+      }
     }
 
     if (!row['개인/법인'] || !['개인', '법인'].includes(row['개인/법인'])) {

@@ -116,40 +116,22 @@ async function processMembersIndividually(
     const member = members[i];
 
     try {
-      // 1. 기존 프로필 확인 (전화번호 기준, 브랜드별)
+      // 1. 기존 프로필 확인 (이메일 기준으로 변경, 개별 추가와 일관성 유지)
       const { data: existingProfile } = await brandClient.profiles
-        .select('id')
-        .eq('phone', member.phone)
-        .single();
+        .select(
+          'id, name, phone, investment_units_sum: fund_members(investment_units)'
+        )
+        .eq('email', member.email.trim())
+        .maybeSingle();
 
       let profileId: string;
 
       if (existingProfile) {
         profileId = existingProfile.id;
-
-        // 기존 프로필 정보 업데이트
-        const { error: updateError } = await brandClient.profiles
-          .update({
-            name: member.name,
-            email: member.email,
-            entity_type: member.entity_type,
-            birth_date: member.birth_date,
-            business_number: member.business_number,
-            address: member.address,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', profileId);
-
-        if (updateError) {
-          result.errors.push({
-            index: i + 1,
-            name: member.name,
-            error: '프로필 업데이트 실패: ' + updateError.message,
-          });
-          continue;
-        }
+        // 기존 프로필 정보는 업데이트하지 않음 (다른 브랜드 정보 보호)
       } else {
         // 새 프로필 생성
+
         const { data: newProfile, error: insertError } =
           await brandClient.profiles
             .insert({
