@@ -157,6 +157,9 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   const [fundParValue, setFundParValue] = useState<number>(1000000); // 기본값
   const [isFundSurveyExpired, setIsFundSurveyExpired] = useState(false);
 
+  // 펀드제안서 존재 여부 확인
+  const [proposalExists, setProposalExists] = useState<boolean>(false);
+
   // 펀드 정보 조회
   const fetchFundInfo = async (fundIdToFetch: string) => {
     try {
@@ -193,6 +196,26 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       store.setFundId(fundIdToFetch, '알 수 없는 펀드');
       setFundParValue(1000000); // 기본값 설정
       setIsFundSurveyExpired(true); // 오류 발생 시도 만료로 처리
+    }
+  };
+
+  // 펀드제안서 존재 여부 확인
+  const checkProposalExists = async (fundIdToCheck: string) => {
+    try {
+      const response = await fetch(
+        `/api/funds/${fundIdToCheck}/documents/proposal/exists`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setProposalExists(data.exists || false);
+      } else {
+        console.error('펀드제안서 존재 여부 확인 실패:', response.statusText);
+        setProposalExists(false);
+      }
+    } catch (error) {
+      console.error('펀드제안서 존재 여부 확인 중 오류:', error);
+      setProposalExists(false);
     }
   };
 
@@ -255,11 +278,17 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
           if (fundId) {
             store.setActiveFundId(fundId);
             store.setFundId(fundId);
-            // 펀드 정보 조회
-            await fetchFundInfo(fundId);
+            // 펀드 정보 조회 및 제안서 존재 여부 확인
+            await Promise.all([
+              fetchFundInfo(fundId),
+              checkProposalExists(fundId),
+            ]);
           } else if (store.activeFundId && !fundName) {
             // 스토어에 fundId는 있지만 fundName이 없으면 조회
-            await fetchFundInfo(store.activeFundId);
+            await Promise.all([
+              fetchFundInfo(store.activeFundId),
+              checkProposalExists(store.activeFundId),
+            ]);
           }
 
           const currentFundId = fundId || store.activeFundId;
@@ -546,6 +575,40 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       await signInWithOAuth(provider);
     } catch (error) {
       console.error('OAuth 로그인 실패:', error);
+    }
+  };
+
+  const handleProposalDownload = async () => {
+    try {
+      const response = await fetch(
+        `/api/funds/${activeFundId}/documents/proposal/download`
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '파일 다운로드에 실패했습니다.');
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filename = contentDisposition
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') ||
+          'fund-proposal.pdf'
+        : 'fund-proposal.pdf';
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = decodeURIComponent(filename);
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('펀드제안서 다운로드 실패:', error);
+      alert(
+        error instanceof Error ? error.message : '다운로드에 실패했습니다.'
+      );
     }
   };
 
@@ -1013,8 +1076,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container max-w-full sm:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-6">
-        {/* 로그인 옵션 */}
-        {!isLoggedInUser && currentPage < 9 && (
+        {/* 로그인 옵션: 임시 disabled */}
+        {false && !isLoggedInUser && currentPage < 9 && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1066,6 +1129,17 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 <>마지막까지 입력 후 제출을 부탁드립니다.</>
               )}
             </p>
+            {activeFundId && proposalExists && (
+              <div className="text-center mt-4">
+                <Button
+                  onClick={() => handleProposalDownload()}
+                  variant="outline"
+                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                >
+                  펀드제안서 다운로드
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

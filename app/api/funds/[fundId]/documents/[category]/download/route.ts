@@ -40,18 +40,25 @@ export async function GET(
       error: authError,
     } = await brandClient.raw.auth.getUser();
 
-    if (authError || !user) {
-      return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
+    // 펀드제안서(PROPOSAL)의 경우 인증 없이도 다운로드 가능
+    if (documentCategory === DocumentCategory.PROPOSAL) {
+      // 펀드제안서는 공개 문서로 처리
+    } else {
+      // 다른 카테고리는 인증 필요
+      if (authError || !user) {
+        return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
+      }
     }
 
-    // 관리자 권한 확인
-    const isAdmin = await isAdminServer(user);
+    // 관리자 권한 확인 (인증된 사용자에 대해서만)
+    const isAdmin = user ? await isAdminServer(user) : false;
 
     // 권한 확인: 관리자가 아닌 경우 특정 카테고리만 다운로드 가능
     if (!isAdmin) {
       const downloadableCategories = [
         DocumentCategory.ACCOUNT,
         DocumentCategory.AGREEMENT,
+        DocumentCategory.PROPOSAL, // 펀드제안서는 일반 사용자도 다운로드 가능
       ];
       if (!downloadableCategories.includes(documentCategory)) {
         return Response.json(
@@ -62,31 +69,34 @@ export async function GET(
         );
       }
 
-      // 일반 사용자의 경우 해당 펀드 참여자인지 확인 (브랜드별)
-      const { data: profile } = await brandClient.profiles
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      // 펀드제안서가 아닌 경우에만 펀드 참여자 확인
+      if (documentCategory !== DocumentCategory.PROPOSAL && user) {
+        // 일반 사용자의 경우 해당 펀드 참여자인지 확인 (브랜드별)
+        const { data: profile } = await brandClient.profiles
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
 
-      if (!profile) {
-        return Response.json(
-          { error: '프로필을 찾을 수 없습니다' },
-          { status: 403 }
-        );
-      }
+        if (!profile) {
+          return Response.json(
+            { error: '프로필을 찾을 수 없습니다' },
+            { status: 403 }
+          );
+        }
 
-      const { count } = await brandClient.fundMembers
-        .select('*', { count: 'exact', head: true })
-        .eq('fund_id', fundId)
-        .eq('profile_id', profile.id);
+        const { count } = await brandClient.fundMembers
+          .select('*', { count: 'exact', head: true })
+          .eq('fund_id', fundId)
+          .eq('profile_id', profile.id);
 
-      if (!count || count === 0) {
-        return Response.json(
-          {
-            error: '해당 펀드에 접근할 권한이 없습니다',
-          },
-          { status: 403 }
-        );
+        if (!count || count === 0) {
+          return Response.json(
+            {
+              error: '해당 펀드에 접근할 권한이 없습니다',
+            },
+            { status: 403 }
+          );
+        }
       }
     }
 
@@ -162,7 +172,9 @@ export async function GET(
 
     // 파일 다운로드 로그 기록
     console.log(
-      `문서 다운로드: ${user.email} - ${fundId}/${documentCategory} - ${document.file_name}`
+      `문서 다운로드: ${
+        user?.email || '익명'
+      } - ${fundId}/${documentCategory} - ${document.file_name}`
     );
 
     // 파일을 직접 반환 (IR deck과 동일한 방식)
