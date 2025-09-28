@@ -1,4 +1,5 @@
 import { authenticateRequest } from '@/lib/auth/temp-token';
+import { inquiryNotifications } from '@/lib/email/inquiry-notifications';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -99,6 +100,22 @@ export async function POST(request: NextRequest) {
     console.log(
       `[회원가입 문의 접수] User: ${user.id}, Email: ${attemptedEmail}, Provider: ${provider}`
     );
+
+    // 이메일 알림 발송 (백그라운드에서 실행, 실패해도 응답에는 영향 없음)
+    inquiryNotifications
+      .sendSignupInquiryNotification({
+        id: savedInquiry.id,
+        name: `사용자 ${user.id.substring(0, 8)}`, // 실제 이름이 없으므로 user ID 일부 사용
+        email: attemptedEmail,
+        createdAt: savedInquiry.created_at,
+        attempted_email: attemptedEmail,
+        provider: provider,
+        inquiry_message: inquiryMessage,
+      })
+      .catch(error => {
+        console.error('회원가입 문의 이메일 알림 발송 실패:', error);
+        // 이메일 발송 실패는 사용자 응답에 영향을 주지 않음
+      });
 
     return NextResponse.json({
       success: true,

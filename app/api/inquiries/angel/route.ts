@@ -1,3 +1,4 @@
+import { inquiryNotifications } from '@/lib/email/inquiry-notifications';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -42,6 +43,20 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // 이메일 알림 발송 (백그라운드에서 실행, 실패해도 응답에는 영향 없음)
+    inquiryNotifications
+      .sendAngelInquiryNotification({
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        createdAt: data.created_at,
+        self_introduction: data.self_introduction,
+      })
+      .catch(error => {
+        console.error('엔젤클럽 문의 이메일 알림 발송 실패:', error);
+        // 이메일 발송 실패는 사용자 응답에 영향을 주지 않음
+      });
 
     return NextResponse.json(
       {

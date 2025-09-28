@@ -79,9 +79,15 @@ export class GmailService {
 
   private createMessage(config: EmailSenderConfig): string {
     const boundary = '__MAIL_BOUNDARY__';
+    const attachmentBoundary = '__ATTACHMENT_BOUNDARY__';
     const subjectEncoded = `=?UTF-8?B?${Buffer.from(config.subject).toString(
       'base64'
     )}?=`;
+
+    const hasAttachments = config.attachments && config.attachments.length > 0;
+    const contentType = hasAttachments
+      ? `multipart/mixed; boundary="${boundary}"`
+      : `multipart/alternative; boundary="${boundary}"`;
 
     const messageParts = [
       `From: ${this.senderEmail}`,
@@ -91,25 +97,70 @@ export class GmailService {
       config.bcc?.length ? `Bcc: ${config.bcc.join(', ')}` : undefined,
       `Subject: ${subjectEncoded}`,
       'MIME-Version: 1.0',
-      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      `Content-Type: ${contentType}`,
       '',
-      `--${boundary}`,
-      'Content-Type: text/plain; charset="UTF-8"',
-      '',
-      config.text || 'This is a plain text fallback.',
-      '',
-      `--${boundary}`,
-      'Content-Type: text/html; charset="UTF-8"',
-      '',
-      config.html || config.text || 'This is a test email.',
-      '',
-      `--${boundary}--`,
-      '',
-    ]
+    ];
+
+    if (hasAttachments) {
+      // 메시지 본문을 위한 multipart/alternative 섹션
+      messageParts.push(
+        `--${boundary}`,
+        `Content-Type: multipart/alternative; boundary="${attachmentBoundary}"`,
+        '',
+        `--${attachmentBoundary}`,
+        'Content-Type: text/plain; charset="UTF-8"',
+        '',
+        config.text || 'This is a plain text fallback.',
+        '',
+        `--${attachmentBoundary}`,
+        'Content-Type: text/html; charset="UTF-8"',
+        '',
+        config.html || config.text || 'This is a test email.',
+        '',
+        `--${attachmentBoundary}--`,
+        ''
+      );
+
+      // 첨부파일 섹션
+      config.attachments?.forEach(attachment => {
+        const attachmentContent = attachment.content.toString('base64');
+        messageParts.push(
+          `--${boundary}`,
+          `Content-Type: ${attachment.contentType}; name="${attachment.filename}"`,
+          'Content-Transfer-Encoding: base64',
+          `Content-Disposition: attachment; filename="${attachment.filename}"`,
+          attachment.contentId ? `Content-ID: <${attachment.contentId}>` : '',
+          '',
+          attachmentContent,
+          ''
+        );
+      });
+
+      messageParts.push(`--${boundary}--`);
+    } else {
+      // 첨부파일이 없는 경우 기존 로직
+      messageParts.push(
+        `--${boundary}`,
+        'Content-Type: text/plain; charset="UTF-8"',
+        '',
+        config.text || 'This is a plain text fallback.',
+        '',
+        `--${boundary}`,
+        'Content-Type: text/html; charset="UTF-8"',
+        '',
+        config.html || config.text || 'This is a test email.',
+        '',
+        `--${boundary}--`
+      );
+    }
+
+    messageParts.push('');
+
+    const messageString = messageParts
       .filter(line => line !== undefined)
       .join('\r\n');
 
-    return Buffer.from(messageParts)
+    return Buffer.from(messageString)
       .toString('base64')
       .replace(/\+/g, '-')
       .replace(/\//g, '_')

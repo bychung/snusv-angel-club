@@ -23,6 +23,7 @@ interface IRInquiryModalProps {
 interface FormData {
   companyName: string;
   contactPerson: string;
+  contactEmail: string;
   position: string;
   companyDescription: string;
   irDeck: File | null;
@@ -35,6 +36,7 @@ export default function IRInquiryModal({
   const [formData, setFormData] = useState<FormData>({
     companyName: '',
     contactPerson: '',
+    contactEmail: '',
     position: '',
     companyDescription: '',
     irDeck: null,
@@ -52,6 +54,12 @@ export default function IRInquiryModal({
 
     if (!formData.contactPerson.trim()) {
       newErrors.contactPerson = '담당자를 입력해주세요.';
+    }
+
+    if (!formData.contactEmail.trim()) {
+      newErrors.contactEmail = '담당자 이메일을 입력해주세요.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactEmail)) {
+      newErrors.contactEmail = '올바른 이메일 형식을 입력해주세요.';
     }
 
     if (!formData.position.trim()) {
@@ -103,6 +111,7 @@ export default function IRInquiryModal({
       const formDataToSend = new FormData();
       formDataToSend.append('companyName', formData.companyName);
       formDataToSend.append('contactPerson', formData.contactPerson);
+      formDataToSend.append('contactEmail', formData.contactEmail);
       formDataToSend.append('position', formData.position);
       formDataToSend.append('companyDescription', formData.companyDescription);
       if (formData.irDeck) {
@@ -122,6 +131,7 @@ export default function IRInquiryModal({
       setFormData({
         companyName: '',
         contactPerson: '',
+        contactEmail: '',
         position: '',
         companyDescription: '',
         irDeck: null,
@@ -145,6 +155,7 @@ export default function IRInquiryModal({
       setFormData({
         companyName: '',
         contactPerson: '',
+        contactEmail: '',
         position: '',
         companyDescription: '',
         irDeck: null,
@@ -193,6 +204,24 @@ export default function IRInquiryModal({
             {errors.contactPerson && (
               <p className="text-sm text-red-500">{errors.contactPerson}</p>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="contactEmail">담당자 이메일 *</Label>
+            <Input
+              id="contactEmail"
+              type="email"
+              value={formData.contactEmail}
+              onChange={e => handleInputChange('contactEmail', e.target.value)}
+              placeholder="담당자 이메일을 입력해주세요"
+              disabled={isSubmitting}
+            />
+            {errors.contactEmail && (
+              <p className="text-sm text-red-500">{errors.contactEmail}</p>
+            )}
+            <p className="text-xs text-gray-500">
+              문의에 대한 회신을 받을 이메일 주소입니다.
+            </p>
           </div>
 
           <div className="space-y-2">

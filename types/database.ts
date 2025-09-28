@@ -1,3 +1,8 @@
+export type EmailNotificationType =
+  | 'startup_inquiry'
+  | 'angel_inquiry'
+  | 'signup_inquiry';
+
 export interface Profile {
   id: string;
   user_id?: string | null;
@@ -9,6 +14,7 @@ export interface Profile {
   business_number?: string | null;
   address: string;
   role: 'ADMIN' | 'USER';
+  email_notifications?: EmailNotificationType[];
   brand: string;
   created_at: string;
   updated_at: string;

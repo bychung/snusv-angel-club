@@ -1,24 +1,46 @@
-import { createBrandServerClient } from '@/lib/supabase/server';
+import { inquiryNotifications } from '@/lib/email/inquiry-notifications';
+import {
+  createBrandServerClient,
+  createStorageClient,
+} from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
     // 데이터베이스에 문의 내용 저장 (brandClient 사용)
     const brandClient = await createBrandServerClient();
+    // Storage 전용 클라이언트 (RLS 우회)
+    const storageClient = createStorageClient();
 
     // FormData 처리 (파일 업로드 포함)
     const formData = await request.formData();
 
     const companyName = formData.get('companyName') as string;
     const contactPerson = formData.get('contactPerson') as string;
+    const contactEmail = formData.get('contactEmail') as string;
     const position = formData.get('position') as string;
     const companyDescription = formData.get('companyDescription') as string;
     const irDeckFile = formData.get('irDeck') as File;
 
     // 필수 필드 검증
-    if (!companyName || !contactPerson || !position || !companyDescription) {
+    if (
+      !companyName ||
+      !contactPerson ||
+      !contactEmail ||
+      !position ||
+      !companyDescription
+    ) {
       return NextResponse.json(
         { error: '모든 필수 필드를 입력해주세요.' },
+        { status: 400 }
+      );
+    }
+
+    // 이메일 형식 검증
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(contactEmail)) {
+      return NextResponse.json(
+        { error: '올바른 이메일 형식을 입력해주세요.' },
         { status: 400 }
       );
     }
@@ -63,13 +85,12 @@ export async function POST(request: NextRequest) {
     // 파일을 ArrayBuffer로 변환
     const fileBuffer = await irDeckFile.arrayBuffer();
 
-    const { data: uploadData, error: uploadError } =
-      await brandClient.raw.storage
-        .from('ir-decks')
-        .upload(filePath, fileBuffer, {
-          contentType: 'application/pdf',
-          upsert: false,
-        });
+    const { data: uploadData, error: uploadError } = await storageClient.storage
+      .from('ir-decks')
+      .upload(filePath, fileBuffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
 
     if (uploadError) {
       console.error('파일 업로드 오류:', uploadError);
@@ -86,9 +107,11 @@ export async function POST(request: NextRequest) {
       .insert({
         company_name: companyName,
         contact_person: contactPerson,
+        contact_email: contactEmail,
         position: position,
         company_description: companyDescription,
         ir_deck_url: filePath, // 파일 경로만 저장 (fileName)
+        ir_deck_filename: irDeckFile.name, // 원본 파일명 저장
       })
       .select('*')
       .single();
@@ -97,13 +120,31 @@ export async function POST(request: NextRequest) {
       console.error('데이터베이스 저장 오류:', dbError);
 
       // 데이터베이스 저장 실패 시 업로드한 파일 삭제
-      await brandClient.raw.storage.from('ir-decks').remove([filePath]);
+      await storageClient.storage.from('ir-decks').remove([filePath]);
 
       return NextResponse.json(
         { error: '문의 저장에 실패했습니다.' },
         { status: 500 }
       );
     }
+
+    // 이메일 알림 발송 (백그라운드에서 실행, 실패해도 응답에는 영향 없음)
+    inquiryNotifications
+      .sendStartupInquiryNotification({
+        id: data.id,
+        name: contactPerson,
+        email: contactEmail,
+        createdAt: data.created_at,
+        company_name: companyName,
+        position: position,
+        business_model: companyDescription,
+        pitch_deck_url: filePath,
+        pitch_deck_filename: irDeckFile.name,
+      })
+      .catch(error => {
+        console.error('스타트업 문의 이메일 알림 발송 실패:', error);
+        // 이메일 발송 실패는 사용자 응답에 영향을 주지 않음
+      });
 
     return NextResponse.json(
       {

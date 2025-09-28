@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -18,6 +20,7 @@ import {
   Mail,
   MessageSquare,
   RefreshCw,
+  Trash2,
   User,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -47,7 +50,7 @@ interface SignupInquiry {
   searched_email: string | null;
   provider: string;
   inquiry_message: string | null;
-  status: 'pending' | 'processed' | 'resolved';
+  status: string;
   admin_notes: string | null;
   created_at: string;
   updated_at: string;
@@ -70,6 +73,12 @@ export default function InquiriesPage() {
   const [selectedSignup, setSelectedSignup] = useState<SignupInquiry | null>(
     null
   );
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'startup' | 'angel' | 'signup';
+    id: string;
+    name: string;
+  } | null>(null);
 
   const fetchInquiries = async () => {
     setIsLoading(true);
@@ -144,6 +153,49 @@ export default function InquiriesPage() {
       console.error('다운로드 오류:', error);
       alert('다운로드 중 오류가 발생했습니다.');
     }
+  };
+
+  const handleDeleteInquiry = async () => {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(
+        `/api/inquiries/${deleteTarget.type}/${deleteTarget.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (response.ok) {
+        // 삭제 성공 후 목록 새로고침
+        await fetchInquiries();
+        alert('문의가 성공적으로 삭제되었습니다.');
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || '문의 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('문의 삭제 오류:', error);
+      alert('문의 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  const openDeleteConfirm = (
+    type: 'startup' | 'angel' | 'signup',
+    id: string,
+    name: string,
+    event: React.MouseEvent
+  ) => {
+    event.stopPropagation(); // 카드 클릭 이벤트 방지
+    setDeleteTarget({ type, id, name });
+  };
+
+  const closeDeleteConfirm = () => {
+    setDeleteTarget(null);
   };
 
   return (
@@ -277,13 +329,30 @@ export default function InquiriesPage() {
                         <h3 className="font-semibold text-lg">
                           {inquiry.company_name}
                         </h3>
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(inquiry.created_at)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(inquiry.created_at)}
+                          </Badge>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={e =>
+                              openDeleteConfirm(
+                                'startup',
+                                inquiry.id,
+                                inquiry.company_name,
+                                e
+                              )
+                            }
+                            className="opacity-70 hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                         <div>
@@ -337,13 +406,30 @@ export default function InquiriesPage() {
                         <h3 className="font-semibold text-lg">
                           {inquiry.name}
                         </h3>
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(inquiry.created_at)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(inquiry.created_at)}
+                          </Badge>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={e =>
+                              openDeleteConfirm(
+                                'angel',
+                                inquiry.id,
+                                inquiry.name,
+                                e
+                              )
+                            }
+                            className="opacity-70 hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                         <Mail className="w-3 h-3" />
@@ -394,33 +480,57 @@ export default function InquiriesPage() {
                               inquiry.status === 'pending'
                                 ? 'destructive'
                                 : inquiry.status === 'processed'
-                                  ? 'default'
-                                  : 'secondary'
+                                ? 'default'
+                                : 'secondary'
                             }
                           >
                             {inquiry.status === 'pending'
                               ? '미처리'
                               : inquiry.status === 'processed'
-                                ? '처리중'
-                                : '완료'}
+                              ? '처리완료'
+                              : inquiry.status}
                           </Badge>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="flex items-center gap-1"
-                        >
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(inquiry.created_at)}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="flex items-center gap-1"
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {formatDate(inquiry.created_at)}
+                          </Badge>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={e =>
+                              openDeleteConfirm(
+                                'signup',
+                                inquiry.id,
+                                inquiry.attempted_email,
+                                e
+                              )
+                            }
+                            className="opacity-70 hover:opacity-100"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
-                        <div>로그인 방식: {inquiry.provider}</div>
-                        {inquiry.searched_email && (
-                          <div>검색한 이메일: {inquiry.searched_email}</div>
-                        )}
+                      <div className="text-sm text-gray-600 mb-2">
+                        로그인 방식:{' '}
+                        {inquiry.provider === 'google'
+                          ? 'Google'
+                          : inquiry.provider === 'kakao'
+                          ? 'Kakao'
+                          : '이메일'}
                       </div>
+                      {inquiry.searched_email && (
+                        <div className="text-sm text-gray-600 mb-2">
+                          검색된 이메일: {inquiry.searched_email}
+                        </div>
+                      )}
                       {inquiry.inquiry_message && (
-                        <p className="mt-2 text-sm text-gray-700 line-clamp-2">
+                        <p className="text-sm text-gray-700 line-clamp-2">
                           {inquiry.inquiry_message}
                         </p>
                       )}
@@ -432,60 +542,78 @@ export default function InquiriesPage() {
           </Card>
         )}
 
-        {/* 스타트업 상세 모달 */}
+        {/* 삭제 확인 모달 */}
+        <Dialog open={!!deleteTarget} onOpenChange={closeDeleteConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>문의 삭제</DialogTitle>
+              <DialogDescription>
+                정말로 이 문의를 삭제하시겠습니까?
+                <br />
+                <strong>{deleteTarget?.name}</strong>
+                <br />
+                삭제된 문의는 복구할 수 없습니다.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={closeDeleteConfirm}
+                disabled={isDeleting}
+              >
+                취소
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteInquiry}
+                disabled={isDeleting}
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 스타트업 IR 문의 상세 모달 */}
         <Dialog
           open={!!selectedStartup}
           onOpenChange={() => setSelectedStartup(null)}
         >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5" />
-                {selectedStartup?.company_name} IR 문의
-              </DialogTitle>
+              <DialogTitle>스타트업 IR 문의 상세</DialogTitle>
             </DialogHeader>
             {selectedStartup && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      회사명
-                    </label>
-                    <p className="mt-1">{selectedStartup.company_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      담당자
-                    </label>
-                    <p className="mt-1">{selectedStartup.contact_person}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      직위
-                    </label>
-                    <p className="mt-1">{selectedStartup.position}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      문의 일시
-                    </label>
-                    <p className="mt-1">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">기본 정보</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>회사명:</strong> {selectedStartup.company_name}
+                    </div>
+                    <div>
+                      <strong>담당자:</strong> {selectedStartup.contact_person}
+                    </div>
+                    <div>
+                      <strong>직책:</strong> {selectedStartup.position}
+                    </div>
+                    <div>
+                      <strong>신청일:</strong>{' '}
                       {formatDate(selectedStartup.created_at)}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-500">
-                    회사 소개
-                  </label>
-                  <p className="mt-1 p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                  <h3 className="text-lg font-semibold mb-2">회사 소개</h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {selectedStartup.company_description}
                   </p>
                 </div>
 
                 {selectedStartup.ir_deck_url && (
-                  <div className="flex items-center gap-2">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">첨부 파일</h3>
                     <Button
                       onClick={() =>
                         handleDownloadIRDeck(
@@ -493,21 +621,11 @@ export default function InquiriesPage() {
                           selectedStartup.company_name
                         )
                       }
-                      variant="outline"
+                      className="flex items-center gap-2"
                     >
-                      <Download className="w-4 h-4 mr-2" />
+                      <Download className="w-4 h-4" />
                       IR 덱 다운로드
                     </Button>
-                    <a
-                      href={selectedStartup.ir_deck_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="outline">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        IR 덱 보기
-                      </Button>
-                    </a>
                   </div>
                 )}
               </div>
@@ -515,62 +633,38 @@ export default function InquiriesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* 엔젤클럽 상세 모달 */}
+        {/* 엔젤클럽 가입 문의 상세 모달 */}
         <Dialog
           open={!!selectedAngel}
           onOpenChange={() => setSelectedAngel(null)}
         >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                {selectedAngel?.name} 님의 가입 문의
-              </DialogTitle>
+              <DialogTitle>엔젤클럽 가입 문의 상세</DialogTitle>
             </DialogHeader>
             {selectedAngel && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      이름
-                    </label>
-                    <p className="mt-1">{selectedAngel.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      이메일
-                    </label>
-                    <p className="mt-1">{selectedAngel.email}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-500">
-                      문의 일시
-                    </label>
-                    <p className="mt-1">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">기본 정보</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>이름:</strong> {selectedAngel.name}
+                    </div>
+                    <div>
+                      <strong>이메일:</strong> {selectedAngel.email}
+                    </div>
+                    <div>
+                      <strong>신청일:</strong>{' '}
                       {formatDate(selectedAngel.created_at)}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-gray-500">
-                    자기소개 및 가입 동기
-                  </label>
-                  <p className="mt-1 p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                  <h3 className="text-lg font-semibold mb-2">자기소개</h3>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
                     {selectedAngel.self_introduction}
                   </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() =>
-                      window.open(`mailto:${selectedAngel.email}`, '_blank')
-                    }
-                    variant="outline"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    이메일 보내기
-                  </Button>
                 </div>
               </div>
             )}
@@ -584,72 +678,55 @@ export default function InquiriesPage() {
         >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                회원가입 문의 상세
-              </DialogTitle>
+              <DialogTitle>회원가입 문의 상세</DialogTitle>
             </DialogHeader>
             {selectedSignup && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      시도한 이메일
-                    </label>
-                    <p className="mt-1">{selectedSignup.attempted_email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      로그인 방식
-                    </label>
-                    <p className="mt-1 capitalize">{selectedSignup.provider}</p>
-                  </div>
-                  {selectedSignup.searched_email && (
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium text-gray-500">
-                        검색한 이메일
-                      </label>
-                      <p className="mt-1">{selectedSignup.searched_email}</p>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">기본 정보</h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <strong>시도한 이메일:</strong>{' '}
+                      {selectedSignup.attempted_email}
                     </div>
-                  )}
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      처리 상태
-                    </label>
-                    <div className="mt-1">
-                      <Badge
-                        variant={
-                          selectedSignup.status === 'pending'
-                            ? 'destructive'
-                            : selectedSignup.status === 'processed'
-                              ? 'default'
-                              : 'secondary'
-                        }
-                      >
-                        {selectedSignup.status === 'pending'
-                          ? '미처리'
-                          : selectedSignup.status === 'processed'
-                            ? '처리중'
-                            : '완료'}
-                      </Badge>
+                    <div>
+                      <strong>로그인 방식:</strong>{' '}
+                      {selectedSignup.provider === 'google'
+                        ? 'Google'
+                        : selectedSignup.provider === 'kakao'
+                        ? 'Kakao'
+                        : '이메일'}
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      문의 일시
-                    </label>
-                    <p className="mt-1">
+                    <div>
+                      <strong>처리 상태:</strong>{' '}
+                      {selectedSignup.status === 'pending'
+                        ? '미처리'
+                        : selectedSignup.status === 'processed'
+                        ? '처리완료'
+                        : selectedSignup.status}
+                    </div>
+                    <div>
+                      <strong>신청일:</strong>{' '}
                       {formatDate(selectedSignup.created_at)}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
+                {selectedSignup.searched_email && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      검색된 이메일
+                    </h3>
+                    <p className="text-sm text-gray-700">
+                      {selectedSignup.searched_email}
+                    </p>
+                  </div>
+                )}
+
                 {selectedSignup.inquiry_message && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      추가 문의사항
-                    </label>
-                    <p className="mt-1 p-3 bg-gray-50 rounded-lg whitespace-pre-wrap">
+                    <h3 className="text-lg font-semibold mb-2">문의 메시지</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
                       {selectedSignup.inquiry_message}
                     </p>
                   </div>
@@ -657,40 +734,12 @@ export default function InquiriesPage() {
 
                 {selectedSignup.admin_notes && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">
-                      관리자 메모
-                    </label>
-                    <p className="mt-1 p-3 bg-blue-50 rounded-lg whitespace-pre-wrap">
+                    <h3 className="text-lg font-semibold mb-2">관리자 메모</h3>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
                       {selectedSignup.admin_notes}
                     </p>
                   </div>
                 )}
-
-                <div className="flex items-center gap-2 pt-4">
-                  <Button
-                    onClick={() =>
-                      window.open(
-                        `mailto:${selectedSignup.attempted_email}`,
-                        '_blank'
-                      )
-                    }
-                    variant="outline"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    이메일 보내기
-                  </Button>
-                  {selectedSignup.user_id && (
-                    <Button
-                      onClick={() =>
-                        console.log('사용자 정보 보기:', selectedSignup.user_id)
-                      }
-                      variant="outline"
-                    >
-                      <User className="w-4 h-4 mr-2" />
-                      사용자 정보 보기
-                    </Button>
-                  )}
-                </div>
               </div>
             )}
           </DialogContent>

@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { getCurrentBrand } from '../branding';
 import { createTableOperations } from './brand-client';
@@ -25,6 +26,20 @@ export async function createClient() {
             // user sessions.
           }
         },
+      },
+    }
+  );
+}
+
+// Storage 전용 클라이언트 (Service Role Key로 RLS 우회)
+export function createStorageClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
       },
     }
   );

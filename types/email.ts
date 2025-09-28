@@ -1,3 +1,10 @@
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+  contentId?: string;
+}
+
 export interface EmailSenderConfig {
   from: string;
   to: string[];
@@ -7,6 +14,7 @@ export interface EmailSenderConfig {
   replyTo: string;
   cc?: string[];
   bcc?: string[];
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailResult {

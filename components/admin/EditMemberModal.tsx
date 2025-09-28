@@ -1,7 +1,9 @@
 'use client';
 
 import BirthDateInput from '@/components/survey/inputs/BirthDateInput';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -10,12 +12,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MemberWithFund } from '@/lib/admin/members';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createBrandClient } from '@/lib/supabase/client';
-import { Shield } from 'lucide-react';
+import { EmailNotificationType } from '@/types/database';
+import { ChevronDown, Mail, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface EditMemberModalProps {
@@ -45,6 +56,7 @@ export default function EditMemberModal({
     investment_units: 0,
     total_units: 0,
     role: 'USER' as 'ADMIN' | 'USER',
+    email_notifications: [] as EmailNotificationType[],
   });
 
   useEffect(() => {
@@ -63,6 +75,7 @@ export default function EditMemberModal({
         investment_units: investmentUnits,
         total_units: totalUnits,
         role: member.role,
+        email_notifications: member.email_notifications || [],
       });
     }
   }, [member]);
@@ -84,6 +97,7 @@ export default function EditMemberModal({
           birth_date: formData.birth_date || null,
           business_number: formData.business_number || null,
           role: formData.role,
+          email_notifications: formData.email_notifications,
           updated_at: new Date().toISOString(),
         })
         .eq('id', member.id);
@@ -113,6 +127,38 @@ export default function EditMemberModal({
     } catch (error) {
       console.error('조합원 정보 업데이트 실패:', error);
       alert('조합원 정보 업데이트에 실패했습니다.');
+    }
+  };
+
+  // 이메일 알림 설정 관리 함수들
+  const emailNotificationOptions = [
+    { value: 'startup_inquiry', label: '스타트업 IR 문의', abbreviation: 'IR' },
+    {
+      value: 'angel_inquiry',
+      label: '엔젤클럽 가입 문의',
+      abbreviation: '클럽가입',
+    },
+    {
+      value: 'signup_inquiry',
+      label: '회원가입 문의',
+      abbreviation: '회원가입',
+    },
+  ] as const;
+
+  const toggleEmailNotification = (type: EmailNotificationType) => {
+    const currentNotifications = formData.email_notifications;
+    const isSelected = currentNotifications.includes(type);
+
+    if (isSelected) {
+      setFormData({
+        ...formData,
+        email_notifications: currentNotifications.filter(n => n !== type),
+      });
+    } else {
+      setFormData({
+        ...formData,
+        email_notifications: [...currentNotifications, type],
+      });
     }
   };
 
@@ -284,6 +330,107 @@ export default function EditMemberModal({
                 </p>
               )}
             </div>
+
+            {/* 이메일 알림 수신 설정 - 관리자만 표시 */}
+            {formData.role === 'ADMIN' && (
+              <div className="space-y-2">
+                <Label>
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    알림 이메일 수신
+                  </div>
+                </Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-9"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-400" />
+                        {formData.email_notifications.length === 0 ? (
+                          <span className="text-gray-500">
+                            알림을 받을 문의 유형 선택
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-full overflow-hidden">
+                            {formData.email_notifications
+                              .slice(0, 3)
+                              .map(notificationType => {
+                                const option = emailNotificationOptions.find(
+                                  o => o.value === notificationType
+                                );
+                                return option ? (
+                                  <Badge
+                                    key={notificationType}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {option.abbreviation}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            {formData.email_notifications.length > 3 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{formData.email_notifications.length - 3}개 더
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-80">
+                    <DropdownMenuLabel className="flex items-center justify-between">
+                      <span>문의 유형 선택</span>
+                      {formData.email_notifications.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              email_notifications: [],
+                            })
+                          }
+                        >
+                          전체 해제
+                        </Button>
+                      )}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="max-h-60 overflow-y-auto">
+                      {emailNotificationOptions.map(option => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          className="flex items-center space-x-3 cursor-pointer"
+                          onSelect={e => {
+                            e.preventDefault(); // 드롭다운이 닫히지 않도록
+                            toggleEmailNotification(option.value);
+                          }}
+                        >
+                          <Checkbox
+                            checked={formData.email_notifications.includes(
+                              option.value
+                            )}
+                            onChange={() => {}} // onSelect에서 처리하므로 빈 함수
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">
+                              {option.label}
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <p className="text-xs text-gray-500">
+                  선택한 문의 유형에 대해 이메일 알림을 받습니다.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
