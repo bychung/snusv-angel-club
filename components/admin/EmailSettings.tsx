@@ -79,6 +79,7 @@ SNUSV ANGEL CLUB`,
 
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isTestingSend, setIsTestingSend] = useState(false);
   const [newRecipient, setNewRecipient] = useState('');
 
   useEffect(() => {
@@ -142,6 +143,39 @@ SNUSV ANGEL CLUB`,
     }
   };
 
+  const sendActualTestEmail = async () => {
+    setIsTestingSend(true);
+    try {
+      const response = await fetch('/api/admin/email/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(
+          `테스트 이메일이 성공적으로 발송되었습니다.\n수신자: ${result.to}\nMessage ID: ${result.messageId}`
+        );
+      } else {
+        throw new Error(result.error || '이메일 발송에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('테스트 이메일 발송 실패:', error);
+      alert(
+        `테스트 이메일 발송에 실패했습니다.\n${
+          error instanceof Error
+            ? error.message
+            : '알 수 없는 오류가 발생했습니다.'
+        }`
+      );
+    } finally {
+      setIsTestingSend(false);
+    }
+  };
+
   const addRecipient = () => {
     if (newRecipient && !config.recipients.includes(newRecipient)) {
       setConfig(prev => ({
@@ -178,6 +212,39 @@ SNUSV ANGEL CLUB`,
 
   return (
     <div className="space-y-6">
+      {/* 테스트 이메일 발송 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            테스트 메일 발송
+          </CardTitle>
+          <CardDescription>
+            Gmail 이메일 발송 기능이 정상적으로 작동하는지 테스트합니다.
+            (수신자: by@decentier.com)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={sendActualTestEmail}
+            disabled={isTestingSend}
+            className="w-full sm:w-auto"
+          >
+            {isTestingSend ? (
+              <>
+                <Send className="mr-2 h-4 w-4 animate-spin" />
+                발송 중...
+              </>
+            ) : (
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                테스트 메일 발송
+              </>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* 전역 설정 */}
       <Card>
         <CardHeader>

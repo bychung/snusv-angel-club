@@ -1,0 +1,136 @@
+import {
+  EmailResult,
+  EmailSenderConfig,
+  GmailCredentials,
+} from '@/types/email';
+import { JWT } from 'google-auth-library';
+import { gmail_v1, google } from 'googleapis';
+import { getBrandingConfig } from '../branding';
+
+export class GmailService {
+  private gmail: gmail_v1.Gmail;
+  private senderEmail: string;
+
+  constructor(credentials: GmailCredentials) {
+    const { clientEmail, privateKey, senderEmail } = credentials;
+
+    // private key의 \n 문자를 실제 개행문자로 변환
+    const formattedPrivateKey = privateKey.replace(/\\n/g, '\n');
+
+    this.senderEmail = senderEmail;
+
+    const auth = new JWT({
+      email: clientEmail,
+      key: formattedPrivateKey,
+      scopes: [
+        'https://www.googleapis.com/auth/gmail.send',
+        // 'https://www.googleapis.com/auth/gmail.readonly',
+        // 'https://www.googleapis.com/auth/gmail.modify',
+      ],
+      subject: this.senderEmail,
+    });
+
+    this.gmail = google.gmail({ version: 'v1', auth: auth as any });
+  }
+
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  async sendEmail(config: EmailSenderConfig): Promise<EmailResult> {
+    try {
+      // 이메일 주소 검증
+      if (
+        !this.isValidEmail(config.from) ||
+        !config.to.every(email => this.isValidEmail(email))
+      ) {
+        throw new Error('Invalid email address format');
+      }
+
+      const message = this.createMessage(config);
+
+      console.log(`Sending email to: ${config.to.join(', ')}`);
+
+      const response = await this.gmail.users.messages.send({
+        userId: 'me',
+        requestBody: {
+          raw: message,
+        },
+      });
+
+      console.log(`Email sent successfully. Message ID: ${response.data.id}`);
+
+      return {
+        messageId: response.data.id!,
+        threadId: response.data.threadId!,
+        success: true,
+      };
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      return {
+        messageId: '',
+        threadId: '',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  private createMessage(config: EmailSenderConfig): string {
+    const boundary = '__MAIL_BOUNDARY__';
+    const subjectEncoded = `=?UTF-8?B?${Buffer.from(config.subject).toString(
+      'base64'
+    )}?=`;
+
+    const messageParts = [
+      `From: ${this.senderEmail}`,
+      `To: ${config.to.join(', ')}`,
+      config.replyTo ? `Reply-To: ${config.replyTo}` : '',
+      config.cc?.length ? `Cc: ${config.cc.join(', ')}` : undefined,
+      config.bcc?.length ? `Bcc: ${config.bcc.join(', ')}` : undefined,
+      `Subject: ${subjectEncoded}`,
+      'MIME-Version: 1.0',
+      `Content-Type: multipart/alternative; boundary="${boundary}"`,
+      '',
+      `--${boundary}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      '',
+      config.text || 'This is a plain text fallback.',
+      '',
+      `--${boundary}`,
+      'Content-Type: text/html; charset="UTF-8"',
+      '',
+      config.html || config.text || 'This is a test email.',
+      '',
+      `--${boundary}--`,
+      '',
+    ]
+      .filter(line => line !== undefined)
+      .join('\r\n');
+
+    return Buffer.from(messageParts)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+  }
+
+  static getGmailCredentials(): GmailCredentials {
+    const clientEmail = process.env.GMAIL_CLIENT_EMAIL;
+    const privateKey = process.env.GMAIL_PRIVATE_KEY;
+    const { email: senderEmail } = getBrandingConfig();
+
+    if (!clientEmail || !privateKey || !senderEmail) {
+      throw new Error(
+        'Gmail credentials are not properly configured in environment variables'
+      );
+    }
+
+    return {
+      clientEmail,
+      privateKey,
+      senderEmail,
+    };
+  }
+}

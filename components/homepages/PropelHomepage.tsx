@@ -483,10 +483,10 @@ export default function PropelHomepage() {
                   </p>
                   <div className="flex items-center justify-center gap-3 text-lg">
                     <a
-                      href="mailto:contact@propel.kr"
+                      href={`mailto:help@propel.kr`}
                       className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-600 hover:to-teal-600 text-white px-6 py-2 rounded-lg transition-all font-medium"
                     >
-                      contact@propel.kr
+                      help@propel.kr
                     </a>
                   </div>
                 </CardContent>
