@@ -446,9 +446,10 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         profileError = result.error;
       } else {
         // 비로그인 사용자인 경우 이메일 기준으로 upsert (brandClient 사용)
+        // brand와 email 복합 키를 사용한 upsert
         const result = await brandClient.profiles
           .upsert(profileData as any, {
-            onConflict: 'email',
+            onConflict: 'brand,email',
           })
           .select()
           .single();
