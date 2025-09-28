@@ -445,7 +445,25 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         profile = result.data;
         profileError = result.error;
       } else {
-        // 비로그인 사용자인 경우 이메일 기준으로 upsert (brandClient 사용)
+        // 비로그인 사용자인 경우, 먼저 해당 이메일로 회원가입이 되어 있는지 확인
+        const { data: existingProfile, error: existingProfileError } =
+          await brandClient.profiles
+            .select('id, user_id')
+            .eq('email', surveyData.email.toLowerCase())
+            .maybeSingle();
+
+        if (existingProfileError) {
+          throw new Error(existingProfileError.message);
+        }
+
+        // 이미 회원가입이 되어 있는 경우 (user_id가 있는 경우)
+        if (existingProfile && existingProfile.user_id) {
+          throw new Error(
+            '이미 회원가입이 되어 있는 이메일입니다. 로그인 후 수정해 주세요.'
+          );
+        }
+
+        // 회원가입이 되어 있지 않은 경우에만 upsert 진행
         // brand와 email 복합 키를 사용한 upsert
         const result = await brandClient.profiles
           .upsert(profileData as any, {
@@ -753,7 +771,33 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 {isLoading ? '제출 중...' : '제출하기'}
               </Button>
               {submitError && (
-                <div className="text-sm text-red-500 mt-2">{submitError}</div>
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="text-sm text-red-800 mb-2">{submitError}</div>
+                  {submitError.includes('로그인 후 수정해 주세요') && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        onClick={() => handleOAuthLogin('google')}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        disabled={authLoading}
+                      >
+                        <Chrome className="h-3 w-3 mr-1" />
+                        Google 로그인
+                      </Button>
+                      <Button
+                        onClick={() => handleOAuthLogin('kakao')}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs bg-yellow-400 hover:bg-yellow-500 border-yellow-400"
+                        disabled={authLoading}
+                      >
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        Kakao 로그인
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </>
@@ -786,7 +830,33 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 {isLoading ? '제출 중...' : '제출하기'}
               </Button>
               {submitError && (
-                <div className="text-sm text-red-500 mt-2">{submitError}</div>
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="text-sm text-red-800 mb-2">{submitError}</div>
+                  {submitError.includes('로그인 후 수정해 주세요') && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        onClick={() => handleOAuthLogin('google')}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        disabled={authLoading}
+                      >
+                        <Chrome className="h-3 w-3 mr-1" />
+                        Google 로그인
+                      </Button>
+                      <Button
+                        onClick={() => handleOAuthLogin('kakao')}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs bg-yellow-400 hover:bg-yellow-500 border-yellow-400"
+                        disabled={authLoading}
+                      >
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        Kakao 로그인
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </>
