@@ -42,8 +42,21 @@ export default function ViewMemberModal({
     });
   };
 
-  const formatCurrency = (amount: number, parValue: number = 1000000) => {
+  const formatCurrency = (
+    amount: number | null | undefined,
+    parValue: number = 1000000
+  ) => {
+    if (amount == null || isNaN(amount)) {
+      return '0원';
+    }
     return (amount * parValue).toLocaleString() + '원';
+  };
+
+  const formatNumber = (value: number | null | undefined) => {
+    if (value == null || isNaN(value)) {
+      return '0';
+    }
+    return value.toLocaleString();
   };
 
   const getStatusBadge = (status: 'registered' | 'survey_only') => {
@@ -208,23 +221,23 @@ export default function ViewMemberModal({
             </div>
           </div>
 
-          {/* 출자 정보 */}
-          {member.fund_members && member.fund_members.length > 0 && (
-            <div className="bg-blue-50 p-6 rounded-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Banknote className="h-5 w-5" />
-                출자 정보
-              </h3>
-              {showInvestmentInfo ? (
-                // 펀드 조합원 모드: 상세한 출자 정보
+          {/* 출자 정보 - 펀드 조합원 모드에서만 표시 */}
+          {showInvestmentInfo &&
+            member.fund_members &&
+            member.fund_members.length > 0 && (
+              <div className="bg-blue-50 p-6 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Banknote className="h-5 w-5" />
+                  출자 정보
+                </h3>
+                {/* 펀드 조합원 모드에서만 상세한 출자 정보 표시 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       출자좌수
                     </label>
                     <p className="mt-1 text-lg font-semibold text-blue-600">
-                      {member.fund_members[0].investment_units.toLocaleString()}
-                      좌
+                      {formatNumber(member.fund_members[0].investment_units)}좌
                     </p>
                   </div>
                   <div>
@@ -232,7 +245,7 @@ export default function ViewMemberModal({
                       약정출자좌수
                     </label>
                     <p className="mt-1 text-lg font-semibold text-green-600">
-                      {member.fund_members[0].total_units.toLocaleString()}좌
+                      {formatNumber(member.fund_members[0].total_units)}좌
                     </p>
                   </div>
                   <div>
@@ -258,47 +271,8 @@ export default function ViewMemberModal({
                     </p>
                   </div>
                 </div>
-              ) : (
-                // 사용자 관리 모드: 모든 펀드에 대한 간단한 출자 정보 리스트
-                <div className="space-y-3">
-                  {member.fund_members.map((fundMember, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Banknote className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {fundMember.fund?.name ||
-                              fundMember.fund?.abbreviation ||
-                              '펀드'}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            신청일: {formatDate(fundMember.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-blue-600">
-                          {formatCurrency(
-                            fundMember.investment_units,
-                            fundMember.fund?.par_value
-                          )}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {fundMember.investment_units.toLocaleString()}좌 /{' '}
-                          {fundMember.total_units.toLocaleString()}좌
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
         </div>
       </DialogContent>
     </Dialog>

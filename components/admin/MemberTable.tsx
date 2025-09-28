@@ -92,8 +92,21 @@ export default function MemberTable({
     return null;
   };
 
-  const formatCurrency = (amount: number, parValue: number = 1000000) => {
+  const formatCurrency = (
+    amount: number | null | undefined,
+    parValue: number = 1000000
+  ) => {
+    if (amount == null || isNaN(amount)) {
+      return '0원';
+    }
     return (amount * parValue).toLocaleString() + '원';
+  };
+
+  const formatNumber = (value: number | null | undefined) => {
+    if (value == null || isNaN(value)) {
+      return '0';
+    }
+    return value.toLocaleString();
   };
 
   // 제목과 설명 텍스트 결정
@@ -236,7 +249,9 @@ export default function MemberTable({
                           member.fund_members.length > 0 && (
                             <div className="text-xs text-gray-500">
                               <span>
-                                {member.fund_members[0].investment_units.toLocaleString()}
+                                {formatNumber(
+                                  member.fund_members[0].investment_units
+                                )}
                                 좌
                               </span>
                               {member.fund_members[0].total_units !==
@@ -244,7 +259,9 @@ export default function MemberTable({
                                 <span>
                                   {' '}
                                   /{' '}
-                                  {member.fund_members[0].total_units.toLocaleString()}
+                                  {formatNumber(
+                                    member.fund_members[0].total_units
+                                  )}
                                   좌
                                 </span>
                               )}
@@ -272,7 +289,9 @@ export default function MemberTable({
                         <div className="flex gap-4 text-xs">
                           <span>
                             <span className="font-medium">출자좌수:</span>{' '}
-                            {member.fund_members[0].investment_units.toLocaleString()}
+                            {formatNumber(
+                              member.fund_members[0].investment_units
+                            )}
                             좌
                           </span>
                           <span>
