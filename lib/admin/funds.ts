@@ -259,6 +259,7 @@ export async function updateFundDetails(
     registered_at?: string;
     dissolved_at?: string;
     par_value?: number;
+    display_locations?: ('dashboard' | 'homepage')[];
   }
 ): Promise<Fund> {
   const brandClient = await createBrandServerClient();

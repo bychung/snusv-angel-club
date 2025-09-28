@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import HomepageFundApplicationButton from './HomepageFundApplicationButton';
 
 interface ExecutiveMember {
   id: string;
@@ -776,6 +777,9 @@ export default function SnusvHomepage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Floating Bottom CTA Button */}
+      <HomepageFundApplicationButton />
 
       {/* IR 문의 모달 */}
       <IRInquiryModal

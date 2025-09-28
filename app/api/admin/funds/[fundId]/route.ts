@@ -47,6 +47,8 @@ export async function PUT(
       closed_at,
       registered_at,
       dissolved_at,
+      par_value,
+      display_locations,
     } = requestBody;
 
     // 날짜 필드 유효성 검증
@@ -95,6 +97,20 @@ export async function PUT(
       );
     }
 
+    // display_locations 배열 검증
+    if (
+      display_locations &&
+      (!Array.isArray(display_locations) ||
+        !display_locations.every(loc =>
+          ['dashboard', 'homepage'].includes(loc)
+        ))
+    ) {
+      return Response.json(
+        { error: '링크 노출위치는 dashboard 또는 homepage 배열이어야 합니다' },
+        { status: 400 }
+      );
+    }
+
     // 펀드 정보 업데이트 (수정된 데이터 사용)
     const updatedFund = await updateFundDetails(fundId, {
       name,
@@ -108,6 +124,8 @@ export async function PUT(
       closed_at: requestBody.closed_at,
       registered_at: requestBody.registered_at,
       dissolved_at: requestBody.dissolved_at,
+      par_value,
+      display_locations,
     });
 
     return Response.json({

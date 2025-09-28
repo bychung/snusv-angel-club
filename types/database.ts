@@ -28,6 +28,7 @@ export interface Fund {
   registered_at?: string | null; // 등록일
   dissolved_at?: string | null; // 만기일
   par_value: number; // 좌당가격
+  display_locations?: ('dashboard' | 'homepage')[] | null; // 링크 노출 위치
   brand: string;
   created_at: string;
   updated_at: string;

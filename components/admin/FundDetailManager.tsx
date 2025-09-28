@@ -81,6 +81,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     registered_at: '',
     dissolved_at: '',
     par_value: 1000000,
+    display_locations: [] as ('dashboard' | 'homepage')[],
   });
 
   // 데이터 초기 로드
@@ -129,6 +130,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           registered_at: formatDateForInput(fundData.fund.registered_at) || '',
           dissolved_at: formatDateForInput(fundData.fund.dissolved_at) || '',
           par_value: fundData.fund.par_value || 1000000,
+          display_locations: fundData.fund.display_locations || [],
         });
       } catch (err) {
         setError(
@@ -352,6 +354,104 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* 링크 노출위치 - 결성준비중, 결성진행중일 때만 표시 */}
+                {(formData.status === 'ready' ||
+                  formData.status === 'processing') && (
+                  <div className="space-y-2">
+                    <Label>링크 노출위치</Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-gray-400" />
+                            {formData.display_locations.length === 0 ? (
+                              <span className="text-gray-500">
+                                노출 위치를 선택하세요
+                              </span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1 max-w-full overflow-hidden">
+                                {formData.display_locations.map(location => (
+                                  <Badge
+                                    key={location}
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {location === 'dashboard'
+                                      ? '대시보드'
+                                      : '홈페이지'}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-60">
+                        <DropdownMenuLabel className="flex items-center justify-between">
+                          <span>링크 노출위치 선택</span>
+                          {formData.display_locations.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleInputChange('display_locations', [])
+                              }
+                            >
+                              전체 해제
+                            </Button>
+                          )}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <div className="p-2 space-y-2">
+                          {[
+                            { value: 'dashboard' as const, label: '대시보드' },
+                            { value: 'homepage' as const, label: '홈페이지' },
+                          ].map(option => (
+                            <DropdownMenuItem
+                              key={option.value}
+                              className="flex items-center space-x-3 cursor-pointer"
+                              onSelect={e => {
+                                e.preventDefault(); // 드롭다운이 닫히지 않도록
+                                const newLocations =
+                                  formData.display_locations.includes(
+                                    option.value
+                                  )
+                                    ? formData.display_locations.filter(
+                                        loc => loc !== option.value
+                                      )
+                                    : [
+                                        ...formData.display_locations,
+                                        option.value,
+                                      ];
+                                handleInputChange(
+                                  'display_locations',
+                                  newLocations
+                                );
+                              }}
+                            >
+                              <Checkbox
+                                checked={formData.display_locations.includes(
+                                  option.value
+                                )}
+                                onChange={() => {}} // onSelect에서 처리하므로 빈 함수
+                              />
+                              <div className="flex-1">
+                                <span className="font-medium">
+                                  {option.label}
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                          ))}
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

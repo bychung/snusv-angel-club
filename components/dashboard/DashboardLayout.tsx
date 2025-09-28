@@ -8,6 +8,7 @@ import { Home } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import FundApplicationButton from './FundApplicationButton';
 import ProfileDropdown from './ProfileDropdown';
 import ProfileSelector from './ProfileSelector';
 
@@ -87,14 +88,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* 메인 컨텐츠 */}
       <main className="container mx-auto px-4 py-8">{children}</main>
 
+      {/* Floating Bottom CTA Button */}
+      <FundApplicationButton />
+
       {/* 푸터 */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
+      {/* <footer className="bg-white border-t border-gray-200 mt-auto">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center text-sm text-gray-500">
             © 2025 {branding.clubName}. All rights reserved.
           </div>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }
