@@ -1,3 +1,5 @@
+'use client';
+
 import MemberModals from '@/components/admin/MemberModals';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -9,12 +11,15 @@ import {
 } from '@/components/ui/card';
 import { MemberWithFund } from '@/lib/admin/members';
 import { Building, Mail, Phone, Shield, User } from 'lucide-react';
+import { useMemo } from 'react';
 
 interface MemberTableProps {
   members: MemberWithFund[];
   mode: 'users' | 'fund_members';
   fundId?: string;
   fundName?: string;
+  searchTerm?: string;
+  filterStatus?: 'all' | 'registered' | 'survey_only';
 }
 
 export default function MemberTable({
@@ -22,7 +27,39 @@ export default function MemberTable({
   mode,
   fundId,
   fundName,
+  searchTerm = '',
+  filterStatus = 'all',
 }: MemberTableProps) {
+  // 클라이언트 사이드 필터링
+  const filteredMembers = useMemo(() => {
+    let filtered = [...members];
+
+    // 검색 필터링
+    const trimmedSearch = searchTerm.trim();
+    if (trimmedSearch) {
+      const search = trimmedSearch.toLowerCase();
+      filtered = filtered.filter(member => {
+        const name = (member.name || '').toLowerCase();
+        const email = (member.email || '').toLowerCase();
+        const phone = member.phone || '';
+
+        return (
+          name.includes(search) ||
+          email.includes(search) ||
+          phone.includes(search)
+        );
+      });
+    }
+
+    // 상태 필터링
+    if (filterStatus && filterStatus !== 'all') {
+      filtered = filtered.filter(
+        member => member.registration_status === filterStatus
+      );
+    }
+
+    return filtered;
+  }, [members, searchTerm, filterStatus]);
   const getStatusBadge = (status: 'registered' | 'survey_only') => {
     switch (status) {
       case 'registered':
@@ -69,6 +106,9 @@ export default function MemberTable({
 
   const getDescription = () => {
     const memberType = mode === 'fund_members' ? '조합원' : '사용자';
+    if (searchTerm || (filterStatus && filterStatus !== 'all')) {
+      return `총 ${members.length}명 중 ${filteredMembers.length}명의 ${memberType}이 표시됩니다.`;
+    }
     return `총 ${members.length}명의 ${memberType}이 있습니다.`;
   };
 
@@ -92,13 +132,13 @@ export default function MemberTable({
           <CardDescription>{getDescription()}</CardDescription>
         </CardHeader>
         <CardContent>
-          {members.length === 0 ? (
+          {filteredMembers.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               {getEmptyMessage()}
             </div>
           ) : (
             <div className="space-y-4">
-              {members.map(member => (
+              {filteredMembers.map(member => (
                 <div
                   key={member.id}
                   className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"

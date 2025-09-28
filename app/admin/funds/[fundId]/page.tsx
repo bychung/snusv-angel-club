@@ -1,8 +1,7 @@
 import AdminLayout from '@/components/admin/AdminLayout';
 import FundExportModal from '@/components/admin/FundExportModal';
+import FundMemberManagement from '@/components/admin/FundMemberManagement';
 import MemberActionButtons from '@/components/admin/MemberActionButtons';
-import MemberSearchAndFilter from '@/components/admin/MemberSearchAndFilter';
-import MemberTable from '@/components/admin/MemberTable';
 import { Button } from '@/components/ui/button';
 import { getFundMembers } from '@/lib/admin/members';
 import { createBrandServerClient } from '@/lib/supabase/server';
@@ -39,7 +38,7 @@ export default async function FundDetailPage({
   }
 
   // 조합원 목록 조회 (서버에서만 실행)
-  const members = await getFundMembers(fundId, { search, filter });
+  const members = await getFundMembers(fundId);
 
   return (
     <AdminLayout>
@@ -84,13 +83,9 @@ export default async function FundDetailPage({
         {/* 조합원 관리 버튼들 */}
         <MemberActionButtons fundId={fundId} fundName={fund.name} />
 
-        {/* 검색 및 필터 */}
-        <MemberSearchAndFilter mode="fund_members" />
-
-        {/* 조합원 목록 */}
-        <MemberTable
+        {/* 조합원 관리 */}
+        <FundMemberManagement
           members={members}
-          mode="fund_members"
           fundId={fundId}
           fundName={fund.name}
         />

@@ -8,17 +8,11 @@ export interface MemberWithFund extends Profile {
   registration_status: 'registered' | 'survey_only';
 }
 
-export interface MemberFilters {
-  search?: string;
-  filter?: 'all' | 'registered' | 'survey_only';
-}
-
 /**
  * 특정 펀드의 조합원 목록을 조회합니다 (서버에서만 실행)
  */
 export async function getFundMembers(
-  fundId: string,
-  filters: MemberFilters = {}
+  fundId: string
 ): Promise<MemberWithFund[]> {
   const brandClient = await createBrandServerClient();
 
@@ -33,14 +27,6 @@ export async function getFundMembers(
     .eq('fund_id', fundId)
     .order('created_at', { ascending: false });
 
-  // 검색어 필터 (프로필 정보에서 검색)
-  if (filters.search) {
-    const searchTerm = filters.search.toLowerCase();
-    query = query.or(
-      `profile.name.ilike.%${searchTerm}%,profile.email.ilike.%${searchTerm}%,profile.phone.like.%${searchTerm}%`
-    );
-  }
-
   const { data: fundMembers, error } = await query;
 
   if (error) {
@@ -49,7 +35,7 @@ export async function getFundMembers(
   }
 
   // 프로필과 fund_member 정보를 합쳐서 형태 변환
-  let membersWithStatus: MemberWithFund[] =
+  const membersWithStatus: MemberWithFund[] =
     fundMembers?.map((fundMember: any) => ({
       ...fundMember.profile,
       fund_members: [fundMember],
@@ -58,22 +44,13 @@ export async function getFundMembers(
         : 'survey_only',
     })) || [];
 
-  // 상태 필터
-  if (filters.filter && filters.filter !== 'all') {
-    membersWithStatus = membersWithStatus.filter(
-      member => member.registration_status === filters.filter
-    );
-  }
-
   return membersWithStatus;
 }
 
 /**
  * 모든 사용자 목록을 조회합니다 (서버에서만 실행)
  */
-export async function getAllUsers(
-  filters: MemberFilters = {}
-): Promise<MemberWithFund[]> {
+export async function getAllUsers(): Promise<MemberWithFund[]> {
   const brandClient = await createBrandServerClient();
 
   let query = brandClient.profiles
@@ -95,14 +72,6 @@ export async function getAllUsers(
     )
     .order('created_at', { ascending: false });
 
-  // 검색어 필터
-  if (filters.search) {
-    const searchTerm = filters.search.toLowerCase();
-    query = query.or(
-      `name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.like.%${searchTerm}%`
-    );
-  }
-
   const { data: profiles, error } = await query;
 
   if (error) {
@@ -110,17 +79,10 @@ export async function getAllUsers(
     throw error;
   }
 
-  let usersWithStatus: MemberWithFund[] = profiles.map((profile: any) => ({
+  const usersWithStatus: MemberWithFund[] = profiles.map((profile: any) => ({
     ...profile,
     registration_status: profile.user_id ? 'registered' : 'survey_only',
   }));
-
-  // 상태 필터
-  if (filters.filter && filters.filter !== 'all') {
-    usersWithStatus = usersWithStatus.filter(
-      member => member.registration_status === filters.filter
-    );
-  }
 
   return usersWithStatus;
 }

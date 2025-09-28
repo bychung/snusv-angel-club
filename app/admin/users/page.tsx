@@ -1,22 +1,10 @@
 import AdminLayout from '@/components/admin/AdminLayout';
-import MemberSearchAndFilter from '@/components/admin/MemberSearchAndFilter';
-import MemberTable from '@/components/admin/MemberTable';
+import UserManagement from '@/components/admin/UserManagement';
 import { getAllUsers } from '@/lib/admin/members';
 
-interface AdminUsersPageProps {
-  searchParams: Promise<{
-    search?: string;
-    filter?: 'all' | 'registered' | 'survey_only';
-  }>;
-}
-
-export default async function AdminUsersPage({
-  searchParams,
-}: AdminUsersPageProps) {
-  const { search, filter } = await searchParams;
-
+export default async function AdminUsersPage() {
   // 서버에서 데이터 조회 (보안)
-  const members = await getAllUsers({ search, filter });
+  const members = await getAllUsers();
 
   return (
     <AdminLayout>
@@ -29,11 +17,8 @@ export default async function AdminUsersPage({
           </p>
         </div>
 
-        {/* 검색 및 필터 */}
-        <MemberSearchAndFilter mode="users" />
-
-        {/* 사용자 목록 */}
-        <MemberTable members={members} mode="users" />
+        {/* 사용자 관리 */}
+        <UserManagement members={members} />
       </div>
     </AdminLayout>
   );

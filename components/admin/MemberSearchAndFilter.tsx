@@ -3,48 +3,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Filter, Search } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface MemberSearchAndFilterProps {
   mode: 'users' | 'fund_members';
+  onSearchChange: (searchTerm: string) => void;
+  onFilterChange: (filterStatus: 'all' | 'registered' | 'survey_only') => void;
 }
 
 export default function MemberSearchAndFilter({
   mode,
+  onSearchChange,
+  onFilterChange,
 }: MemberSearchAndFilterProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get('search') || ''
-  );
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<
     'all' | 'registered' | 'survey_only'
-  >(
-    (searchParams.get('filter') as any) ||
-      (mode === 'users' ? 'registered' : 'all')
-  );
+  >(mode === 'users' ? 'registered' : 'all');
 
-  // URL 업데이트
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams);
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    onSearchChange(value);
+  };
 
-    if (searchTerm) {
-      params.set('search', searchTerm);
-    } else {
-      params.delete('search');
-    }
-
-    if (filterStatus !== 'all') {
-      params.set('filter', filterStatus);
-    } else {
-      params.delete('filter');
-    }
-
-    const newUrl = params.toString() ? `?${params.toString()}` : '';
-    router.replace(newUrl, { scroll: false });
-  }, [searchTerm, filterStatus, router, searchParams]);
+  const handleFilterChange = (value: 'all' | 'registered' | 'survey_only') => {
+    setFilterStatus(value);
+    onFilterChange(value);
+  };
 
   const getSearchTitle = () => {
     return mode === 'fund_members'
@@ -64,7 +49,7 @@ export default function MemberSearchAndFilter({
             <Input
               placeholder="이름, 이메일, 전화번호로 검색..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => handleSearchChange(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -72,7 +57,7 @@ export default function MemberSearchAndFilter({
             <Filter className="h-4 w-4 text-gray-400" />
             <select
               value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value as any)}
+              onChange={e => handleFilterChange(e.target.value as any)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm"
             >
               <option value="all">전체</option>
