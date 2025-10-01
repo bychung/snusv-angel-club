@@ -1,6 +1,5 @@
 import { getFundDetails } from '@/lib/admin/funds';
-import { isAdminServer } from '@/lib/auth/admin-server';
-import { createBrandServerClient } from '@/lib/supabase/server';
+import { requireFundAccess, validateUserAccess } from '@/lib/auth/permissions';
 import { NextRequest } from 'next/server';
 
 export async function GET(
@@ -14,49 +13,22 @@ export async function GET(
   }
 
   try {
-    // 사용자 인증 확인
-    const brandClient = await createBrandServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
+    // 인증 및 사용자 확인
+    const authResult = await validateUserAccess(request, '[fund-details]');
+    if (authResult instanceof Response) return authResult;
 
-    if (authError || !user) {
-      return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
+    const { user } = authResult;
 
-    // 관리자 권한 확인
-    const isAdmin = await isAdminServer(user);
-
-    // 관리자가 아닌 경우, 해당 펀드에 참여하는지 확인
-    if (!isAdmin) {
-      const { data: profile } = await brandClient.profiles
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) {
-        return Response.json(
-          { error: '프로필을 찾을 수 없습니다' },
-          { status: 403 }
-        );
-      }
-
-      const { count } = await brandClient.fundMembers
-        .select('*', { count: 'exact', head: true })
-        .eq('fund_id', fundId)
-        .eq('profile_id', profile.id);
-
-      if (!count || count === 0) {
-        return Response.json(
-          { error: '해당 펀드에 접근할 권한이 없습니다' },
-          { status: 403 }
-        );
-      }
-    }
+    // 펀드 접근 권한 확인
+    const accessResult = await requireFundAccess(
+      user,
+      fundId,
+      '[fund-details]'
+    );
+    if (accessResult instanceof Response) return accessResult;
 
     // 펀드 상세 정보 조회
-    const fundDetails = await getFundDetails(fundId, user.id, isAdmin);
+    const fundDetails = await getFundDetails(fundId, user.id);
 
     return Response.json(fundDetails);
   } catch (error) {

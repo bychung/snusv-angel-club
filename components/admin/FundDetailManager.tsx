@@ -91,9 +91,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         setLoading(true);
         setError(null);
 
-        // 펀드 상세 정보와 조합원 목록을 병렬로 조회
+        // 펀드 상세 정보와 조합원 목록을 병렬로 조회 (관리자 API 사용)
         const [fundResponse, membersResponse] = await Promise.all([
-          fetch(`/api/funds/${fundId}/details`),
+          fetch(`/api/admin/funds/${fundId}/details`),
           fetch(`/api/admin/funds/${fundId}/members`),
         ]);
 

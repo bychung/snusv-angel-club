@@ -99,11 +99,12 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
 
 /**
  * 특정 펀드의 상세 정보를 조회합니다 (서버에서만 실행)
+ *
+ * 참고: 이 함수는 일반 API에서 사용되므로 관리자 여부와 무관하게 실제 멤버십만 확인합니다.
  */
 export async function getFundDetails(
   fundId: string,
-  userId?: string,
-  isAdmin: boolean = false
+  userId?: string
 ): Promise<FundDetailsResponse> {
   const brandClient = await createBrandServerClient();
 
@@ -147,18 +148,37 @@ export async function getFundDetails(
     ) || 0;
 
   // 4. 사용자가 해당 펀드에 참여하는지 확인
+  // (본인 프로필 + profile_permissions를 통한 권한이 있는 프로필 모두 확인)
   let isParticipant = false;
-  if (userId && !isAdmin) {
-    const { data: userProfile } = await brandClient.profiles
+  if (userId) {
+    const accessibleProfileIds: string[] = [];
+
+    // 4-1. 본인 프로필 확인
+    const { data: ownProfile } = await brandClient.profiles
       .select('id')
       .eq('user_id', userId)
       .single();
 
-    if (userProfile) {
+    if (ownProfile) {
+      accessibleProfileIds.push(ownProfile.id);
+    }
+
+    // 4-2. profile_permissions를 통해 권한이 있는 프로필들 확인
+    const { data: permissions } = await brandClient.profilePermissions
+      .select('profile_id')
+      .eq('user_id', userId);
+
+    if (permissions && permissions.length > 0) {
+      const permissionProfileIds = permissions.map((p: any) => p.profile_id);
+      accessibleProfileIds.push(...permissionProfileIds);
+    }
+
+    // 4-3. 접근 가능한 프로필 중 하나라도 펀드 멤버인지 확인
+    if (accessibleProfileIds.length > 0) {
       const { count } = await brandClient.fundMembers
         .select('*', { count: 'exact', head: true })
         .eq('fund_id', fundId)
-        .eq('profile_id', userProfile.id);
+        .in('profile_id', accessibleProfileIds);
 
       isParticipant = (count || 0) > 0;
     }
@@ -182,8 +202,9 @@ export async function getFundDetails(
       .limit(1);
 
     const exists = !!(docs && docs.length > 0);
+    // 펀드 참여자는 account, agreement 문서만 다운로드 가능
     const downloadable =
-      isAdmin || (isParticipant && ['account', 'agreement'].includes(category));
+      isParticipant && ['account', 'agreement'].includes(category);
 
     documents_status[category] = {
       exists,
@@ -195,7 +216,7 @@ export async function getFundDetails(
   return {
     fund: { ...fund, gp_info, totalInvestment },
     documents_status,
-    user_permission: isAdmin ? 'admin' : 'user',
+    user_permission: 'user',
   };
 }
 

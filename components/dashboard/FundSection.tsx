@@ -9,99 +9,57 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { FundDetailsResponse } from '@/lib/admin/funds';
 import type { FundStatus } from '@/lib/fund-status';
 import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
-import type { FundMember } from '@/types/database';
 import { Building, Calendar, Edit2, Save, TrendingUp, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import FundDetailCard from './FundDetailCard';
 
-interface FundMemberWithFund extends FundMember {
-  funds: {
+interface Fund {
+  id: string;
+  name: string;
+  par_value: number;
+  status: FundStatus;
+  abbreviation?: string;
+  membership: {
     id: string;
-    name: string;
-    par_value: number;
+    investment_units: number;
+    profile_id: string;
+    created_at: string;
+    updated_at: string;
   };
 }
 
 export default function FundSection() {
   const { profile, isLoading: authLoading } = useAuthStore();
-  const [fundInfos, setFundInfos] = useState<FundMemberWithFund[]>([]);
-  const [fundStatuses, setFundStatuses] = useState<Record<string, FundStatus>>(
-    {}
-  );
+  const [funds, setFunds] = useState<Fund[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingFundId, setEditingFundId] = useState<string | null>(null);
+  const [editingMembershipId, setEditingMembershipId] = useState<string | null>(
+    null
+  );
   const [editUnits, setEditUnits] = useState(0);
 
   useEffect(() => {
     if (profile) {
-      fetchFundInfos();
+      fetchFunds();
     }
   }, [profile]);
 
-  const fetchFundInfos = async () => {
+  const fetchFunds = async () => {
     if (!profile) return;
 
     setIsLoading(true);
     try {
-      const brandClient = createBrandClient();
+      // 서버 API를 통해 내가 출자한 펀드 목록 조회 (profile_permissions 지원)
+      const response = await fetch('/api/funds');
+      const result = await response.json();
 
-      const { data, error } = await brandClient.fundMembers
-        .select(
-          `
-          *,
-          funds (
-            id,
-            name,
-            par_value
-          )
-        `
-        )
-        .eq('profile_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        throw new Error(result.error || '펀드 목록을 불러오는데 실패했습니다');
       }
 
-      const fundInfosData = data || [];
-      setFundInfos(fundInfosData);
-
-      // 각 펀드의 상태 정보를 가져오기
-      const statusPromises = fundInfosData.map(
-        async (fund: FundMemberWithFund) => {
-          try {
-            const response = await fetch(`/api/funds/${fund.funds.id}/details`);
-            if (response.ok) {
-              const fundDetails: FundDetailsResponse = await response.json();
-              return {
-                fundId: fund.funds.id,
-                status: fundDetails.fund.status as FundStatus,
-              };
-            }
-          } catch (error) {
-            console.error(`펀드 ${fund.funds.id} 상태 조회 실패:`, error);
-          }
-          return { fundId: fund.funds.id, status: 'ready' as FundStatus }; // 기본값
-        }
-      );
-
-      const statusResults = await Promise.all(statusPromises);
-      const statusMap = statusResults.reduce(
-        (
-          acc: Record<string, FundStatus>,
-          { fundId, status }: { fundId: string; status: FundStatus }
-        ) => {
-          acc[fundId] = status;
-          return acc;
-        },
-        {} as Record<string, FundStatus>
-      );
-
-      setFundStatuses(statusMap);
+      setFunds(result.funds || []);
     } catch (error) {
       console.error('펀드 정보 조회 실패:', error);
     } finally {
@@ -109,18 +67,18 @@ export default function FundSection() {
     }
   };
 
-  const handleEdit = (fund: FundMemberWithFund) => {
-    setEditingFundId(fund.id);
-    setEditUnits(fund.investment_units || 0);
+  const handleEdit = (fund: Fund) => {
+    setEditingMembershipId(fund.membership.id);
+    setEditUnits(fund.membership.investment_units || 0);
   };
 
   const handleCancel = () => {
-    setEditingFundId(null);
+    setEditingMembershipId(null);
     setEditUnits(0);
   };
 
   const handleSave = async () => {
-    if (!profile || !editingFundId) return;
+    if (!profile || !editingMembershipId) return;
 
     try {
       const brandClient = createBrandClient();
@@ -130,13 +88,13 @@ export default function FundSection() {
           investment_units: editUnits,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', editingFundId);
+        .eq('id', editingMembershipId);
 
       if (error) throw error;
 
       // 정보 다시 가져오기
-      await fetchFundInfos();
-      setEditingFundId(null);
+      await fetchFunds();
+      setEditingMembershipId(null);
     } catch (error) {
       console.error('펀드 정보 업데이트 실패:', error);
     }
@@ -173,7 +131,7 @@ export default function FundSection() {
     );
   }
 
-  if (fundInfos.length === 0) {
+  if (funds.length === 0) {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-6">
@@ -205,21 +163,21 @@ export default function FundSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
-        {fundInfos.map(fund => {
-          const isEditing = editingFundId === fund.id;
-          const fundStatus = fundStatuses[fund.funds.id];
-          const canEdit = fundStatus === 'ready' || fundStatus === 'processing';
+        {funds.map(fund => {
+          const isEditing = editingMembershipId === fund.membership.id;
+          const canEdit =
+            fund.status === 'ready' || fund.status === 'processing';
 
           // 편집 중이 아닐 때는 새로운 상세 카드 사용
           if (!isEditing) {
             return (
-              <div key={fund.id} className="relative">
+              <div key={fund.membership.id} className="relative">
                 <FundDetailCard
-                  fundId={fund.funds.id}
-                  fundName={fund.funds?.name || '펀드명 불명'}
+                  fundId={fund.id}
+                  fundName={fund.name || '펀드명 불명'}
                   investmentInfo={{
-                    units: fund.investment_units,
-                    amount: fund.investment_units * fund.funds.par_value,
+                    units: fund.membership.investment_units,
+                    amount: fund.membership.investment_units * fund.par_value,
                   }}
                 />
                 {/* 편집 버튼을 카드 위에 오버레이 - ready 또는 processing 상태일 때만 표시 */}
@@ -239,7 +197,10 @@ export default function FundSection() {
 
           // 편집 중일 때는 기존의 간단한 편집 카드 사용
           return (
-            <Card key={fund.id} className="hover:shadow-lg transition-shadow">
+            <Card
+              key={fund.membership.id}
+              className="hover:shadow-lg transition-shadow"
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-3">
@@ -250,7 +211,7 @@ export default function FundSection() {
                     </div>
                     <div>
                       <CardTitle className="text-lg font-semibold text-gray-900">
-                        {fund.funds?.name || '펀드명 불명'}
+                        {fund.name || '펀드명 불명'}
                       </CardTitle>
                       <CardDescription className="text-sm text-gray-500">
                         출자 정보 수정 중
@@ -279,7 +240,7 @@ export default function FundSection() {
                       </span>
                     </div>
                     <span className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(editUnits, fund.funds.par_value)}
+                      {formatCurrency(editUnits, fund.par_value)}
                     </span>
                   </div>
 
@@ -305,7 +266,9 @@ export default function FundSection() {
                         <span>출자일</span>
                       </div>
                       <span>
-                        {new Date(fund.created_at).toLocaleDateString('ko-KR')}
+                        {new Date(
+                          fund.membership.created_at
+                        ).toLocaleDateString('ko-KR')}
                       </span>
                     </div>
                   </div>
@@ -317,7 +280,7 @@ export default function FundSection() {
                         1좌당 금액
                       </div>
                       <div className="text-sm font-medium text-gray-700">
-                        {fund.funds.par_value.toLocaleString()}원
+                        {fund.par_value.toLocaleString()}원
                       </div>
                     </div>
                   </div>

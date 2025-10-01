@@ -440,19 +440,51 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       // (임시 제거) REST 프로브 호출은 동시성 잠금을 피하기 위해 비활성화
 
-      // 2) 공식 postgrest 클라이언트 호출 (타임아웃/중단 제어 포함)
+      // 2) 새로운 프로필 조회 API 호출 (profile_permissions 지원)
       const queryAbortController = new AbortController();
       const queryTimeoutId = setTimeout(() => {
         console.warn('[authStore] Query timeout reached, aborting request');
         queryAbortController.abort();
       }, 15000);
 
-      const { data: profile, error } = await brandClient.profiles
-        .select('*')
-        .eq('user_id', targetUserId)
-        // Postgrest abortSignal 연결
-        .abortSignal(queryAbortController.signal)
-        .single();
+      let profile = null;
+      let error = null;
+
+      try {
+        const response = await fetch('/api/profiles/me', {
+          signal: queryAbortController.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          profile = data.profile;
+
+          // 공유받은 프로필인지 로그
+          if (data.isSharedProfile) {
+            console.log(
+              `[authStore] 공유받은 프로필 사용: ${profile?.id} (${data.accessType})`
+            );
+          }
+        } else {
+          const errorData = await response.json();
+          error = {
+            code: 'API_ERROR',
+            message: errorData.error || '프로필 조회 실패',
+          };
+        }
+      } catch (fetchError: any) {
+        if (fetchError.name === 'AbortError') {
+          error = { code: 'TIMEOUT', message: 'Request timeout' };
+        } else {
+          error = {
+            code: 'FETCH_ERROR',
+            message: fetchError.message || '네트워크 오류',
+          };
+        }
+      }
 
       clearTimeout(queryTimeoutId);
 
@@ -464,71 +496,44 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
 
       if (error) {
-        // 프로필이 없는 경우 - 공유받은 프로필이 있는지 먼저 확인
-        if ((error as any).code === 'PGRST116') {
-          console.log(
-            '[authStore] No personal profile found, checking for shared profiles'
-          );
+        // API 에러 또는 프로필 없음
+        if (
+          error.code === 'API_ERROR' ||
+          error.code === 'TIMEOUT' ||
+          error.code === 'FETCH_ERROR'
+        ) {
+          console.log('[authStore] Profile API call failed, checking error...');
 
-          try {
-            // 공유받은 프로필이 있는지 확인 (브랜드별)
-            const { data: sharedAccess, error: sharedError } =
-              await brandClient.profilePermissions
-                .select('profile_id, permission_type')
-                .eq('user_id', targetUserId);
+          // API 에러의 경우 공유받은 프로필이 있는지는 API에서 이미 확인했으므로
+          // 여기서는 단순히 오류 처리
+          console.log('[authStore] No profile available for this user');
+          set({
+            error: '접근 가능한 프로필이 없습니다. 계정 권한을 확인해주세요.',
+            profile: null,
+            userFunds: [],
+            isAdminUser: false,
+          });
 
-            if (sharedError) {
-              console.error(
-                '[authStore] Error checking shared profiles:',
-                sharedError
-              );
-            }
-
-            if (sharedAccess && sharedAccess.length > 0) {
-              console.log(
-                '[authStore] Found shared profiles, user is valid without personal profile'
-              );
-
-              // 개인 프로필은 없지만 공유받은 프로필이 있는 경우
-              // profile은 null로 설정하고 fetchAccessibleProfiles에서 공유 프로필들을 로드
-              set({
-                profile: null,
-                userFunds: [],
-                isAdminUser: false, // 개인 프로필이 없으므로 관리자가 될 수 없음
-              });
-
-              // 공유받은 프로필 목록 로드
-              await get().fetchAccessibleProfiles();
-
-              return; // 정상 처리 완료
-            } else {
-              console.log(
-                '[authStore] No shared profiles found either, user needs to complete signup'
-              );
-
-              // 개인 프로필도 없고 공유받은 프로필도 없는 경우
-              set({
-                error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
-              });
-              throw new Error('PROFILE_NOT_FOUND');
-            }
-          } catch (sharedCheckError) {
-            console.error(
-              '[authStore] Error during shared profile check:',
-              sharedCheckError
-            );
-            set({
-              error: '가입되지 않은 계정입니다. 로그인할 수 없습니다.',
-            });
-            throw new Error('PROFILE_NOT_FOUND');
-          }
+          throw new Error('PROFILE_NOT_FOUND');
         }
         throw error;
       }
 
-      console.log('[authStore] Profile found, fetching user funds...');
+      console.log('[authStore] Profile found successfully');
+
+      if (!profile) {
+        console.log('[authStore] Profile is null, setting empty state');
+        set({
+          profile: null,
+          userFunds: [],
+          isAdminUser: false,
+          isProfileLoading: false,
+        });
+        return;
+      }
 
       // 프로필과 함께 사용자의 펀드 참여 정보도 조회
+      console.log('[authStore] Fetching user funds for profile:', profile.id);
       try {
         const { data: fundMembers, error: fundError } =
           await brandClient.fundMembers

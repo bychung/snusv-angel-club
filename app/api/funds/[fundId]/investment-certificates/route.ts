@@ -1,6 +1,5 @@
 import { getMemberInvestmentCertificates } from '@/lib/admin/documents';
-import { isAdminServer } from '@/lib/auth/admin-server';
-import { createBrandServerClient } from '@/lib/supabase/server';
+import { requireFundAccess, validateUserAccess } from '@/lib/auth/permissions';
 import { NextRequest } from 'next/server';
 
 // 사용자 본인의 투자확인서 조회
@@ -15,55 +14,47 @@ export async function GET(
   }
 
   try {
-    // 인증 확인
-    const brandClient = await createBrandServerClient();
+    // 인증 및 사용자 확인
+    const authResult = await validateUserAccess(
+      request,
+      '[investment-certificates]'
+    );
+    if (authResult instanceof Response) return authResult;
 
-    const {
-      data: { user },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
+    const { user } = authResult;
 
-    if (authError || !user) {
-      return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
-    }
+    // 펀드 접근 권한 확인
+    const accessResult = await requireFundAccess(
+      user,
+      fundId,
+      '[investment-certificates]'
+    );
+    if (accessResult instanceof Response) return accessResult;
 
-    // 사용자 프로필 확인
-    const { data: profile } = await brandClient.profiles
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
+    const { fundMemberProfileIds } = accessResult;
 
-    if (!profile) {
+    // 사용자(관리자 포함)의 펀드 멤버십 확인
+    if (fundMemberProfileIds.length === 0) {
       return Response.json(
-        { error: '프로필을 찾을 수 없습니다' },
+        { error: '해당 펀드에 참여 중인 프로필이 없습니다' },
         { status: 403 }
       );
-    }
-
-    // 사용자가 해당 펀드에 참여하는지 확인
-    const isAdmin = await isAdminServer(user);
-    if (!isAdmin) {
-      const { count } = await brandClient.fundMembers
-        .select('*', { count: 'exact', head: true })
-        .eq('fund_id', fundId)
-        .eq('profile_id', profile.id);
-
-      if (!count || count === 0) {
-        return Response.json(
-          { error: '해당 펀드에 참여하지 않은 사용자입니다' },
-          { status: 403 }
-        );
-      }
     }
 
     // URL 쿼리 파라미터에서 연도 추출
     const { searchParams } = new URL(request.url);
     const documentYear = searchParams.get('year');
 
-    // 본인의 투자확인서 조회
+    // 펀드에 참여 중인 첫 번째 프로필의 투자확인서 조회
+    const targetProfileId = fundMemberProfileIds[0];
+    console.log(
+      `[investment-certificates] 투자확인서 조회 대상 프로필: ${targetProfileId}`
+    );
+
+    // 투자확인서 조회
     const certificates = await getMemberInvestmentCertificates(
       fundId,
-      profile.id,
+      targetProfileId,
       documentYear ? parseInt(documentYear) : undefined
     );
 

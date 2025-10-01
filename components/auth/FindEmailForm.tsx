@@ -34,6 +34,7 @@ export default function FindEmailForm({
   onLinkSuccess,
 }: FindEmailFormProps) {
   const [searchEmail, setSearchEmail] = useState('');
+  const [searchedEmail, setSearchedEmail] = useState<string>(''); // 실제 검색에 사용된 이메일
   const [isSearching, setIsSearching] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -51,6 +52,7 @@ export default function FindEmailForm({
     setIsSearching(true);
     setError('');
     setSearchResult(null);
+    setSearchedEmail(''); // 새로운 검색 시작 시 이전 검색된 이메일 초기화
 
     try {
       // sessionStorage에서 임시 토큰 가져오기
@@ -79,6 +81,8 @@ export default function FindEmailForm({
 
       const result = await response.json();
       setSearchResult(result);
+      // 검색에 성공한 이메일을 저장 (나중에 연결 시 사용)
+      setSearchedEmail(searchEmail.trim());
     } catch (error) {
       console.error('이메일 검색 오류:', error);
       setError(
@@ -90,7 +94,7 @@ export default function FindEmailForm({
   };
 
   const handleLink = async () => {
-    if (!searchResult?.profileId) return;
+    if (!searchResult?.profileId || !searchedEmail) return;
 
     setIsLinking(true);
     setError('');
@@ -107,11 +111,12 @@ export default function FindEmailForm({
         headers['Authorization'] = `Bearer ${tempToken}`;
       }
 
-      const response = await fetch('/api/profiles/link-user', {
+      const response = await fetch('/api/profiles/link-user-to-profile', {
         method: 'POST',
         headers,
         body: JSON.stringify({
           profileId: searchResult.profileId,
+          email: searchedEmail,
         }),
       });
 
@@ -121,7 +126,12 @@ export default function FindEmailForm({
       }
 
       const result = await response.json();
-      console.log('프로필 연결 성공:', result);
+      console.log('link-user-to-profile API 응답:', result);
+
+      // API에서 found가 false를 반환한 경우 에러 처리
+      if (!result.found) {
+        throw new Error(result.message || '계정을 찾을 수 없습니다.');
+      }
 
       // 성공 시 임시 토큰 정리
       sessionStorage.removeItem('temp_auth_token');
@@ -203,7 +213,9 @@ export default function FindEmailForm({
               {attemptedEmail}
             </p>
             <p
-              className={`text-xs mt-1 ${isAccountCreated ? 'text-green-600' : 'text-blue-600'}`}
+              className={`text-xs mt-1 ${
+                isAccountCreated ? 'text-green-600' : 'text-blue-600'
+              }`}
             >
               {isAccountCreated ? '회원가입 방식:' : '로그인 방식:'} {provider}
             </p>
@@ -271,7 +283,7 @@ export default function FindEmailForm({
                     </span>
                   </div>
                   <p className="text-sm text-green-700 mb-3">
-                    <strong>{searchEmail}</strong> 주소로 등록된 프로필이
+                    <strong>{searchedEmail}</strong> 주소로 등록된 프로필이
                     있습니다.
                   </p>
                   <Button

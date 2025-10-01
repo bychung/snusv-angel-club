@@ -1,4 +1,4 @@
-import { isAdminServer } from '@/lib/auth/admin-server';
+import { requireFundAccess, validateUserAccess } from '@/lib/auth/permissions';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { DocumentCategory, isValidDocumentCategory } from '@/types/documents';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
@@ -33,72 +33,57 @@ export async function GET(
   const documentCategory = category as DocumentCategory;
 
   try {
-    // 사용자 인증 확인
-    const brandClient = await createBrandServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
+    // 권한 확인: 특정 카테고리만 다운로드 가능
+    const downloadableCategories = [
+      DocumentCategory.ACCOUNT,
+      DocumentCategory.AGREEMENT,
+      DocumentCategory.PROPOSAL, // 펀드제안서는 일반 사용자도 다운로드 가능
+    ];
+    if (!downloadableCategories.includes(documentCategory)) {
+      return Response.json(
+        {
+          error: '해당 문서를 다운로드할 권한이 없습니다',
+        },
+        { status: 403 }
+      );
+    }
+
+    // 사용자 인증 및 펀드 접근 권한 확인
+    let user = null;
 
     // 펀드제안서(PROPOSAL)의 경우 인증 없이도 다운로드 가능
     if (documentCategory === DocumentCategory.PROPOSAL) {
-      // 펀드제안서는 공개 문서로 처리
+      // 펀드제안서는 공개 문서로 처리 (인증 선택 사항)
+      const authResult = await validateUserAccess(
+        request,
+        '[document-download]'
+      );
+      if ('user' in authResult) {
+        user = authResult.user;
+      }
     } else {
       // 다른 카테고리는 인증 필요
-      if (authError || !user) {
-        return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
+      const authResult = await validateUserAccess(
+        request,
+        '[document-download]'
+      );
+      if (authResult instanceof Response) {
+        return authResult;
+      }
+      user = authResult.user;
+
+      // 펀드 접근 권한 확인
+      const accessResult = await requireFundAccess(
+        user,
+        fundId,
+        '[document-download]'
+      );
+      if (accessResult instanceof Response) {
+        return accessResult;
       }
     }
 
-    // 관리자 권한 확인 (인증된 사용자에 대해서만)
-    const isAdmin = user ? await isAdminServer(user) : false;
-
-    // 권한 확인: 관리자가 아닌 경우 특정 카테고리만 다운로드 가능
-    if (!isAdmin) {
-      const downloadableCategories = [
-        DocumentCategory.ACCOUNT,
-        DocumentCategory.AGREEMENT,
-        DocumentCategory.PROPOSAL, // 펀드제안서는 일반 사용자도 다운로드 가능
-      ];
-      if (!downloadableCategories.includes(documentCategory)) {
-        return Response.json(
-          {
-            error: '해당 문서를 다운로드할 권한이 없습니다',
-          },
-          { status: 403 }
-        );
-      }
-
-      // 펀드제안서가 아닌 경우에만 펀드 참여자 확인
-      if (documentCategory !== DocumentCategory.PROPOSAL && user) {
-        // 일반 사용자의 경우 해당 펀드 참여자인지 확인 (브랜드별)
-        const { data: profile } = await brandClient.profiles
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (!profile) {
-          return Response.json(
-            { error: '프로필을 찾을 수 없습니다' },
-            { status: 403 }
-          );
-        }
-
-        const { count } = await brandClient.fundMembers
-          .select('*', { count: 'exact', head: true })
-          .eq('fund_id', fundId)
-          .eq('profile_id', profile.id);
-
-        if (!count || count === 0) {
-          return Response.json(
-            {
-              error: '해당 펀드에 접근할 권한이 없습니다',
-            },
-            { status: 403 }
-          );
-        }
-      }
-    }
+    const brandClient = await createBrandServerClient();
 
     // 최신 문서 조회 (브랜드별)
     const { data: document, error: docError } = await brandClient.documents

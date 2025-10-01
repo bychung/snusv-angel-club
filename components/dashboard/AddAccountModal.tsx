@@ -11,7 +11,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { AlertTriangle, CircleX, Search, User } from 'lucide-react';
 import { useState } from 'react';
@@ -39,8 +38,7 @@ export default function AddAccountModal({
   onClose,
   onSuccess,
 }: AddAccountModalProps) {
-  const { selectedProfileId, addProfileAccess, findProfileByEmail } =
-    useAuthStore();
+  const { selectedProfileId } = useAuthStore();
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState<'admin' | 'view'>('view');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
@@ -117,51 +115,36 @@ export default function AddAccountModal({
     setError('');
 
     try {
-      // link-user API를 호출해서 연결 및 권한 부여
-      const response = await fetch('/api/profiles/link-user', {
+      // link-profile-to-user API를 호출해서 연결 및 권한 부여
+      const response = await fetch('/api/profiles/link-profile-to-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: searchResult.email }),
+        body: JSON.stringify({
+          email: searchResult.email,
+          permission: permission,
+        }),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        setError(result.error || '계정 연결에 실패했습니다.');
+        setError(result.error || '권한 부여에 실패했습니다.');
         return;
       }
 
       if (!result.found) {
-        setError(result.message || '계정 연결에 실패했습니다.');
+        setError(result.message || '권한 부여에 실패했습니다.');
         return;
       }
 
-      // 연결 완료 후 권한 부여
-      if (searchResult.status === 'auth_only') {
-        // 프로필이 없는 사용자의 경우 직접 profile_permissions에 추가
-        const brandClient = createBrandClient();
-        const { error: permissionError } =
-          await brandClient.profilePermissions.insert({
-            profile_id: selectedProfileId,
-            user_id: searchResult.user_id,
-            permission_type: permission,
-            granted_by: selectedProfileId,
-          });
-
-        if (permissionError) {
-          throw new Error('권한 부여에 실패했습니다.');
-        }
-      } else {
-        // 프로필이 있는 사용자의 경우 기존 방식 사용
-        await addProfileAccess(
-          selectedProfileId,
-          searchResult.email,
-          permission
-        );
+      if (!result.granted && !result.permission) {
+        setError(result.message || '권한 부여에 실패했습니다.');
+        return;
       }
 
+      // 성공
       onSuccess();
     } catch (error: any) {
       setError(error.message || '권한 부여에 실패했습니다.');
