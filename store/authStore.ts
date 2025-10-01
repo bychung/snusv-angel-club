@@ -346,7 +346,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         null;
 
       // 프로바이더 로그아웃을 먼저 시도 (토큰이 유효할 때)
-      await triggerProviderLogout(provider, brandClient);
+      // await triggerProviderLogout(provider, brandClient);
 
       const { error } = await brandClient.raw.auth.signOut({ scope: 'global' });
 
