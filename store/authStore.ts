@@ -524,12 +524,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       if (!profile) {
         console.log('[authStore] Profile is null, setting empty state');
         set({
+          error: '접근 가능한 프로필이 없습니다. 계정 권한을 확인해주세요.',
           profile: null,
           userFunds: [],
           isAdminUser: false,
-          isProfileLoading: false,
         });
-        return;
+
+        throw new Error('PROFILE_NOT_FOUND');
       }
 
       // 프로필과 함께 사용자의 펀드 참여 정보도 조회
