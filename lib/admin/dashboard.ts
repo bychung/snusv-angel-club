@@ -14,6 +14,7 @@ export interface ActivityItem {
   user_email: string;
   timestamp: string;
   details?: string;
+  updated_by_name?: string; // 수정자 이름 (출자 정보 수정 시)
 }
 
 /**
@@ -85,9 +86,13 @@ export async function getRecentActivity(): Promise<ActivityItem[]> {
         investment_units,
         created_at,
         updated_at,
+        updated_by,
         profiles (
           name,
           email
+        ),
+        funds (
+          name
         )
       `
       )
@@ -127,16 +132,40 @@ export async function getRecentActivity(): Promise<ActivityItem[]> {
       }
     });
 
+    // updated_by에 해당하는 프로필 정보를 가져오기 위한 ID 목록 수집
+    const updatedByIds =
+      fundMembers
+        ?.filter((m: any) => m.updated_by)
+        .map((m: any) => m.updated_by) || [];
+
+    // updated_by 프로필 정보 조회 (배치로 한 번에 조회)
+    const updatedByProfilesMap = new Map<string, any>();
+    if (updatedByIds.length > 0) {
+      const { data: updatedByProfiles } = await brandClient.profiles
+        .select('id, name')
+        .in('id', updatedByIds);
+
+      updatedByProfiles?.forEach((profile: any) => {
+        updatedByProfilesMap.set(profile.id, profile);
+      });
+    }
+
     // 펀드 멤버 활동 추가
     fundMembers?.forEach((member: any) => {
       if (member.created_at !== member.updated_at) {
+        const fundName = (member.funds as any)?.name || '알 수 없는 펀드';
+        const updatedByProfile = member.updated_by
+          ? updatedByProfilesMap.get(member.updated_by)
+          : null;
+
         activityList.push({
           id: `fund-${member.id}`,
           type: 'investment_update',
           user_name: (member.profiles as any)?.name || 'Unknown',
           user_email: (member.profiles as any)?.email || 'unknown@email.com',
           timestamp: member.updated_at,
-          details: `출자좌수 변경: ${member.investment_units}좌`,
+          details: `${fundName} - 출자좌수 변경: ${member.investment_units}좌`,
+          updated_by_name: updatedByProfile?.name,
         });
       }
     });

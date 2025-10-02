@@ -48,6 +48,7 @@ export interface FundMember {
   profile_id: string;
   investment_units: number;
   total_units: number; // 약정출자좌수
+  updated_by?: string | null; // 최종 수정자 프로필 ID
   brand: string;
   created_at: string;
   updated_at: string;

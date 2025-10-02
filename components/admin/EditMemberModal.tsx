@@ -25,6 +25,7 @@ import { Label } from '@/components/ui/label';
 import { MemberWithFund } from '@/lib/admin/members';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createBrandClient } from '@/lib/supabase/client';
+import { useAuthStore } from '@/store/authStore';
 import { EmailNotificationType } from '@/types/database';
 import { ChevronDown, Mail, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -46,6 +47,7 @@ export default function EditMemberModal({
   onUpdate,
   showInvestmentInfo = true,
 }: EditMemberModalProps) {
+  const { profile } = useAuthStore(); // 현재 로그인한 관리자의 프로필 정보
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -164,6 +166,7 @@ export default function EditMemberModal({
           .update({
             investment_units: formData.investment_units,
             total_units: formData.total_units,
+            updated_by: profile?.id || null, // 수정자 프로필 ID 기록
             updated_at: new Date().toISOString(),
           })
           .eq('id', member.fund_members[0].id);

@@ -113,6 +113,11 @@ export default function RecentActivity({
                   {activity.details && (
                     <p className="text-xs text-gray-500 mt-1">
                       {activity.details}
+                      {activity.updated_by_name && (
+                        <span className="ml-2 text-blue-600">
+                          (수정자: {activity.updated_by_name})
+                        </span>
+                      )}
                     </p>
                   )}
                 </div>
