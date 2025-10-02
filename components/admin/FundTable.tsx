@@ -152,6 +152,18 @@ export default function FundTable({ funds }: FundTableProps) {
                         {FUND_STATUS_CONFIG[fund.status as FundStatus]?.label ||
                           fund.status}
                       </Badge>
+                      <Badge
+                        variant="outline"
+                        className={
+                          fund.payment_schedule === 'capital_call'
+                            ? 'text-xs bg-purple-50 text-purple-700 border-purple-200'
+                            : 'text-xs bg-teal-50 text-teal-700 border-teal-200'
+                        }
+                      >
+                        {fund.payment_schedule === 'capital_call'
+                          ? '수시납'
+                          : '일시납'}
+                      </Badge>
                       {calculateFundTerm(
                         fund.registered_at,
                         fund.dissolved_at
