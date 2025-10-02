@@ -30,8 +30,15 @@ export default function FundTable({ funds }: FundTableProps) {
         totalFunds: totals.totalFunds + 1,
         totalMembers: totals.totalMembers + fund.memberCount,
         totalInvestment: totals.totalInvestment + fund.totalInvestment,
+        totalCommittedAmount:
+          totals.totalCommittedAmount + fund.totalCommittedAmount,
       }),
-      { totalFunds: 0, totalMembers: 0, totalInvestment: 0 }
+      {
+        totalFunds: 0,
+        totalMembers: 0,
+        totalInvestment: 0,
+        totalCommittedAmount: 0,
+      }
     );
   };
 
@@ -52,7 +59,7 @@ export default function FundTable({ funds }: FundTableProps) {
   return (
     <div className="space-y-6">
       {/* 전체 통계 카드 - 크기 축소 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
           <CardContent className="py-1 px-3">
             <div className="flex items-center">
@@ -91,6 +98,22 @@ export default function FundTable({ funds }: FundTableProps) {
                 <p className="text-xs font-medium text-gray-500">총 출자금액</p>
                 <p className="text-lg font-bold text-gray-900">
                   {formatCurrency(stats.totalInvestment)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="py-1 px-3">
+            <div className="flex items-center">
+              <TrendingUp className="h-6 w-6 text-purple-500" />
+              <div className="ml-2">
+                <p className="text-xs font-medium text-gray-500">
+                  총 출자약정액
+                </p>
+                <p className="text-lg font-bold text-gray-900">
+                  {formatCurrency(stats.totalCommittedAmount)}
                 </p>
               </div>
             </div>
