@@ -1,3 +1,4 @@
+import { inquiryNotifications } from '@/lib/email/inquiry-notifications';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -214,6 +215,12 @@ export async function POST(
     }
 
     // === fund_member 처리 ===
+    // 0. 펀드 정보 조회 (이메일 알림용)
+    const { data: fundData } = await brandClient.funds
+      .select('id, name, par_value')
+      .eq('id', fundId)
+      .single();
+
     // 1. 기존 fund_member 확인
     const { data: existingFundMember } = await brandClient.fundMembers
       .select('id, total_units, created_at')
@@ -263,6 +270,34 @@ export async function POST(
             changeHistoryError
           );
           // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+        }
+
+        // === 신규 출자 신청 이메일 알림 발송 ===
+        try {
+          const parValue = fundData?.par_value || 1000000; // 기본값: 1,000,000원
+          const investmentAmount = surveyData.investmentUnits * parValue;
+
+          await inquiryNotifications.sendFundApplicationNotification({
+            id: upsertedFundMember.id,
+            name: profile.name,
+            email: profile.email,
+            createdAt: upsertedFundMember.created_at,
+            fund_name: fundData?.name || '(알 수 없음)',
+            phone: profile.phone,
+            investment_units: surveyData.investmentUnits,
+            investment_amount: investmentAmount,
+            entity_type: profile.entity_type,
+            is_new_application: true,
+          });
+          console.log(
+            `[submit-application] 신규 출자 신청 알림 이메일 발송 완료: ${profile.email}`
+          );
+        } catch (emailError) {
+          console.error(
+            '[submit-application] 신규 출자 신청 알림 이메일 발송 실패:',
+            emailError
+          );
+          // 이메일 발송 실패는 치명적이지 않으므로 계속 진행
         }
       } else if (
         existingFundMember &&

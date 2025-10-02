@@ -87,7 +87,9 @@ export default function EditMemberModal({
       // 펀드 정보 가져오기 (fund_id가 있는 경우에만)
       if (member.fund_members && member.fund_members.length > 0) {
         const fundId = member.fund_members[0].fund_id;
-        loadFundInfo(fundId);
+        if (fundId) {
+          loadFundInfo(fundId);
+        }
       }
     }
   }, [member]);
@@ -316,6 +318,11 @@ export default function EditMemberModal({
       value: 'signup_inquiry',
       label: '회원가입 문의',
       abbreviation: '회원가입',
+    },
+    {
+      value: 'fund_application',
+      label: '신규 출자 신청',
+      abbreviation: '출자신청',
     },
   ] as const;
 

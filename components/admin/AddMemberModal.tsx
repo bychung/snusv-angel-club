@@ -100,6 +100,10 @@ export default function AddMemberModal({
   }, [isOpen, fundId]);
 
   const loadFundInfo = async () => {
+    if (!fundId) {
+      return;
+    }
+
     try {
       const brandClient = createBrandClient();
       const { data, error } = await brandClient.funds

@@ -1,7 +1,8 @@
 export type EmailNotificationType =
   | 'startup_inquiry'
   | 'angel_inquiry'
-  | 'signup_inquiry';
+  | 'signup_inquiry'
+  | 'fund_application';
 
 export interface Profile {
   id: string;

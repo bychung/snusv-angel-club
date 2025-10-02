@@ -62,6 +62,7 @@ function createInquiryEmailTemplate(options: InquiryEmailOptions): {
     startup_inquiry: '스타트업 IR 문의',
     angel_inquiry: '엔젤클럽 가입 문의',
     signup_inquiry: '회원가입 문의',
+    fund_application: '신규 출자 신청',
   };
 
   const baseText = `
@@ -309,6 +310,61 @@ export const inquiryNotifications = {
       type: 'signup_inquiry',
       inquiryData,
       subject: '[SNUSV] 새로운 회원가입 문의',
+      additionalContent,
+    });
+  },
+
+  /**
+   * 신규 출자 신청 알림 발송
+   */
+  async sendFundApplicationNotification(
+    inquiryData: InquiryData & {
+      fund_name?: string;
+      phone?: string;
+      investment_units?: number;
+      investment_amount?: number;
+      entity_type?: string;
+      is_new_application?: boolean;
+    }
+  ) {
+    const entityTypeLabels = {
+      individual: '개인',
+      corporate: '법인',
+    };
+
+    const additionalContent = [
+      inquiryData.fund_name ? `펀드명: ${inquiryData.fund_name}` : null,
+      inquiryData.phone ? `전화번호: ${inquiryData.phone}` : null,
+      inquiryData.entity_type
+        ? `투자자 유형: ${
+            entityTypeLabels[
+              inquiryData.entity_type as 'individual' | 'corporate'
+            ] || inquiryData.entity_type
+          }`
+        : null,
+      inquiryData.investment_units
+        ? `약정출자좌수: ${inquiryData.investment_units}좌`
+        : null,
+      inquiryData.investment_amount
+        ? `약정출자금액: ${inquiryData.investment_amount.toLocaleString(
+            'ko-KR'
+          )}원`
+        : null,
+      inquiryData.is_new_application !== undefined
+        ? inquiryData.is_new_application
+          ? '신규 출자 신청입니다.'
+          : '기존 출자 정보가 수정되었습니다.'
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const brandConfig = getBrandingConfig();
+
+    await sendInquiryNotification({
+      type: 'fund_application',
+      inquiryData,
+      subject: `[${brandConfig.clubNameShort}] 새로운 출자 신청`,
       additionalContent,
     });
   },
