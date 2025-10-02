@@ -57,7 +57,7 @@ export default function FundActions({ fund }: FundActionsProps) {
     <Button
       variant="outline"
       size="sm"
-      className="w-full"
+      className="w-full min-h-10"
       onClick={e => {
         e.preventDefault();
         e.stopPropagation();
