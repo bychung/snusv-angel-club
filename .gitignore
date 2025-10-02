@@ -42,3 +42,6 @@ next-env.d.ts
 
 # only for references
 /references
+
+# supabase temporary files
+/supabase/.temp/
