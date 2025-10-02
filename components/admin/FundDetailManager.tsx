@@ -81,6 +81,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     registered_at: '',
     dissolved_at: '',
     par_value: 1000000,
+    min_units: 1,
     display_locations: [] as ('dashboard' | 'homepage')[],
   });
 
@@ -130,6 +131,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           registered_at: formatDateForInput(fundData.fund.registered_at) || '',
           dissolved_at: formatDateForInput(fundData.fund.dissolved_at) || '',
           par_value: fundData.fund.par_value || 1000000,
+          min_units: fundData.fund.min_units || 1,
           display_locations: fundData.fund.display_locations || [],
         });
       } catch (err) {
@@ -329,6 +331,27 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                     placeholder="1000000"
                     min="0"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="min_units">최소 출자좌수</Label>
+                  <Input
+                    id="min_units"
+                    type="number"
+                    value={formData.min_units}
+                    onChange={e =>
+                      handleInputChange(
+                        'min_units',
+                        parseInt(e.target.value) || 1
+                      )
+                    }
+                    placeholder="1"
+                    min="1"
+                  />
+                  <p className="text-xs text-gray-500">
+                    출자 설문 시 최소 {formData.min_units}좌 이상 입력하도록
+                    제한됩니다
+                  </p>
                 </div>
 
                 <div className="space-y-2">

@@ -280,6 +280,7 @@ export async function updateFundDetails(
     registered_at?: string;
     dissolved_at?: string;
     par_value?: number;
+    min_units?: number;
     display_locations?: ('dashboard' | 'homepage')[];
   }
 ): Promise<Fund> {

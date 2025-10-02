@@ -58,6 +58,7 @@ export default function EditMemberModal({
     role: 'USER' as 'ADMIN' | 'USER',
     email_notifications: [] as EmailNotificationType[],
   });
+  const [fundMinUnits, setFundMinUnits] = useState<number>(1); // 펀드의 최소 출자좌수
 
   useEffect(() => {
     if (member) {
@@ -77,12 +78,57 @@ export default function EditMemberModal({
         role: member.role,
         email_notifications: member.email_notifications || [],
       });
+
+      // 펀드 정보 가져오기 (fund_id가 있는 경우에만)
+      if (member.fund_members && member.fund_members.length > 0) {
+        const fundId = member.fund_members[0].fund_id;
+        loadFundInfo(fundId);
+      }
     }
   }, [member]);
+
+  const loadFundInfo = async (fundId: string) => {
+    try {
+      const brandClient = createBrandClient();
+      const { data, error } = await brandClient.funds
+        .select('min_units')
+        .eq('id', fundId)
+        .single();
+
+      if (error) {
+        console.error('펀드 정보 로딩 오류:', error);
+        return;
+      }
+
+      if (data) {
+        setFundMinUnits(data.min_units || 1);
+      }
+    } catch (error) {
+      console.error('펀드 정보 로딩 중 오류 발생:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!member) return;
+
+    // 유효성 검증
+    if (
+      showInvestmentInfo &&
+      formData.total_units > 0 &&
+      formData.total_units < fundMinUnits
+    ) {
+      alert(`약정출자좌수는 최소 ${fundMinUnits}좌 이상이어야 합니다.`);
+      return;
+    }
+
+    if (
+      showInvestmentInfo &&
+      formData.total_units < formData.investment_units
+    ) {
+      alert('약정출자좌수는 출자좌수보다 크거나 같아야 합니다.');
+      return;
+    }
 
     try {
       const brandClient = createBrandClient();
@@ -279,7 +325,7 @@ export default function EditMemberModal({
                   <Input
                     id="total_units"
                     type="number"
-                    min="1"
+                    min={fundMinUnits}
                     value={formData.total_units}
                     onChange={e =>
                       setFormData({
@@ -297,7 +343,8 @@ export default function EditMemberModal({
                     ).toLocaleString()}
                     원
                     <br />
-                    약정출자좌수는 출자좌수와 같거나 커야 합니다
+                    약정출자좌수는 출자좌수와 같거나 커야 하며, 최소{' '}
+                    {fundMinUnits}좌 이상이어야 합니다
                   </p>
                 </div>
               </>

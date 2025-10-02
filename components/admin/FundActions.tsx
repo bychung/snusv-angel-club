@@ -78,6 +78,7 @@ export function CreateFundDialog() {
   const [newFundName, setNewFundName] = useState('');
   const [newFundAbbreviation, setNewFundAbbreviation] = useState('');
   const [newFundParValue, setNewFundParValue] = useState<number>(1000000);
+  const [newFundMinUnits, setNewFundMinUnits] = useState<number>(1);
   const [isCreating, setIsCreating] = useState(false);
 
   // 숫자를 한국어 형식으로 포맷팅
@@ -106,6 +107,12 @@ export function CreateFundDialog() {
       return;
     }
 
+    // 최소 출자좌수 검증
+    if (newFundMinUnits < 1) {
+      alert('최소 출자좌수는 1좌 이상이어야 합니다.');
+      return;
+    }
+
     setIsCreating(true);
     try {
       // brandClient를 사용해서 브랜드 자동 처리
@@ -117,6 +124,7 @@ export function CreateFundDialog() {
             name: newFundName.trim(),
             abbreviation: newFundAbbreviation.trim() || null,
             par_value: newFundParValue,
+            min_units: newFundMinUnits,
           },
         ])
         .select();
@@ -131,6 +139,7 @@ export function CreateFundDialog() {
       setNewFundName('');
       setNewFundAbbreviation('');
       setNewFundParValue(1000000);
+      setNewFundMinUnits(1);
     } catch (error) {
       console.error('펀드 생성 실패:', error);
     } finally {
@@ -146,7 +155,7 @@ export function CreateFundDialog() {
           펀드 추가
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle>새 펀드 추가</DialogTitle>
           <DialogDescription>
@@ -206,13 +215,51 @@ export function CreateFundDialog() {
               </div>
             </div>
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="fundMinUnits" className="text-right">
+              최소 출자좌수 *
+            </Label>
+            <div className="col-span-3">
+              <Input
+                id="fundMinUnits"
+                type="number"
+                value={newFundMinUnits}
+                onChange={e => {
+                  const value = parseInt(e.target.value) || 1;
+                  setNewFundMinUnits(value);
+                }}
+                className={newFundMinUnits < 1 ? 'border-red-500' : ''}
+                placeholder="1"
+                min={1}
+                onKeyPress={e => {
+                  if (e.key === 'Enter') {
+                    handleCreateFund();
+                  }
+                }}
+              />
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-xs text-gray-500">
+                  출자 설문 시 최소 {newFundMinUnits}좌 이상 입력하도록
+                  제한됩니다
+                </p>
+                {newFundMinUnits < 1 && (
+                  <p className="text-xs text-red-500">
+                    최소 1좌 이상 입력해주세요
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button
             type="submit"
             onClick={handleCreateFund}
             disabled={
-              isCreating || !newFundName.trim() || newFundParValue < 1000000
+              isCreating ||
+              !newFundName.trim() ||
+              newFundParValue < 1000000 ||
+              newFundMinUnits < 1
             }
           >
             {isCreating ? '생성 중...' : '펀드 생성'}

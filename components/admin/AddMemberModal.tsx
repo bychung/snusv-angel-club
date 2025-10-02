@@ -84,13 +84,36 @@ export default function AddMemberModal({
     null
   );
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
+  const [fundMinUnits, setFundMinUnits] = useState<number>(1); // 펀드의 최소 출자좌수
 
-  // 기존 프로필 불러오기
+  // 기존 프로필 불러오기 및 펀드 정보 불러오기
   useEffect(() => {
     if (isOpen) {
       loadExistingProfiles();
+      loadFundInfo();
     }
-  }, [isOpen]);
+  }, [isOpen, fundId]);
+
+  const loadFundInfo = async () => {
+    try {
+      const brandClient = createBrandClient();
+      const { data, error } = await brandClient.funds
+        .select('min_units')
+        .eq('id', fundId)
+        .single();
+
+      if (error) {
+        console.error('펀드 정보 로딩 오류:', error);
+        return;
+      }
+
+      if (data) {
+        setFundMinUnits(data.min_units || 1);
+      }
+    } catch (error) {
+      console.error('펀드 정보 로딩 중 오류 발생:', error);
+    }
+  };
 
   const loadExistingProfiles = async () => {
     setIsLoadingProfiles(true);
@@ -201,7 +224,8 @@ export default function AddMemberModal({
     if (!email.trim()) return '이메일을 입력해주세요.';
     if (!address.trim()) return '주소를 입력해주세요.';
     if (investment_units <= 0) return '출자좌수는 1좌 이상이어야 합니다.';
-    if (total_units <= 0) return '약정출자좌수는 1좌 이상이어야 합니다.';
+    if (total_units < fundMinUnits)
+      return `약정출자좌수는 최소 ${fundMinUnits}좌 이상이어야 합니다.`;
     if (total_units < investment_units)
       return '약정출자좌수는 출자좌수보다 크거나 같아야 합니다.';
 
@@ -568,16 +592,17 @@ export default function AddMemberModal({
               <Input
                 id="total_units"
                 type="number"
-                min="1"
+                min={fundMinUnits}
                 value={formData.total_units}
                 onChange={e =>
                   handleChange('total_units', parseInt(e.target.value) || 0)
                 }
-                placeholder="1"
+                placeholder={fundMinUnits.toString()}
                 disabled={isSubmitting}
               />
               <p className="text-xs text-gray-500">
-                약정출자좌수는 출자좌수와 같거나 커야 합니다
+                약정출자좌수는 출자좌수와 같거나 커야 하며, 최소 {fundMinUnits}
+                좌 이상이어야 합니다
               </p>
             </div>
           </div>

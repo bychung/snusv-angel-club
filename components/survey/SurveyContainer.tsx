@@ -155,6 +155,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   // 펀드 상태 확인 (만료된 설문조사인지 체크)
   const [fundStatus, setFundStatus] = useState<string | null>(null);
   const [fundParValue, setFundParValue] = useState<number>(1000000); // 기본값
+  const [fundMinUnits, setFundMinUnits] = useState<number>(1); // 기본값
   const [isFundSurveyExpired, setIsFundSurveyExpired] = useState(false);
 
   // 펀드제안서 존재 여부 확인
@@ -165,7 +166,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     try {
       const brandClient = createBrandClient();
       const { data: fund, error } = await brandClient.funds
-        .select('name, status, par_value')
+        .select('name, status, par_value, min_units')
         .eq('id', fundIdToFetch)
         .single();
 
@@ -175,6 +176,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         if (error.code === 'PGRST116') {
           store.setFundId(fundIdToFetch, '알 수 없는 펀드');
           setFundParValue(1000000); // 기본값 설정
+          setFundMinUnits(1); // 기본값 설정
           setIsFundSurveyExpired(true); // 존재하지 않는 펀드도 만료로 처리
         }
         return;
@@ -184,6 +186,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         store.setFundId(fundIdToFetch, fund.name);
         setFundStatus(fund.status);
         setFundParValue(fund.par_value || 1000000); // par_value 설정
+        setFundMinUnits(fund.min_units || 1); // min_units 설정
 
         // fund status가 ready 또는 processing이 아닌 경우 만료된 것으로 처리
         const isExpired =
@@ -195,6 +198,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       // 오류가 발생해도 기본값으로 진행
       store.setFundId(fundIdToFetch, '알 수 없는 펀드');
       setFundParValue(1000000); // 기본값 설정
+      setFundMinUnits(1); // 기본값 설정
       setIsFundSurveyExpired(true); // 오류 발생 시도 만료로 처리
     }
   };
@@ -340,8 +344,11 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
   };
 
   const validateInvestmentUnits = () => {
-    if (!surveyData?.investmentUnits || surveyData.investmentUnits < 1) {
-      return '최소 1좌 이상 입력해주세요';
+    if (
+      !surveyData?.investmentUnits ||
+      surveyData.investmentUnits < fundMinUnits
+    ) {
+      return `최소 ${fundMinUnits}좌 이상 입력해주세요`;
     }
     return null;
   };
@@ -655,6 +662,11 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 출자금액 1백만원당 1좌입니다. 만약 3천만원을 출자하실
                 계획이라면, 30(좌)을 입력해 주시면 됩니다.
               </p>
+              {fundMinUnits > 1 && (
+                <p className="mt-2 text-orange-600 font-medium">
+                  ※ 이 펀드는 최소 {fundMinUnits}좌 이상 출자해야 합니다.
+                </p>
+              )}
             </div>
             <div className="space-y-6">
               <NumberInput
@@ -664,7 +676,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                   store.updateField(activeFundId, 'investmentUnits', value)
                 }
                 placeholder="30"
-                min={1}
+                min={fundMinUnits}
                 required
               />
               <div className="text-sm text-gray-600">

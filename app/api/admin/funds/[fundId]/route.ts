@@ -48,6 +48,7 @@ export async function PUT(
       registered_at,
       dissolved_at,
       par_value,
+      min_units,
       display_locations,
     } = requestBody;
 
@@ -111,6 +112,14 @@ export async function PUT(
       );
     }
 
+    // min_units 검증
+    if (min_units !== undefined && min_units < 1) {
+      return Response.json(
+        { error: '최소 출자좌수는 1좌 이상이어야 합니다' },
+        { status: 400 }
+      );
+    }
+
     // 펀드 정보 업데이트 (수정된 데이터 사용)
     const updatedFund = await updateFundDetails(fundId, {
       name,
@@ -125,6 +134,7 @@ export async function PUT(
       registered_at: requestBody.registered_at,
       dissolved_at: requestBody.dissolved_at,
       par_value,
+      min_units,
       display_locations,
     });
 
