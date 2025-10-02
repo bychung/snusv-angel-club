@@ -12,6 +12,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
+import { createBrandClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import type { Profile } from '@/types/database';
 import { User } from 'lucide-react';
@@ -86,8 +87,67 @@ export default function ProfileEditModal({
   };
 
   const handleSave = async () => {
+    if (!profile) return;
+
     try {
+      // 중요 필드 변경 내역 체크 (role, email, phone, name)
+      const importantFieldChanges: Array<{
+        field_name: 'role' | 'email' | 'phone' | 'name';
+        old_value: string;
+        new_value: string;
+      }> = [];
+
+      // role은 일반 사용자가 수정할 수 없지만, 혹시 모를 경우를 대비
+      // (실제로는 UI에 노출되지 않음)
+
+      if (editData.email && editData.email !== profile.email) {
+        importantFieldChanges.push({
+          field_name: 'email',
+          old_value: profile.email,
+          new_value: editData.email,
+        });
+      }
+
+      if (editData.phone && editData.phone !== profile.phone) {
+        importantFieldChanges.push({
+          field_name: 'phone',
+          old_value: profile.phone,
+          new_value: editData.phone,
+        });
+      }
+
+      if (editData.name && editData.name !== profile.name) {
+        importantFieldChanges.push({
+          field_name: 'name',
+          old_value: profile.name,
+          new_value: editData.name,
+        });
+      }
+
+      // 프로필 업데이트
       await updateProfile(editData);
+
+      // 중요 필드 변경 이력 저장
+      if (importantFieldChanges.length > 0) {
+        const brandClient = createBrandClient();
+
+        for (const change of importantFieldChanges) {
+          const { error: changeHistoryError } =
+            await brandClient.profileChanges.insert({
+              profile_id: profile.id,
+              changed_by: profile.id, // 본인이 수정
+              field_name: change.field_name,
+              old_value: change.old_value,
+              new_value: change.new_value,
+            });
+
+          if (changeHistoryError) {
+            console.error('프로필 변경 이력 저장 실패:', changeHistoryError);
+            // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+          }
+        }
+      }
+
       onClose();
     } catch (error) {
       console.error('프로필 업데이트 실패:', error);

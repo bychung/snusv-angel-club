@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -6,16 +7,25 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import type { ActivityItem } from '@/lib/admin/dashboard';
-import { Activity, Clock, Edit, UserPlus } from 'lucide-react';
+import {
+  Activity,
+  Clock,
+  DollarSign,
+  Edit,
+  Trash2,
+  UserPlus,
+} from 'lucide-react';
 
 interface RecentActivityProps {
   activities: ActivityItem[];
   isLoading?: boolean;
+  onDeleteClick?: (activity: ActivityItem) => void;
 }
 
 export default function RecentActivity({
   activities,
   isLoading = false,
+  onDeleteClick,
 }: RecentActivityProps) {
   const getActivityIcon = (type: ActivityItem['type']) => {
     switch (type) {
@@ -25,6 +35,8 @@ export default function RecentActivity({
         return <Edit className="h-4 w-4 text-blue-600" />;
       case 'investment_update':
         return <Activity className="h-4 w-4 text-purple-600" />;
+      case 'fund_application':
+        return <DollarSign className="h-4 w-4 text-yellow-600" />;
     }
   };
 
@@ -93,7 +105,7 @@ export default function RecentActivity({
             {activities.map(activity => (
               <div
                 key={activity.id}
-                className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50"
+                className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 group"
               >
                 <div className="flex-shrink-0 mt-1">
                   {getActivityIcon(activity.type)}
@@ -121,6 +133,18 @@ export default function RecentActivity({
                     </p>
                   )}
                 </div>
+                {onDeleteClick && (
+                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeleteClick(activity)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

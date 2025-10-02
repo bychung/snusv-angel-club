@@ -84,14 +84,42 @@ export default function FundSection() {
     try {
       const brandClient = createBrandClient();
 
-      const { error } = await brandClient.fundMembers
-        .update({
-          total_units: editUnits,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', editingMembershipId);
+      // 현재 펀드 정보 찾기
+      const currentFund = funds.find(
+        f => f.membership.id === editingMembershipId
+      );
+      if (!currentFund) return;
 
-      if (error) throw error;
+      const oldTotalUnits = currentFund.membership.total_units;
+
+      // 변경이 있는 경우에만 업데이트 및 이력 저장
+      if (editUnits !== oldTotalUnits) {
+        // 1. fund_members 업데이트
+        const { error } = await brandClient.fundMembers
+          .update({
+            total_units: editUnits,
+            updated_by: profile.id, // 본인이 수정
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingMembershipId);
+
+        if (error) throw error;
+
+        // 2. 변경 이력 저장
+        const { error: changeHistoryError } =
+          await brandClient.fundMemberChanges.insert({
+            fund_member_id: editingMembershipId,
+            changed_by: profile.id, // 본인이 수정
+            field_name: 'total_units',
+            old_value: oldTotalUnits.toString(),
+            new_value: editUnits.toString(),
+          });
+
+        if (changeHistoryError) {
+          console.error('변경 이력 저장 실패:', changeHistoryError);
+          // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+        }
+      }
 
       // 정보 다시 가져오기
       await fetchFunds();

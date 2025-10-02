@@ -54,6 +54,28 @@ export interface FundMember {
   updated_at: string;
 }
 
+export interface FundMemberChange {
+  id: string;
+  fund_member_id: string;
+  changed_by?: string | null;
+  field_name: 'investment_units' | 'total_units' | 'both' | 'created';
+  old_value: string;
+  new_value: string;
+  changed_at: string;
+  brand: string;
+}
+
+export interface ProfileChange {
+  id: string;
+  profile_id: string;
+  changed_by?: string | null;
+  field_name: 'role' | 'email' | 'phone' | 'name' | 'user_id';
+  old_value: string;
+  new_value: string;
+  changed_at: string;
+  brand: string;
+}
+
 import { Company } from './companies';
 import { CompanyDocument } from './company-documents';
 import { DocumentCategory } from './documents';
@@ -168,6 +190,16 @@ export interface Database {
         > & {
           updated_at?: string;
         };
+      };
+      fund_member_changes: {
+        Row: FundMemberChange;
+        Insert: Omit<FundMemberChange, 'id' | 'changed_at'>;
+        Update: Partial<Omit<FundMemberChange, 'id' | 'changed_at'>>;
+      };
+      profile_changes: {
+        Row: ProfileChange;
+        Insert: Omit<ProfileChange, 'id' | 'changed_at'>;
+        Update: Partial<Omit<ProfileChange, 'id' | 'changed_at'>>;
       };
     };
   };

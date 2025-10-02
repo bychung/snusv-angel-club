@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/select';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createBrandClient } from '@/lib/supabase/client';
+import { useAuthStore } from '@/store/authStore';
 import { Building, User, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -64,6 +65,7 @@ export default function AddMemberModal({
   onClose,
   onAdd,
 }: AddMemberModalProps) {
+  const { profile } = useAuthStore(); // 현재 로그인한 관리자의 프로필 정보
   const [formData, setFormData] = useState<MemberFormData>({
     name: '',
     phone: '',
@@ -350,14 +352,18 @@ export default function AddMemberModal({
       }
 
       // 2. fund_members에 추가
-      const { error: fundMemberError } = await brandClient.fundMembers.insert([
-        {
-          fund_id: fundId,
-          profile_id: profileId,
-          investment_units,
-          total_units,
-        },
-      ]);
+      const { data: newFundMember, error: fundMemberError } =
+        await brandClient.fundMembers
+          .insert([
+            {
+              fund_id: fundId,
+              profile_id: profileId,
+              investment_units,
+              total_units,
+            },
+          ])
+          .select('id, created_at')
+          .single();
 
       if (fundMemberError) {
         console.error('펀드 멤버 추가 오류:', fundMemberError);
@@ -366,6 +372,23 @@ export default function AddMemberModal({
           throw new Error('이미 이 펀드에 등록된 조합원입니다.');
         }
         throw new Error('조합원 등록 중 오류가 발생했습니다.');
+      }
+
+      // 3. 신규 출자 신청 이력 저장
+      if (newFundMember) {
+        const { error: changeHistoryError } =
+          await brandClient.fundMemberChanges.insert({
+            fund_member_id: newFundMember.id,
+            changed_by: profile?.id || null, // 관리자 ID
+            field_name: 'created',
+            old_value: '',
+            new_value: newFundMember.created_at,
+          });
+
+        if (changeHistoryError) {
+          console.error('출자 신청 이력 저장 실패:', changeHistoryError);
+          // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+        }
       }
 
       // 성공: 폼 리셋 및 콜백 호출

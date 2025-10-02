@@ -139,22 +139,94 @@ export default function EditMemberModal({
     try {
       const brandClient = createBrandClient();
 
-      // 프로필 정보 업데이트 (role 포함, 브랜드별 자동 적용)
-      const { error: profileError } = await brandClient.profiles
-        .update({
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          address: formData.address,
-          birth_date: formData.birth_date || null,
-          business_number: formData.business_number || null,
-          role: formData.role,
-          email_notifications: formData.email_notifications,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', member.id);
+      // 프로필 정보가 실제로 변경되었는지 확인
+      const profileChanged =
+        formData.name !== member.name ||
+        formData.phone !== member.phone ||
+        formData.email !== member.email ||
+        formData.address !== member.address ||
+        formData.birth_date !== (member.birth_date || '') ||
+        formData.business_number !== (member.business_number || '') ||
+        formData.role !== member.role ||
+        JSON.stringify(formData.email_notifications) !==
+          JSON.stringify(member.email_notifications || []);
 
-      if (profileError) throw profileError;
+      // 프로필 정보가 변경된 경우에만 업데이트
+      if (profileChanged) {
+        const { error: profileError } = await brandClient.profiles
+          .update({
+            name: formData.name,
+            phone: formData.phone,
+            email: formData.email,
+            address: formData.address,
+            birth_date: formData.birth_date || null,
+            business_number: formData.business_number || null,
+            role: formData.role,
+            email_notifications: formData.email_notifications,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', member.id);
+
+        if (profileError) throw profileError;
+
+        // 중요 필드 변경 이력 저장 (role, email, phone, name)
+        const importantFieldChanges: Array<{
+          field_name: 'role' | 'email' | 'phone' | 'name';
+          old_value: string;
+          new_value: string;
+        }> = [];
+
+        if (formData.role !== member.role) {
+          importantFieldChanges.push({
+            field_name: 'role',
+            old_value: member.role,
+            new_value: formData.role,
+          });
+        }
+
+        if (formData.email !== member.email) {
+          importantFieldChanges.push({
+            field_name: 'email',
+            old_value: member.email,
+            new_value: formData.email,
+          });
+        }
+
+        if (formData.phone !== member.phone) {
+          importantFieldChanges.push({
+            field_name: 'phone',
+            old_value: member.phone,
+            new_value: formData.phone,
+          });
+        }
+
+        if (formData.name !== member.name) {
+          importantFieldChanges.push({
+            field_name: 'name',
+            old_value: member.name,
+            new_value: formData.name,
+          });
+        }
+
+        // 변경된 중요 필드가 있으면 이력 저장
+        if (importantFieldChanges.length > 0) {
+          for (const change of importantFieldChanges) {
+            const { error: changeHistoryError } =
+              await brandClient.profileChanges.insert({
+                profile_id: member.id,
+                changed_by: profile?.id || null, // 관리자 ID
+                field_name: change.field_name,
+                old_value: change.old_value,
+                new_value: change.new_value,
+              });
+
+            if (changeHistoryError) {
+              console.error('프로필 변경 이력 저장 실패:', changeHistoryError);
+              // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+            }
+          }
+        }
+      }
 
       // 출자 정보 업데이트 (fund_members 테이블) - showInvestmentInfo가 true일 때만
       if (
@@ -162,16 +234,65 @@ export default function EditMemberModal({
         member.fund_members &&
         member.fund_members.length > 0
       ) {
-        const { error: fundMemberError } = await brandClient.fundMembers
-          .update({
-            investment_units: formData.investment_units,
-            total_units: formData.total_units,
-            updated_by: profile?.id || null, // 수정자 프로필 ID 기록
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', member.fund_members[0].id);
+        const currentInvestmentUnits = member.fund_members[0].investment_units;
+        const currentTotalUnits = member.fund_members[0].total_units;
+        const fundMemberId = member.fund_members[0].id;
 
-        if (fundMemberError) throw fundMemberError;
+        const investmentUnitsChanged =
+          formData.investment_units !== currentInvestmentUnits;
+        const totalUnitsChanged = formData.total_units !== currentTotalUnits;
+
+        // 출자 정보가 실제로 변경된 경우에만 업데이트
+        if (investmentUnitsChanged || totalUnitsChanged) {
+          // 1. fund_members 테이블 업데이트
+          const { error: fundMemberError } = await brandClient.fundMembers
+            .update({
+              investment_units: formData.investment_units,
+              total_units: formData.total_units,
+              updated_by: profile?.id || null, // 수정자 프로필 ID 기록
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', fundMemberId);
+
+          if (fundMemberError) throw fundMemberError;
+
+          // 2. 변경 이력 저장
+          let changeRecord: any = {
+            fund_member_id: fundMemberId,
+            changed_by: profile?.id || null,
+          };
+
+          if (investmentUnitsChanged && totalUnitsChanged) {
+            // 둘 다 변경
+            changeRecord.field_name = 'both';
+            changeRecord.old_value = JSON.stringify({
+              investment_units: currentInvestmentUnits,
+              total_units: currentTotalUnits,
+            });
+            changeRecord.new_value = JSON.stringify({
+              investment_units: formData.investment_units,
+              total_units: formData.total_units,
+            });
+          } else if (investmentUnitsChanged) {
+            // 출자좌수만 변경
+            changeRecord.field_name = 'investment_units';
+            changeRecord.old_value = currentInvestmentUnits.toString();
+            changeRecord.new_value = formData.investment_units.toString();
+          } else if (totalUnitsChanged) {
+            // 약정출자좌수만 변경
+            changeRecord.field_name = 'total_units';
+            changeRecord.old_value = currentTotalUnits.toString();
+            changeRecord.new_value = formData.total_units.toString();
+          }
+
+          const { error: changeHistoryError } =
+            await brandClient.fundMemberChanges.insert(changeRecord);
+
+          if (changeHistoryError) {
+            console.error('변경 이력 저장 실패:', changeHistoryError);
+            // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+          }
+        }
       }
 
       // 성공 시 콜백 호출

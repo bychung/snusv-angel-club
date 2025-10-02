@@ -1,5 +1,5 @@
 import AdminLayout from '@/components/admin/AdminLayout';
-import RecentActivity from '@/components/admin/RecentActivity';
+import RecentActivityClient from '@/components/admin/RecentActivityClient';
 import StatsCards from '@/components/admin/StatsCards';
 import { getDashboardStats, getRecentActivity } from '@/lib/admin/dashboard';
 
@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
         <StatsCards stats={stats} />
 
         {/* 최근 활동 */}
-        <RecentActivity activities={activities} />
+        <RecentActivityClient initialActivities={activities} />
       </div>
     </AdminLayout>
   );

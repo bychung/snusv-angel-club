@@ -112,6 +112,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 6. 회원가입 이력 저장 (user_id 연결)
+    const { error: changeHistoryError } =
+      await brandClient.profileChanges.insert({
+        profile_id: profile.id,
+        changed_by: profile.id, // 본인이 회원가입
+        field_name: 'user_id',
+        old_value: 'null',
+        new_value: currentUser.id,
+      });
+
+    if (changeHistoryError) {
+      console.error('회원가입 이력 저장 실패:', changeHistoryError);
+      // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+    }
+
     console.log(
       `[link-user-to-profile] 성공: user ${currentUser.id} → profile ${profile.id}`
     );

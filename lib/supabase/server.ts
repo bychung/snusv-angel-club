@@ -58,6 +58,12 @@ export async function createBrandServerClient() {
     profiles: createTableOperations(supabase, 'profiles', brand),
     funds: createTableOperations(supabase, 'funds', brand),
     fundMembers: createTableOperations(supabase, 'fund_members', brand),
+    fundMemberChanges: createTableOperations(
+      supabase,
+      'fund_member_changes',
+      brand
+    ),
+    profileChanges: createTableOperations(supabase, 'profile_changes', brand),
     documents: createTableOperations(supabase, 'documents', brand),
     companies: createTableOperations(supabase, 'companies', brand),
     investments: createTableOperations(supabase, 'investments', brand),

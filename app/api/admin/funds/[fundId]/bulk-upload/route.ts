@@ -1,5 +1,5 @@
 // addBrandToData는 brandClient 내부에서 처리되므로 불필요
-import { isAdminServer } from '@/lib/auth/admin-server';
+import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { ParsedMemberData } from '@/lib/excel-utils';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -28,32 +28,20 @@ export async function POST(
 ) {
   try {
     const { fundId } = await context.params;
+
+    // 관리자 권한 검증 및 프로필 조회
+    let adminProfile;
+    try {
+      const authResult = await validateAdminAuth(request);
+      adminProfile = authResult.profile;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : '인증에 실패했습니다.';
+      const status = errorMessage === '인증이 필요합니다' ? 401 : 403;
+      return NextResponse.json({ error: errorMessage }, { status });
+    }
+
     const brandClient = await createBrandServerClient();
-
-    // 인증 확인 (관리자만)
-    const {
-      data: { user },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
-    // 관리자 권한 확인
-    const adminAccess = await isAdminServer(user);
-    if (!adminAccess) {
-      console.log('Admin access denied for user:', user.email);
-      return NextResponse.json(
-        { error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
-      );
-    }
-
-    console.log('Admin access granted for user:', user.email);
 
     const body: BulkUploadRequestBody = await request.json();
     const { members } = body;
@@ -85,7 +73,12 @@ export async function POST(
 
     if (transactionError) {
       // 트랜잭션이 실패한 경우 개별 처리로 폴백
-      return await processMembersIndividually(brandClient, fundId, members);
+      return await processMembersIndividually(
+        brandClient,
+        fundId,
+        members,
+        adminProfile?.id || null
+      );
     }
 
     result.success = members.length;
@@ -104,7 +97,8 @@ export async function POST(
 async function processMembersIndividually(
   brandClient: any,
   fundId: string,
-  members: ParsedMemberData[]
+  members: ParsedMemberData[],
+  adminProfileId: string | null
 ): Promise<NextResponse> {
   const result: BulkUploadResult = {
     success: 0,
@@ -178,12 +172,16 @@ async function processMembersIndividually(
       }
 
       // 3. 펀드 멤버 추가
-      const { error: fundMemberError } = await brandClient.fundMembers.insert({
-        fund_id: fundId,
-        profile_id: profileId,
-        investment_units: member.investment_units,
-        total_units: member.total_units || member.investment_units,
-      });
+      const { data: newFundMember, error: fundMemberError } =
+        await brandClient.fundMembers
+          .insert({
+            fund_id: fundId,
+            profile_id: profileId,
+            investment_units: member.investment_units,
+            total_units: member.total_units || member.investment_units,
+          })
+          .select('id, created_at')
+          .single();
 
       if (fundMemberError) {
         result.errors.push({
@@ -192,6 +190,26 @@ async function processMembersIndividually(
           error: '펀드 멤버 등록 실패: ' + fundMemberError.message,
         });
         continue;
+      }
+
+      // 4. 신규 출자 신청 이력 저장
+      if (newFundMember) {
+        const { error: changeHistoryError } =
+          await brandClient.fundMemberChanges.insert({
+            fund_member_id: newFundMember.id,
+            changed_by: adminProfileId, // 관리자 ID
+            field_name: 'created',
+            old_value: '',
+            new_value: newFundMember.created_at,
+          });
+
+        if (changeHistoryError) {
+          console.error(
+            `[bulk-upload] 출자 신청 이력 저장 실패 (index ${i + 1}):`,
+            changeHistoryError
+          );
+          // 이력 저장 실패는 치명적이지 않으므로 계속 진행
+        }
       }
 
       result.success++;
