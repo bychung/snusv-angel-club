@@ -1,3 +1,4 @@
+import { validateAdminAuth } from '@/lib/auth/admin-server';
 import {
   createBrandServerClient,
   createStorageClient,
@@ -12,30 +13,8 @@ export async function DELETE(
     const brandClient = await createBrandServerClient();
     const storageClient = createStorageClient();
 
-    // 현재 사용자 인증 및 관리자 권한 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
-    }
-
     // 관리자 권한 확인
-    const { data: profile, error: profileError } = await brandClient.profiles
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (profileError || !profile || profile.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: '관리자 권한이 필요합니다.' },
-        { status: 403 }
-      );
-    }
+    await validateAdminAuth(request);
 
     const { id } = await params;
 
@@ -88,6 +67,21 @@ export async function DELETE(
       message: '스타트업 IR 문의가 성공적으로 삭제되었습니다.',
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === '인증이 필요합니다') {
+        return NextResponse.json(
+          { error: '인증이 필요합니다.' },
+          { status: 401 }
+        );
+      }
+      if (error.message === '관리자 권한이 필요합니다') {
+        return NextResponse.json(
+          { error: '관리자 권한이 필요합니다.' },
+          { status: 403 }
+        );
+      }
+    }
+
     console.error('스타트업 IR 문의 삭제 처리 오류:', error);
     return NextResponse.json(
       { error: '서버 오류가 발생했습니다.' },

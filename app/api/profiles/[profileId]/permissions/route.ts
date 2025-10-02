@@ -1,3 +1,4 @@
+import { validateUserAccess } from '@/lib/auth/permissions';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,17 +19,16 @@ export async function GET(
     const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
-    const {
-      data: { user: currentUser },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
+    const userResult = await validateUserAccess(
+      request,
+      '[profile-permissions-get]'
+    );
 
-    if (authError || !currentUser) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
+    if (userResult instanceof Response) {
+      return userResult;
     }
+
+    const { user: currentUser } = userResult;
 
     // 현재 사용자가 해당 프로필의 owner인지 확인 (브랜드별 자동 적용)
     const { data: ownerProfile, error: ownerError } = await brandClient.profiles
@@ -134,17 +134,16 @@ export async function PUT(
     const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
-    const {
-      data: { user: currentUser },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
+    const userResult = await validateUserAccess(
+      request,
+      '[profile-permissions-put]'
+    );
 
-    if (authError || !currentUser) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
+    if (userResult instanceof Response) {
+      return userResult;
     }
+
+    const { user: currentUser } = userResult;
 
     // 현재 사용자가 해당 프로필의 owner인지 확인 (브랜드별 자동 적용)
     const { data: ownerProfile, error: ownerError } = await brandClient.profiles

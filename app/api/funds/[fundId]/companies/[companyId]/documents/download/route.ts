@@ -1,3 +1,4 @@
+import { requireFundAccess, validateUserAccess } from '@/lib/auth/permissions';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { CompanyDocumentCategory } from '@/types/company-documents';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
@@ -39,41 +40,29 @@ export async function GET(
   }
 
   try {
-    // 사용자 인증 확인
     const brandClient = await createBrandServerClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
 
-    if (authError || !user) {
-      return Response.json({ error: '인증이 필요합니다' }, { status: 401 });
+    // 사용자 인증 확인
+    const userResult = await validateUserAccess(
+      request,
+      '[company-document-download]'
+    );
+
+    if (userResult instanceof Response) {
+      return userResult;
     }
 
-    // 사용자 프로필 조회 (브랜드별)
-    const { data: profile, error: profileError } = await brandClient.profiles
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    const { user } = userResult;
 
-    if (profileError || !profile) {
-      return Response.json(
-        { error: '사용자 프로필을 찾을 수 없습니다' },
-        { status: 404 }
-      );
-    }
+    // 펀드 접근 권한 확인
+    const accessResult = await requireFundAccess(
+      user,
+      fundId,
+      '[company-document-download]'
+    );
 
-    // 해당 펀드의 조합원인지 확인 (브랜드별)
-    const { count: memberCount } = await brandClient.fundMembers
-      .select('*', { count: 'exact', head: true })
-      .eq('fund_id', fundId)
-      .eq('profile_id', profile.id);
-
-    if (!memberCount || memberCount === 0) {
-      return Response.json(
-        { error: '해당 펀드의 조합원이 아닙니다' },
-        { status: 403 }
-      );
+    if (accessResult instanceof Response) {
+      return accessResult;
     }
 
     // 해당 펀드가 해당 회사에 투자했는지 확인 (브랜드별)

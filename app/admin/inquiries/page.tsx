@@ -85,9 +85,9 @@ export default function InquiriesPage() {
     try {
       const [startupResponse, angelResponse, signupResponse] =
         await Promise.all([
-          fetch('/api/inquiries/startup'),
-          fetch('/api/inquiries/angel'),
-          fetch('/api/inquiries/signup'),
+          fetch('/api/admin/inquiries/startup'),
+          fetch('/api/admin/inquiries/angel'),
+          fetch('/api/admin/inquiries/signup'),
         ]);
 
       if (startupResponse.ok) {
@@ -131,7 +131,7 @@ export default function InquiriesPage() {
   ) => {
     try {
       const response = await fetch(
-        `/api/inquiries/startup/${inquiryId}/download`
+        `/api/admin/inquiries/startup/${inquiryId}/download`
       );
 
       if (!response.ok) {
@@ -161,7 +161,7 @@ export default function InquiriesPage() {
     setIsDeleting(true);
     try {
       const response = await fetch(
-        `/api/inquiries/${deleteTarget.type}/${deleteTarget.id}`,
+        `/api/admin/inquiries/${deleteTarget.type}/${deleteTarget.id}`,
         {
           method: 'DELETE',
         }

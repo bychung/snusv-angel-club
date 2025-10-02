@@ -1,3 +1,4 @@
+import { validateUserAccess } from '@/lib/auth/permissions';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -15,17 +16,16 @@ export async function POST(request: NextRequest) {
     const brandClient = await createBrandServerClient();
 
     // 현재 사용자 인증 확인
-    const {
-      data: { user: currentUser },
-      error: authError,
-    } = await brandClient.raw.auth.getUser();
+    const userResult = await validateUserAccess(
+      request,
+      '[profile-search-user]'
+    );
 
-    if (authError || !currentUser) {
-      return NextResponse.json(
-        { error: '인증이 필요합니다.' },
-        { status: 401 }
-      );
+    if (userResult instanceof Response) {
+      return userResult;
     }
+
+    const { user: currentUser } = userResult;
 
     // 현재 사용자의 프로필 정보 가져오기 (브랜드별 자동 적용)
     const { data: currentProfile, error: currentProfileError } =
