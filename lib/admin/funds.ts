@@ -282,6 +282,7 @@ export async function updateFundDetails(
     par_value?: number;
     min_units?: number;
     display_locations?: ('dashboard' | 'homepage')[];
+    payment_schedule?: 'lump_sum' | 'capital_call';
   }
 ): Promise<Fund> {
   const brandClient = await createBrandServerClient();

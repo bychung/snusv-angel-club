@@ -25,8 +25,10 @@ interface FundDetailCardProps {
   fundId: string;
   fundName: string;
   investmentInfo: {
-    units: number;
-    amount: number;
+    totalUnits: number;
+    totalAmount: number;
+    currentUnits: number;
+    currentAmount: number;
   };
 }
 
@@ -257,31 +259,74 @@ export default function FundDetailCard({
             <div className="bg-blue-50 rounded-lg p-4">
               <h4 className="font-medium text-blue-900 mb-2">내 출자 정보</h4>
               <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">출자 좌수</span>
-                  <span className="font-mono font-medium">
-                    {investmentInfo.units.toLocaleString()}좌
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-blue-700">출자 금액</span>
-                  <span className="font-mono font-medium">
-                    {investmentInfo.amount.toLocaleString()}원
-                  </span>
-                </div>
                 {fund.status !== 'ready' && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-blue-700">
+                      {fund.status === 'processing'
+                        ? '예상 결성 금액'
+                        : '전체 결성 금액'}
+                    </span>
+                    <span className="font-mono font-medium">
+                      {fund.totalInvestment.toLocaleString()}원
+                    </span>
+                  </div>
+                )}
+
+                {fund.status !== 'ready' && fund.status !== 'processing' ? (
+                  // 결성 완료 또는 청산 상태
+                  fund.payment_schedule === 'lump_sum' ? (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-700">출자좌수</span>
+                        <span className="font-mono font-medium">
+                          {investmentInfo.totalUnits.toLocaleString()}좌
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-700">출자금액</span>
+                        <span className="font-mono font-medium">
+                          {investmentInfo.totalAmount.toLocaleString()}원
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-700">출자좌수</span>
+                        <span className="font-mono font-medium">
+                          {investmentInfo.currentUnits.toLocaleString()}좌 /{' '}
+                          {investmentInfo.totalUnits.toLocaleString()}좌
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-blue-700">출자금액</span>
+                        <span className="font-mono font-medium">
+                          {investmentInfo.currentAmount.toLocaleString()}원 /{' '}
+                          {investmentInfo.totalAmount.toLocaleString()}원
+                        </span>
+                      </div>
+                    </>
+                  )
+                ) : (
+                  // ready 또는 processing 상태 (약정 단계)
                   <>
-                    {' '}
                     <div className="flex justify-between text-sm">
-                      <span className="text-blue-700">
-                        {fund.status === 'processing'
-                          ? '예상 결성 금액'
-                          : '전체 결성 금액'}
-                      </span>
+                      <span className="text-blue-700">약정 출자좌수</span>
                       <span className="font-mono font-medium">
-                        {fund.totalInvestment.toLocaleString()}원
+                        {investmentInfo.totalUnits.toLocaleString()}좌
                       </span>
                     </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-700">약정 출자금액</span>
+                      <span className="font-mono font-medium">
+                        {investmentInfo.totalAmount.toLocaleString()}원
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {fund.status !== 'ready' && (
+                  <>
                     <div className="flex justify-between text-sm">
                       <span className="text-blue-700">
                         {fund.status === 'processing'
@@ -290,7 +335,7 @@ export default function FundDetailCard({
                       </span>
                       <span className="font-mono font-medium">
                         {(
-                          (investmentInfo.amount / fund.totalInvestment) *
+                          (investmentInfo.totalAmount / fund.totalInvestment) *
                           100
                         ).toFixed(2)}
                         %

@@ -183,32 +183,54 @@ export default function MemberTable({
                           {mode === 'fund_members'
                             ? // 펀드 조합원 모드: 출자금액 표시
                               member.fund_members &&
-                              member.fund_members.length > 0 && (
-                                <div>
-                                  <div className="text-sm font-medium text-blue-500">
-                                    {formatCurrency(
-                                      member.fund_members[0].investment_units,
-                                      member.fund_members[0].fund?.par_value ||
-                                        1000000
-                                    )}
-                                  </div>
-                                  <div className="text-sm font-medium text-blue-300">
-                                    {member.fund_members[0].total_units !==
-                                      member.fund_members[0]
-                                        .investment_units && (
-                                      <span>
-                                        {'(약정: '}
+                              member.fund_members.length > 0 &&
+                              (() => {
+                                const fundMember = member.fund_members[0];
+                                const paymentSchedule =
+                                  fundMember.fund?.payment_schedule;
+                                const isLumpSum =
+                                  paymentSchedule === 'lump_sum';
+
+                                return (
+                                  <div>
+                                    {isLumpSum ? (
+                                      // 일시납: 약정출자좌수만 표시
+                                      <div className="text-sm font-medium text-blue-500">
                                         {formatCurrency(
-                                          member.fund_members[0].total_units,
-                                          member.fund_members[0].fund
-                                            ?.par_value || 1000000
+                                          fundMember.total_units,
+                                          fundMember.fund?.par_value || 1000000
                                         )}
-                                        {')'}
-                                      </span>
+                                      </div>
+                                    ) : (
+                                      // 수시납: 출자좌수와 약정출자좌수 모두 표시
+                                      <>
+                                        <div className="text-sm font-medium text-blue-500">
+                                          {formatCurrency(
+                                            fundMember.investment_units,
+                                            fundMember.fund?.par_value ||
+                                              1000000
+                                          )}
+                                        </div>
+                                        {
+                                          /* {fundMember.total_units !==
+                                          fundMember.investment_units && ( */
+                                          <div className="text-sm font-medium text-blue-300">
+                                            <span>
+                                              {'(약정: '}
+                                              {formatCurrency(
+                                                fundMember.total_units,
+                                                fundMember.fund?.par_value ||
+                                                  1000000
+                                              )}
+                                              {')'}
+                                            </span>
+                                          </div>
+                                        }
+                                      </>
                                     )}
                                   </div>
-                                </div>
-                              )
+                                );
+                              })()
                             : // 사용자 관리 모드: 펀드 칩 표시
                               member.fund_members &&
                               member.fund_members.length > 0 && (
@@ -246,27 +268,38 @@ export default function MemberTable({
                         </div>
                         {mode === 'fund_members' &&
                           member.fund_members &&
-                          member.fund_members.length > 0 && (
-                            <div className="text-xs text-gray-500">
-                              <span>
-                                {formatNumber(
-                                  member.fund_members[0].investment_units
+                          member.fund_members.length > 0 &&
+                          (() => {
+                            const fundMember = member.fund_members[0];
+                            const paymentSchedule =
+                              fundMember.fund?.payment_schedule;
+                            const isLumpSum = paymentSchedule === 'lump_sum';
+
+                            return (
+                              <div className="text-xs text-gray-500">
+                                {isLumpSum ? (
+                                  // 일시납: 약정출자좌수만 표시
+                                  <span>
+                                    {formatNumber(fundMember.total_units)}좌
+                                  </span>
+                                ) : (
+                                  // 수시납: 출자좌수와 약정출자좌수 모두 표시
+                                  <>
+                                    <span>
+                                      {formatNumber(
+                                        fundMember.investment_units
+                                      )}
+                                      좌
+                                    </span>
+                                    <span>
+                                      {' '}
+                                      / {formatNumber(fundMember.total_units)}좌
+                                    </span>
+                                  </>
                                 )}
-                                좌
-                              </span>
-                              {member.fund_members[0].total_units !==
-                                member.fund_members[0].investment_units && (
-                                <span>
-                                  {' '}
-                                  /{' '}
-                                  {formatNumber(
-                                    member.fund_members[0].total_units
-                                  )}
-                                  좌
-                                </span>
-                              )}
-                            </div>
-                          )}
+                              </div>
+                            );
+                          })()}
                       </div>
                     </div>
 
@@ -285,24 +318,43 @@ export default function MemberTable({
                     </div>
                     {mode === 'fund_members' &&
                       member.fund_members &&
-                      member.fund_members.length > 0 && (
-                        <div className="flex gap-4 text-xs">
-                          <span>
-                            <span className="font-medium">출자좌수:</span>{' '}
-                            {formatNumber(
-                              member.fund_members[0].investment_units
-                            )}
-                            좌
-                          </span>
-                          <span>
-                            <span className="font-medium">출자금액:</span>{' '}
-                            {formatCurrency(
-                              member.fund_members[0].investment_units,
-                              member.fund_members[0].fund?.par_value || 1000000
-                            )}
-                          </span>
-                        </div>
-                      )}
+                      member.fund_members.length > 0 &&
+                      (() => {
+                        const fundMember = member.fund_members[0];
+                        const paymentSchedule =
+                          fundMember.fund?.payment_schedule;
+                        const isLumpSum = paymentSchedule === 'lump_sum';
+
+                        return (
+                          <div className="flex gap-4 text-xs">
+                            <span>
+                              <span className="font-medium">출자좌수:</span>{' '}
+                              {isLumpSum ? (
+                                // 일시납: 약정출자좌수만 표시
+                                <>{formatNumber(fundMember.total_units)}좌</>
+                              ) : (
+                                // 수시납: 출자좌수와 약정출자좌수 모두 표시
+                                <>
+                                  {formatNumber(fundMember.investment_units)}좌
+                                  / {formatNumber(fundMember.total_units)}좌
+                                </>
+                              )}
+                            </span>
+                            <span>
+                              <span className="font-medium">출자금액:</span>{' '}
+                              {isLumpSum
+                                ? formatCurrency(
+                                    fundMember.total_units,
+                                    fundMember.fund?.par_value || 1000000
+                                  )
+                                : formatCurrency(
+                                    fundMember.investment_units,
+                                    fundMember.fund?.par_value || 1000000
+                                  )}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     {mode === 'users' &&
                       member.fund_members &&
                       member.fund_members.length > 0 && (

@@ -59,6 +59,9 @@ export default function EditMemberModal({
     email_notifications: [] as EmailNotificationType[],
   });
   const [fundMinUnits, setFundMinUnits] = useState<number>(1); // 펀드의 최소 출자좌수
+  const [paymentSchedule, setPaymentSchedule] = useState<
+    'lump_sum' | 'capital_call'
+  >('lump_sum'); // 펀드의 출자방식
 
   useEffect(() => {
     if (member) {
@@ -91,7 +94,7 @@ export default function EditMemberModal({
     try {
       const brandClient = createBrandClient();
       const { data, error } = await brandClient.funds
-        .select('min_units')
+        .select('min_units, payment_schedule')
         .eq('id', fundId)
         .single();
 
@@ -102,6 +105,7 @@ export default function EditMemberModal({
 
       if (data) {
         setFundMinUnits(data.min_units || 1);
+        setPaymentSchedule(data.payment_schedule || 'lump_sum');
       }
     } catch (error) {
       console.error('펀드 정보 로딩 중 오류 발생:', error);
@@ -295,12 +299,13 @@ export default function EditMemberModal({
             {/* 출자 정보는 펀드 멤버 목록에서만 표시 */}
             {showInvestmentInfo && (
               <>
+                {/* 출자좌수 - 관리자가 실제 납입을 기록 */}
                 <div className="space-y-2">
-                  <Label htmlFor="investment_units">출자좌수 *</Label>
+                  <Label htmlFor="investment_units">출자좌수 (실제 납입)</Label>
                   <Input
                     id="investment_units"
                     type="number"
-                    min="1"
+                    min="0"
                     value={formData.investment_units}
                     onChange={e =>
                       setFormData({
@@ -308,7 +313,6 @@ export default function EditMemberModal({
                         investment_units: Number(e.target.value),
                       })
                     }
-                    required={showInvestmentInfo}
                   />
                   <p className="text-xs text-gray-500">
                     출자금액:{' '}
@@ -317,6 +321,8 @@ export default function EditMemberModal({
                       (member?.fund_members?.[0]?.fund?.par_value || 1000000)
                     ).toLocaleString()}
                     원
+                    <br />
+                    실제로 출자한 좌수를 입력하세요 (0 = 미납입)
                   </p>
                 </div>
 
@@ -327,12 +333,13 @@ export default function EditMemberModal({
                     type="number"
                     min={fundMinUnits}
                     value={formData.total_units}
-                    onChange={e =>
+                    onChange={e => {
+                      const value = Number(e.target.value);
                       setFormData({
                         ...formData,
-                        total_units: Number(e.target.value),
-                      })
-                    }
+                        total_units: value,
+                      });
+                    }}
                     required={showInvestmentInfo}
                   />
                   <p className="text-xs text-gray-500">

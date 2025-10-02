@@ -35,6 +35,7 @@ export interface Fund {
   dissolved_at?: string | null; // 만기일
   par_value: number; // 좌당가격
   min_units: number; // 최소 출자좌수
+  payment_schedule: 'lump_sum' | 'capital_call'; // 출자방식 (일시납/수시납)
   display_locations?: ('dashboard' | 'homepage')[] | null; // 링크 노출 위치
   brand: string;
   created_at: string;

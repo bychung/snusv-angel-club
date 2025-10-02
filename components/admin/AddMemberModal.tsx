@@ -72,7 +72,7 @@ export default function AddMemberModal({
     birth_date: '',
     business_number: '',
     address: '',
-    investment_units: 1,
+    investment_units: 0,
     total_units: 1,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +85,9 @@ export default function AddMemberModal({
   );
   const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
   const [fundMinUnits, setFundMinUnits] = useState<number>(1); // 펀드의 최소 출자좌수
+  const [paymentSchedule, setPaymentSchedule] = useState<
+    'lump_sum' | 'capital_call'
+  >('lump_sum'); // 펀드의 출자방식
 
   // 기존 프로필 불러오기 및 펀드 정보 불러오기
   useEffect(() => {
@@ -98,7 +101,7 @@ export default function AddMemberModal({
     try {
       const brandClient = createBrandClient();
       const { data, error } = await brandClient.funds
-        .select('min_units')
+        .select('min_units, payment_schedule')
         .eq('id', fundId)
         .single();
 
@@ -109,6 +112,7 @@ export default function AddMemberModal({
 
       if (data) {
         setFundMinUnits(data.min_units || 1);
+        setPaymentSchedule(data.payment_schedule || 'lump_sum');
       }
     } catch (error) {
       console.error('펀드 정보 로딩 중 오류 발생:', error);
@@ -223,7 +227,7 @@ export default function AddMemberModal({
     if (!phone.trim()) return '전화번호를 입력해주세요.';
     if (!email.trim()) return '이메일을 입력해주세요.';
     if (!address.trim()) return '주소를 입력해주세요.';
-    if (investment_units <= 0) return '출자좌수는 1좌 이상이어야 합니다.';
+    if (investment_units < 0) return '출자좌수는 0 이상이어야 합니다.';
     if (total_units < fundMinUnits)
       return `약정출자좌수는 최소 ${fundMinUnits}좌 이상이어야 합니다.`;
     if (total_units < investment_units)
@@ -373,7 +377,7 @@ export default function AddMemberModal({
         birth_date: '',
         business_number: '',
         address: '',
-        investment_units: 1,
+        investment_units: 0,
         total_units: 1,
       });
       setSelectedProfileId(null);
@@ -396,7 +400,7 @@ export default function AddMemberModal({
       birth_date: '',
       business_number: '',
       address: '',
-      investment_units: 1,
+      investment_units: 0,
       total_units: 1,
     });
     setSelectedProfileId(null);
@@ -567,13 +571,13 @@ export default function AddMemberModal({
               />
             </div>
 
-            {/* 출자좌수 */}
+            {/* 출자좌수 - 관리자가 실제 납입을 기록 */}
             <div className="space-y-2">
-              <Label htmlFor="investment_units">출자좌수 *</Label>
+              <Label htmlFor="investment_units">출자좌수 (실제 납입)</Label>
               <Input
                 id="investment_units"
                 type="number"
-                min="1"
+                min="0"
                 value={formData.investment_units}
                 onChange={e =>
                   handleChange(
@@ -581,9 +585,13 @@ export default function AddMemberModal({
                     parseInt(e.target.value) || 0
                   )
                 }
-                placeholder="1"
+                placeholder="0"
                 disabled={isSubmitting}
               />
+              <p className="text-xs text-gray-500">
+                실제로 출자한 좌수를 입력하세요 (기본값: 0, 납입 후 관리자가
+                변경)
+              </p>
             </div>
 
             {/* 약정출자좌수 */}
@@ -594,9 +602,10 @@ export default function AddMemberModal({
                 type="number"
                 min={fundMinUnits}
                 value={formData.total_units}
-                onChange={e =>
-                  handleChange('total_units', parseInt(e.target.value) || 0)
-                }
+                onChange={e => {
+                  const value = parseInt(e.target.value) || 0;
+                  handleChange('total_units', value);
+                }}
                 placeholder={fundMinUnits.toString()}
                 disabled={isSubmitting}
               />

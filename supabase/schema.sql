@@ -76,12 +76,14 @@ CREATE TABLE IF NOT EXISTS funds (
 );
 
 -- fund_members 테이블 생성
+-- investment_units: 실제 납입한 출자좌수 (0 = 미납입)
+-- total_units: 약정출자좌수 (최소 1 이상)
 CREATE TABLE IF NOT EXISTS fund_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   fund_id UUID REFERENCES funds(id) ON DELETE CASCADE NOT NULL,
   profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
-  investment_units INTEGER NOT NULL CHECK (investment_units > 0),
-  total_units INTEGER NOT NULL CHECK (total_units > 0),
+  investment_units INTEGER NOT NULL CHECK (investment_units >= 0), -- 0 허용 (미납입 상태)
+  total_units INTEGER NOT NULL CHECK (total_units > 0), -- 최소 1 이상
   brand TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),

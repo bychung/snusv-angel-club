@@ -527,8 +527,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       const fundMemberData = {
         fund_id: activeFundId,
         profile_id: (profile as any).id,
-        investment_units: surveyData.investmentUnits,
-        total_units: surveyData.investmentUnits, // 설문에서는 출자좌수와 약정출자좌수가 같음
+        investment_units: 0, // 실제 납입은 관리자가 따로 기록
+        total_units: surveyData.investmentUnits, // 약정출자좌수
         updated_at: new Date().toISOString(),
       };
 

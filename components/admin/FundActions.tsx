@@ -12,6 +12,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { FundWithStats } from '@/lib/admin/funds';
 import { canShowSurveyLink } from '@/lib/fund-status';
 import { createBrandClient } from '@/lib/supabase/client';
@@ -79,6 +86,9 @@ export function CreateFundDialog() {
   const [newFundAbbreviation, setNewFundAbbreviation] = useState('');
   const [newFundParValue, setNewFundParValue] = useState<number>(1000000);
   const [newFundMinUnits, setNewFundMinUnits] = useState<number>(1);
+  const [paymentSchedule, setPaymentSchedule] = useState<
+    'lump_sum' | 'capital_call'
+  >('lump_sum');
   const [isCreating, setIsCreating] = useState(false);
 
   // 숫자를 한국어 형식으로 포맷팅
@@ -125,6 +135,7 @@ export function CreateFundDialog() {
             abbreviation: newFundAbbreviation.trim() || null,
             par_value: newFundParValue,
             min_units: newFundMinUnits,
+            payment_schedule: paymentSchedule,
           },
         ])
         .select();
@@ -140,6 +151,7 @@ export function CreateFundDialog() {
       setNewFundAbbreviation('');
       setNewFundParValue(1000000);
       setNewFundMinUnits(1);
+      setPaymentSchedule('lump_sum');
     } catch (error) {
       console.error('펀드 생성 실패:', error);
     } finally {
@@ -248,6 +260,27 @@ export function CreateFundDialog() {
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="paymentSchedule" className="text-right">
+              출자방식 *
+            </Label>
+            <div className="col-span-3">
+              <Select
+                value={paymentSchedule}
+                onValueChange={(value: 'lump_sum' | 'capital_call') =>
+                  setPaymentSchedule(value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="출자방식 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lump_sum">일시납</SelectItem>
+                  <SelectItem value="capital_call">수시납</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

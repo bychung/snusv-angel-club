@@ -25,6 +25,7 @@ interface Fund {
   membership: {
     id: string;
     investment_units: number;
+    total_units: number;
     profile_id: string;
     created_at: string;
     updated_at: string;
@@ -69,7 +70,7 @@ export default function FundSection() {
 
   const handleEdit = (fund: Fund) => {
     setEditingMembershipId(fund.membership.id);
-    setEditUnits(fund.membership.investment_units || 0);
+    setEditUnits(fund.membership.total_units || 0);
   };
 
   const handleCancel = () => {
@@ -85,7 +86,7 @@ export default function FundSection() {
 
       const { error } = await brandClient.fundMembers
         .update({
-          investment_units: editUnits,
+          total_units: editUnits,
           updated_at: new Date().toISOString(),
         })
         .eq('id', editingMembershipId);
@@ -176,8 +177,11 @@ export default function FundSection() {
                   fundId={fund.id}
                   fundName={fund.name || '펀드명 불명'}
                   investmentInfo={{
-                    units: fund.membership.investment_units,
-                    amount: fund.membership.investment_units * fund.par_value,
+                    totalUnits: fund.membership.total_units,
+                    totalAmount: fund.membership.total_units * fund.par_value,
+                    currentUnits: fund.membership.investment_units,
+                    currentAmount:
+                      fund.membership.investment_units * fund.par_value,
                   }}
                 />
                 {/* 편집 버튼을 카드 위에 오버레이 - ready 또는 processing 상태일 때만 표시 */}
@@ -244,10 +248,10 @@ export default function FundSection() {
                     </span>
                   </div>
 
-                  {/* 출자좌수 */}
+                  {/* 출자 약정좌수 */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
-                      출자좌수
+                      출자 약정좌수
                     </span>
                     <Input
                       type="number"

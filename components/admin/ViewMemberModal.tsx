@@ -224,55 +224,87 @@ export default function ViewMemberModal({
           {/* 출자 정보 - 펀드 조합원 모드에서만 표시 */}
           {showInvestmentInfo &&
             member.fund_members &&
-            member.fund_members.length > 0 && (
-              <div className="bg-blue-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Banknote className="h-5 w-5" />
-                  출자 정보
-                </h3>
-                {/* 펀드 조합원 모드에서만 상세한 출자 정보 표시 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      출자좌수
-                    </label>
-                    <p className="mt-1 text-lg font-semibold text-blue-600">
-                      {formatNumber(member.fund_members[0].investment_units)}좌
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      약정출자좌수
-                    </label>
-                    <p className="mt-1 text-lg font-semibold text-green-600">
-                      {formatNumber(member.fund_members[0].total_units)}좌
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      출자금액
-                    </label>
-                    <p className="mt-1 text-lg font-semibold text-blue-600">
-                      {formatCurrency(
-                        member.fund_members[0].investment_units,
-                        member.fund_members[0].fund?.par_value
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      약정 출자금액
-                    </label>
-                    <p className="mt-1 text-lg font-semibold text-green-600">
-                      {formatCurrency(
-                        member.fund_members[0].total_units,
-                        member.fund_members[0].fund?.par_value
-                      )}
-                    </p>
-                  </div>
+            member.fund_members.length > 0 &&
+            (() => {
+              const fundMember = member.fund_members[0];
+              const paymentSchedule = fundMember.fund?.payment_schedule;
+              const isLumpSum = paymentSchedule === 'lump_sum';
+
+              return (
+                <div className="bg-blue-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Banknote className="h-5 w-5" />
+                    출자 정보
+                  </h3>
+                  {isLumpSum ? (
+                    // 일시납: 약정출자좌수만 표시
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          출자좌수
+                        </label>
+                        <p className="mt-1 text-lg font-semibold text-blue-600">
+                          {formatNumber(fundMember.total_units)}좌
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          출자금액
+                        </label>
+                        <p className="mt-1 text-lg font-semibold text-blue-600">
+                          {formatCurrency(
+                            fundMember.total_units,
+                            fundMember.fund?.par_value
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    // 수시납: 출자좌수와 약정출자좌수 모두 표시
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          출자좌수
+                        </label>
+                        <p className="mt-1 text-lg font-semibold text-blue-600">
+                          {formatNumber(fundMember.investment_units)}좌
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          약정출자좌수
+                        </label>
+                        <p className="mt-1 text-lg font-semibold text-green-600">
+                          {formatNumber(fundMember.total_units)}좌
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          출자금액
+                        </label>
+                        <p className="mt-1 text-lg font-semibold text-blue-600">
+                          {formatCurrency(
+                            fundMember.investment_units,
+                            fundMember.fund?.par_value
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">
+                          약정출자금액
+                        </label>
+                        <p className="mt-1 text-lg font-semibold text-green-600">
+                          {formatCurrency(
+                            fundMember.total_units,
+                            fundMember.fund?.par_value
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
         </div>
       </DialogContent>
     </Dialog>

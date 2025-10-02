@@ -22,6 +22,7 @@ import { NextRequest, NextResponse } from 'next/server';
  *     membership: {
  *       id: string,
  *       investment_units: number,
+ *       total_units: number,
  *       profile_id: string,
  *       created_at: string,
  *       updated_at: string
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
           `
         id,
         investment_units,
+        total_units,
         profile_id,
         created_at,
         updated_at,
@@ -90,6 +92,7 @@ export async function GET(request: NextRequest) {
       membership: {
         id: member.id,
         investment_units: member.investment_units,
+        total_units: member.total_units,
         profile_id: member.profile_id,
         created_at: member.created_at,
         updated_at: member.updated_at,
