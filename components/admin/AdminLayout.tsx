@@ -10,9 +10,7 @@ import {
   Building2,
   Home,
   LogOut,
-  Mail,
   MessageSquare,
-  Settings,
   Shield,
   TrendingUp,
   Users,
@@ -108,18 +106,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       icon: MessageSquare,
       current: pathname === '/admin/inquiries',
     },
-    {
-      name: '이메일 설정',
-      href: '/admin/email',
-      icon: Mail,
-      current: pathname === '/admin/email',
-    },
-    {
-      name: '시스템 설정',
-      href: '/admin/settings',
-      icon: Settings,
-      current: pathname === '/admin/settings',
-    },
+    // {
+    //   name: '이메일 설정',
+    //   href: '/admin/email',
+    //   icon: Mail,
+    //   current: pathname === '/admin/email',
+    // },
+    // {
+    //   name: '시스템 설정',
+    //   href: '/admin/settings',
+    //   icon: Settings,
+    //   current: pathname === '/admin/settings',
+    // },
   ];
 
   return (
