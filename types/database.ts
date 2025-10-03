@@ -38,6 +38,9 @@ export interface Fund {
   min_units: number; // 최소 출자좌수
   payment_schedule: 'lump_sum' | 'capital_call'; // 출자방식 (일시납/수시납)
   display_locations?: ('dashboard' | 'homepage')[] | null; // 링크 노출 위치
+  initial_numerator?: number | null; // 초기 출자 비율 (분자)
+  initial_denominator?: number | null; // 초기 출자 비율 (분모)
+  duration?: number | null; // 펀드 존속기간 (년)
   brand: string;
   created_at: string;
   updated_at: string;

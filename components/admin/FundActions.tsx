@@ -89,6 +89,9 @@ export function CreateFundDialog() {
   const [paymentSchedule, setPaymentSchedule] = useState<
     'lump_sum' | 'capital_call'
   >('lump_sum');
+  const [initialNumerator, setInitialNumerator] = useState<number>(1);
+  const [initialDenominator, setInitialDenominator] = useState<number>(1);
+  const [duration, setDuration] = useState<number>(5);
   const [isCreating, setIsCreating] = useState(false);
 
   // 숫자를 한국어 형식으로 포맷팅
@@ -123,6 +126,25 @@ export function CreateFundDialog() {
       return;
     }
 
+    // 초기 출자 비율 검증 (수시납인 경우만)
+    if (paymentSchedule === 'capital_call') {
+      if (initialNumerator < 1 || initialDenominator < 1) {
+        alert('초기 출자 비율은 1 이상이어야 합니다.');
+        return;
+      }
+
+      if (initialNumerator > initialDenominator) {
+        alert('초기 출자 비율은 100% 이하여야 합니다. (분자 ≤ 분모)');
+        return;
+      }
+    }
+
+    // 펀드 존속기간 검증
+    if (duration < 1) {
+      alert('펀드 존속기간은 1년 이상이어야 합니다.');
+      return;
+    }
+
     setIsCreating(true);
     try {
       // brandClient를 사용해서 브랜드 자동 처리
@@ -136,6 +158,9 @@ export function CreateFundDialog() {
             par_value: newFundParValue,
             min_units: newFundMinUnits,
             payment_schedule: paymentSchedule,
+            initial_numerator: initialNumerator,
+            initial_denominator: initialDenominator,
+            duration: duration,
           },
         ])
         .select();
@@ -152,6 +177,9 @@ export function CreateFundDialog() {
       setNewFundParValue(1000000);
       setNewFundMinUnits(1);
       setPaymentSchedule('lump_sum');
+      setInitialNumerator(1);
+      setInitialDenominator(1);
+      setDuration(5);
     } catch (error) {
       console.error('펀드 생성 실패:', error);
     } finally {
@@ -167,7 +195,7 @@ export function CreateFundDialog() {
           펀드 추가
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>새 펀드 추가</DialogTitle>
           <DialogDescription>
@@ -283,6 +311,60 @@ export function CreateFundDialog() {
               </Select>
             </div>
           </div>
+          {paymentSchedule === 'capital_call' && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">설립출자금 비율 *</Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={initialNumerator}
+                  onChange={e =>
+                    setInitialNumerator(parseInt(e.target.value) || 1)
+                  }
+                  className="flex-1"
+                  placeholder="1"
+                  min={1}
+                />
+                <span className="text-gray-500">/</span>
+                <Input
+                  type="number"
+                  value={initialDenominator}
+                  onChange={e =>
+                    setInitialDenominator(parseInt(e.target.value) || 1)
+                  }
+                  className="flex-1"
+                  placeholder="1"
+                  min={1}
+                />
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  ({((initialNumerator / initialDenominator) * 100).toFixed(1)}
+                  %)
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="duration" className="text-right">
+              펀드 존속기간 *
+            </Label>
+            <div className="col-span-3">
+              <div className="flex items-center gap-2">
+                <Input
+                  id="duration"
+                  type="number"
+                  value={duration}
+                  onChange={e => setDuration(parseInt(e.target.value) || 5)}
+                  className={duration < 1 ? 'border-red-500' : ''}
+                  placeholder="5"
+                  min={1}
+                />
+                <span className="text-gray-500">년</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                펀드의 존속기간을 연 단위로 입력합니다
+              </p>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button
@@ -292,7 +374,12 @@ export function CreateFundDialog() {
               isCreating ||
               !newFundName.trim() ||
               newFundParValue < 1000000 ||
-              newFundMinUnits < 1
+              newFundMinUnits < 1 ||
+              (paymentSchedule === 'capital_call' &&
+                (initialNumerator < 1 ||
+                  initialDenominator < 1 ||
+                  initialNumerator > initialDenominator)) ||
+              duration < 1
             }
           >
             {isCreating ? '생성 중...' : '펀드 생성'}

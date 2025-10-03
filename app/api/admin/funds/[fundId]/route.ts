@@ -51,6 +51,9 @@ export async function PUT(
       min_units,
       display_locations,
       payment_schedule,
+      initial_numerator,
+      initial_denominator,
+      duration,
     } = requestBody;
 
     // 날짜 필드 유효성 검증
@@ -138,6 +141,9 @@ export async function PUT(
       min_units,
       display_locations,
       payment_schedule,
+      initial_numerator,
+      initial_denominator,
+      duration,
     });
 
     return Response.json({

@@ -283,6 +283,9 @@ export async function updateFundDetails(
     min_units?: number;
     display_locations?: ('dashboard' | 'homepage')[];
     payment_schedule?: 'lump_sum' | 'capital_call';
+    initial_numerator?: number;
+    initial_denominator?: number;
+    duration?: number;
   }
 ): Promise<Fund> {
   const brandClient = await createBrandServerClient();
@@ -314,4 +317,124 @@ export async function updateFundDetails(
   }
 
   return data;
+}
+
+/**
+ * 펀드 정보와 멤버 정보를 조회합니다 (PDF 생성용, 관리자 전용)
+ */
+export async function getFundDataForDocument(fundId: string, userId: string) {
+  const brandClient = await createBrandServerClient();
+
+  // 1. 펀드 기본 정보 조회 (par_value, gp_id, initial_numerator, initial_denominator, duration 포함)
+  const { data: fund, error: fundError } = await brandClient.funds
+    .select(
+      'id, name, address, par_value, payment_schedule, gp_id, initial_numerator, initial_denominator, duration'
+    )
+    .eq('id', fundId)
+    .single();
+
+  if (fundError) {
+    console.error('펀드 조회 오류:', fundError);
+    throw new Error(
+      `펀드 조회 실패: ${fundError.message || '알 수 없는 오류'}`
+    );
+  }
+
+  if (!fund) {
+    console.error('펀드가 존재하지 않음:', fundId);
+    throw new Error('펀드를 찾을 수 없습니다.');
+  }
+
+  // 2. 사용자 정보 조회
+  const { data: user, error: userError } = await brandClient.profiles
+    .select('id, name, email')
+    .eq('user_id', userId)
+    .single();
+
+  if (userError) {
+    console.error('사용자 조회 오류:', userError);
+    throw new Error(
+      `사용자 조회 실패: ${userError.message || '알 수 없는 오류'}`
+    );
+  }
+
+  if (!user) {
+    console.error('사용자가 존재하지 않음:', userId);
+    throw new Error('사용자를 찾을 수 없습니다.');
+  }
+
+  // 3. 펀드 멤버 조회 (profile과 조인)
+  const { data: fundMembers, error: membersError } =
+    await brandClient.fundMembers
+      .select(
+        `
+      id,
+      profile_id,
+      investment_units,
+      total_units,
+      profile:profiles (
+        id,
+        name
+      )
+    `
+      )
+      .eq('fund_id', fundId)
+      .order('created_at', { ascending: true });
+
+  if (membersError) {
+    console.error('펀드 멤버 조회 오류:', membersError);
+    throw new Error(
+      `펀드 멤버 조회 실패: ${membersError.message || '알 수 없는 오류'}`
+    );
+  }
+
+  // 4. total_cap 계산 (모든 멤버의 total_units 합 * par_value)
+  const totalUnits =
+    fundMembers?.reduce(
+      (sum: number, member: any) => sum + member.total_units,
+      0
+    ) || 0;
+  const total_cap = totalUnits * fund.par_value;
+
+  // 5. initial_cap 계산 (total_cap * initial_numerator / initial_denominator)
+  const initial_cap = Math.floor(
+    (total_cap * fund.initial_numerator) / fund.initial_denominator
+  );
+
+  // 6. 멤버 데이터 변환 (member_type 결정, amount 계산)
+  const members =
+    fundMembers?.map((member: any) => {
+      // GP 여부 확인 (fund.gp_id 배열에 포함되어 있으면 GP)
+      const isGP = fund.gp_id && fund.gp_id.includes(member.profile_id);
+
+      // 약정금액
+      const total_amount = member.total_units * fund.par_value;
+
+      // 설립출자금 = 약정금액 × (초기 출자 비율)
+      const initial_amount = Math.floor(
+        (total_amount * fund.initial_numerator) / fund.initial_denominator
+      );
+
+      return {
+        id: member.profile_id,
+        name: member.profile?.name || '알 수 없음',
+        member_type: isGP ? ('GP' as const) : ('LP' as const),
+        total_amount,
+        initial_amount,
+      };
+    }) || [];
+
+  return {
+    fund: {
+      id: fund.id,
+      name: fund.name,
+      address: fund.address,
+      total_cap,
+      initial_cap,
+      payment_schedule: fund.payment_schedule,
+      duration: fund.duration,
+    },
+    user,
+    members,
+  };
 }

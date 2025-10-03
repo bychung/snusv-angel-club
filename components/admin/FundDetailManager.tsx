@@ -37,6 +37,7 @@ import {
 import {
   Building2,
   ChevronDown,
+  Download,
   FileText,
   RefreshCw,
   Save,
@@ -66,6 +67,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('info');
   const [certificateRefreshKey, setCertificateRefreshKey] = useState(0);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
 
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -84,6 +86,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
     min_units: 1,
     payment_schedule: 'lump_sum' as 'lump_sum' | 'capital_call',
     display_locations: [] as ('dashboard' | 'homepage')[],
+    initial_numerator: 1,
+    initial_denominator: 1,
+    duration: 5,
   });
 
   // 데이터 초기 로드
@@ -135,6 +140,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           min_units: fundData.fund.min_units || 1,
           payment_schedule: fundData.fund.payment_schedule || 'lump_sum',
           display_locations: fundData.fund.display_locations || [],
+          initial_numerator: fundData.fund.initial_numerator || 1,
+          initial_denominator: fundData.fund.initial_denominator || 1,
+          duration: fundData.fund.duration || 5,
         });
       } catch (err) {
         setError(
@@ -201,6 +209,63 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
   const handleCertificateRefresh = () => {
     setCertificateRefreshKey(prev => prev + 1);
+  };
+
+  // LPA PDF 생성 핸들러
+  const handleGenerateLPA = async () => {
+    try {
+      setGeneratingPDF(true);
+      setError(null);
+
+      const response = await fetch(
+        `/api/admin/funds/${fundId}/documents/lpa/generate`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'PDF 생성에 실패했습니다.');
+      }
+
+      // PDF 다운로드
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출 시도
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = `${fundDetails?.fund.name || 'fund'}_규약(안).pdf`;
+
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(
+          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+        );
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''));
+        }
+      }
+
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('PDF가 생성되었습니다.');
+    } catch (err) {
+      console.error('PDF 생성 오류:', err);
+      setError(
+        err instanceof Error ? err.message : 'PDF 생성 중 오류가 발생했습니다.'
+      );
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   if (loading) {
@@ -372,6 +437,74 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                       <SelectItem value="capital_call">수시납</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                {formData.payment_schedule === 'capital_call' && (
+                  <div className="space-y-2">
+                    <Label>설립출자금 비율</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        value={formData.initial_numerator}
+                        onChange={e =>
+                          handleInputChange(
+                            'initial_numerator',
+                            parseInt(e.target.value) || 1
+                          )
+                        }
+                        placeholder="1"
+                        min="1"
+                      />
+                      <span className="text-gray-500">/</span>
+                      <Input
+                        type="number"
+                        value={formData.initial_denominator}
+                        onChange={e =>
+                          handleInputChange(
+                            'initial_denominator',
+                            parseInt(e.target.value) || 1
+                          )
+                        }
+                        placeholder="1"
+                        min="1"
+                      />
+                      <span className="text-sm text-gray-500 whitespace-nowrap">
+                        (
+                        {(
+                          (formData.initial_numerator /
+                            formData.initial_denominator) *
+                          100
+                        ).toFixed(1)}
+                        %)
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      설립 시 납입할 출자금 비율입니다
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="duration">펀드 존속기간</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={formData.duration}
+                      onChange={e =>
+                        handleInputChange(
+                          'duration',
+                          parseInt(e.target.value) || 5
+                        )
+                      }
+                      placeholder="5"
+                      min="1"
+                    />
+                    <span className="text-gray-500">년</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    펀드의 존속기간을 연 단위로 입력합니다
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -700,14 +833,30 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
             )
             .map(category => (
               <div key={category} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-gray-500" />
-                  <h3 className="text-lg font-semibold">
-                    {DOCUMENT_CATEGORY_NAMES[category]}
-                  </h3>
-                  <span className="text-sm text-gray-500">
-                    - {DOCUMENT_CATEGORY_DESCRIPTIONS[category]}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-gray-500" />
+                    <h3 className="text-lg font-semibold">
+                      {DOCUMENT_CATEGORY_NAMES[category]}
+                    </h3>
+                    <span className="text-sm text-gray-500">
+                      - {DOCUMENT_CATEGORY_DESCRIPTIONS[category]}
+                    </span>
+                  </div>
+
+                  {/* 규약 섹션에서 펀드 상태가 ready일 때만 임시 규약 생성 버튼 표시 */}
+                  {category === DocumentCategory.AGREEMENT &&
+                    formData.status === 'ready' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateLPA}
+                        disabled={generatingPDF}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        {generatingPDF ? '생성 중...' : '임시 규약 생성'}
+                      </Button>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
