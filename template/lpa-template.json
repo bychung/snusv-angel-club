@@ -232,14 +232,20 @@
             {
               "label": "구분",
               "property": "memberType",
-              "width": 20,
+              "width": 15,
               "align": "center"
             },
             {
               "label": "조합원명",
               "property": "name",
-              "width": 30,
+              "width": 25,
               "align": "center"
+            },
+            {
+              "label": "출자좌수",
+              "property": "units",
+              "width": 15,
+              "align": "right"
             },
             {
               "label": "출자약정액",
@@ -416,7 +422,7 @@
           {
             "index": 1,
             "title": "",
-            "text": "조합의 존속기간은 중소벤처기업부장관으로부터 조합설립 등본을 교부 받은 날로부터 5년으로 한다.",
+            "text": "조합의 존속기간은 중소벤처기업부장관으로부터 조합설립 등본을 교부 받은 날로부터 ${duration}년으로 한다.",
             "sub": []
           },
           {
@@ -1458,7 +1464,7 @@
           {
             "index": 3,
             "title": "",
-            "text": "업무집행조합원에 대한 통지는 별도의 변경 통지가 없는 한, 아래의 조합의 주된 사무소로 하여야 한다.\n\n주      소 : ${userAddress}\n전자우편 : ${userEmail}",
+            "text": "업무집행조합원에 대한 통지는 별도의 변경 통지가 없는 한, 아래의 조합의 주된 사무소로 하여야 한다.\n\n주      소 : ${userAddress}\n전자우편 : ${userEmail}\n전화번호 : ${userPhone}",
             "sub": []
           }
         ]

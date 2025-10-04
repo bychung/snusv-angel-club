@@ -188,7 +188,7 @@ function addIndex(depth: number, index: number, text: string): string {
 }
 
 /**
- * 테이블 렌더링
+ * 테이블 렌더링 (MS Word 스타일)
  */
 async function renderTable(
   doc: any,
@@ -204,7 +204,9 @@ async function renderTable(
     // 결제 방식에 따라 헤더 필터링
     const tableHeaders =
       context.fund.payment_schedule === 'lump_sum'
-        ? tableConfig.headers.filter(h => h.property !== 'restAmount')
+        ? tableConfig.headers.filter(
+            h => h.property !== 'initialAmount' && h.property !== 'restAmount'
+          )
         : tableConfig.headers;
 
     const tableAbsoluteWidth = doc.page.width - 110;
@@ -213,27 +215,48 @@ async function renderTable(
       0
     );
 
+    // 정렬용 이름 추출 (회사 형태 접두사 제거)
+    const getNameForSorting = (name: string): string => {
+      return name
+        .replace(/^주식회사\s*/g, '') // 앞의 "주식회사" 제거
+        .replace(/\s*주식회사$/g, '') // 뒤의 "주식회사" 제거
+        .replace(/^\(주\)\s*/g, '') // 앞의 "(주)" 제거
+        .replace(/^㈜\s*/g, '') // 앞의 "㈜" 제거
+        .trim();
+    };
+
+    // 조합원 정렬: GP 먼저, 각 그룹 내에서 가나다순
+    const sortedMembers = [...context.members].sort((a, b) => {
+      // 1. GP가 LP보다 먼저
+      if (a.member_type === 'GP' && b.member_type === 'LP') return -1;
+      if (a.member_type === 'LP' && b.member_type === 'GP') return 1;
+
+      // 2. 같은 타입 내에서는 이름으로 가나다순 정렬 (회사 형태 접두사 제거 후)
+      const nameA = getNameForSorting(a.name);
+      const nameB = getNameForSorting(b.name);
+      return nameA.localeCompare(nameB, 'ko-KR');
+    });
+
     // 테이블 데이터 생성
-    const datas = context.members.map(member => {
+    const datas = sortedMembers.map(member => {
       const restAmount = member.total_amount - member.initial_amount;
       const percentage =
-        ((member.total_amount / context.fund.total_cap) * 100).toLocaleString(
-          'ko-KR'
-        ) + '%';
+        ((member.total_amount / context.fund.total_cap) * 100).toFixed(2) + '%';
 
       return context.fund.payment_schedule === 'lump_sum'
         ? {
             memberType:
               member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원',
             name: member.name,
+            units: member.total_units.toLocaleString('ko-KR'),
             totalAmount: member.total_amount.toLocaleString('ko-KR'),
-            initialAmount: member.initial_amount.toLocaleString('ko-KR'),
             percentage,
           }
         : {
             memberType:
               member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원',
             name: member.name,
+            units: member.total_units.toLocaleString('ko-KR'),
             totalAmount: member.total_amount.toLocaleString('ko-KR'),
             initialAmount: member.initial_amount.toLocaleString('ko-KR'),
             restAmount: restAmount.toLocaleString('ko-KR'),
@@ -242,28 +265,34 @@ async function renderTable(
     });
 
     // 합계 행 추가
+    const totalUnits = context.members.reduce(
+      (sum, member) => sum + member.total_units,
+      0
+    );
+
     if (context.fund.payment_schedule === 'lump_sum') {
       datas.push({
         memberType: '계',
         name: '',
+        units: totalUnits.toLocaleString('ko-KR'),
         totalAmount: context.fund.total_cap.toLocaleString('ko-KR'),
-        initialAmount: context.fund.total_cap.toLocaleString('ko-KR'),
-        percentage: '100%',
+        percentage: '100.00%',
       });
     } else {
       datas.push({
         memberType: '계',
         name: '',
+        units: totalUnits.toLocaleString('ko-KR'),
         totalAmount: context.fund.total_cap.toLocaleString('ko-KR'),
         initialAmount: context.fund.initial_cap.toLocaleString('ko-KR'),
         restAmount: (
           context.fund.total_cap - context.fund.initial_cap
         ).toLocaleString('ko-KR'),
-        percentage: '100%',
+        percentage: '100.00%',
       });
     }
 
-    // 수동 테이블 렌더링 (pdfkit-table 제거)
+    // 테이블 렌더링 설정
     const headers = tableHeaders.map(header => ({
       label: header.label,
       property: header.property,
@@ -272,51 +301,198 @@ async function renderTable(
     }));
 
     const startX = xPosition ?? 50;
-    let cursorX = startX;
-    let cursorY = doc.y;
-    const rowHeight = 16;
-    const cellPaddingX = 4;
+    const startY = doc.y;
+    const rowHeight = 22;
+    const cellPaddingX = 6;
+    const cellPaddingY = 5;
+    const borderColor = '#BFBFBF'; // MS Word 테두리 색상
+    const headerBgColor = '#D9D9D9'; // MS Word 헤더 배경색
+    const totalRowBgColor = '#F2F2F2'; // 합계 행 배경색
 
-    // 헤더 렌더링
-    doc.save();
-    tryFont(doc, '맑은고딕-Bold', 'Helvetica-Bold');
-    doc.fontSize(9).fillColor('#000');
-    headers.forEach(h => {
-      doc.text(h.label, cursorX + cellPaddingX, cursorY, {
-        width: h.width - cellPaddingX * 2,
-        align: 'left',
+    // 헤더 렌더링 함수
+    const renderHeader = (y: number) => {
+      doc.save();
+
+      // 헤더 행 배경색
+      doc
+        .rect(startX, y, tableAbsoluteWidth, rowHeight)
+        .fillAndStroke(headerBgColor, borderColor);
+
+      // stroke 후 fillColor 리셋
+      doc.fillColor('#000000');
+
+      let headerX = startX;
+
+      tryFont(doc, '맑은고딕-Bold', 'Helvetica-Bold');
+      doc.fontSize(9);
+
+      headers.forEach((h, idx) => {
+        // 세로 구분선 (헤더)
+        if (idx > 0) {
+          doc
+            .moveTo(headerX, y)
+            .lineTo(headerX, y + rowHeight)
+            .lineWidth(0.5)
+            .stroke(borderColor);
+          // stroke 후 fillColor 리셋
+          doc.fillColor('#000000');
+        }
+
+        doc.text(h.label, headerX + cellPaddingX, y + cellPaddingY, {
+          width: h.width - cellPaddingX * 2,
+          align: 'center',
+          lineGap: 0,
+        });
+        headerX += h.width;
       });
-      cursorX += h.width;
-    });
-    doc.restore();
-    cursorY += rowHeight;
-    doc
-      .moveTo(startX, cursorY - 4)
-      .lineTo(startX + tableAbsoluteWidth, cursorY - 4)
-      .lineWidth(0.5)
-      .stroke('#999');
 
-    // 데이터 렌더링
-    tryFont(doc, '맑은고딕', 'NanumGothic');
-    doc.fontSize(9).fillColor('#000');
-    for (const row of datas) {
+      doc.restore();
+
+      // restore 후에도 명시적으로 설정
+      doc.fillColor('#000000');
+      tryFont(doc, '맑은고딕', 'NanumGothic');
+      doc.fontSize(9);
+    };
+
+    // 첫 헤더 렌더링
+    let cursorY = startY;
+    renderHeader(cursorY);
+    cursorY += rowHeight;
+
+    // 각 페이지의 시작 Y 위치 추적
+    let pageStartY = startY;
+
+    // 데이터 행 렌더링
+    for (let rowIdx = 0; rowIdx < datas.length; rowIdx++) {
+      const row = datas[rowIdx];
+      const isLastRow = rowIdx === datas.length - 1;
+
       // 페이지 넘어감 처리
       if (cursorY + rowHeight > doc.page.height - 80) {
+        // 현재 페이지의 마지막 행 하단 라인 그리기
+        doc
+          .moveTo(startX, cursorY)
+          .lineTo(startX + tableAbsoluteWidth, cursorY)
+          .lineWidth(0.5)
+          .stroke(borderColor);
+        doc.fillColor('#000000');
+
+        // 현재 페이지의 세로 테두리 그리기
+        doc
+          .moveTo(startX, pageStartY)
+          .lineTo(startX, cursorY)
+          .lineWidth(1)
+          .stroke(borderColor);
+        doc.fillColor('#000000');
+
+        doc
+          .moveTo(startX + tableAbsoluteWidth, pageStartY)
+          .lineTo(startX + tableAbsoluteWidth, cursorY)
+          .lineWidth(1)
+          .stroke(borderColor);
+        doc.fillColor('#000000');
+
+        // 새 페이지로 이동
         doc.addPage();
         cursorY = doc.y;
+        pageStartY = cursorY;
+
+        // 두번째 페이지부터는 헤더 없이 바로 시작
       }
-      cursorX = startX;
-      headers.forEach(h => {
+
+      let cursorX = startX;
+
+      // 합계 행 배경색
+      if (isLastRow) {
+        doc
+          .rect(startX, cursorY, tableAbsoluteWidth, rowHeight)
+          .fill(totalRowBgColor);
+        // fill 후 fillColor 리셋
+        doc.fillColor('#000000');
+      }
+
+      // 가로 구분선
+      doc
+        .moveTo(startX, cursorY)
+        .lineTo(startX + tableAbsoluteWidth, cursorY)
+        .lineWidth(0.5)
+        .stroke(borderColor);
+      // stroke 후 fillColor 리셋
+      doc.fillColor('#000000');
+
+      // 합계 행은 볼드체로
+      if (isLastRow) {
+        doc.save();
+        tryFont(doc, '맑은고딕-Bold', 'Helvetica-Bold');
+        doc.fontSize(9);
+      } else {
+        tryFont(doc, '맑은고딕', 'NanumGothic');
+        doc.fontSize(9);
+      }
+
+      headers.forEach((h, colIdx) => {
+        // 세로 구분선
+        if (colIdx > 0) {
+          doc
+            .moveTo(cursorX, cursorY)
+            .lineTo(cursorX, cursorY + rowHeight)
+            .lineWidth(0.5)
+            .stroke(borderColor);
+          // stroke 후 fillColor 리셋
+          doc.fillColor('#000000');
+        }
+
         const text = String((row as any)[h.property] ?? '');
-        doc.text(text, cursorX + cellPaddingX, cursorY, {
+        doc.text(text, cursorX + cellPaddingX, cursorY + cellPaddingY, {
           width: h.width - cellPaddingX * 2,
           align: h.align as any,
+          lineGap: 0,
         });
         cursorX += h.width;
       });
+
+      if (isLastRow) {
+        doc.restore();
+        // restore 후 fillColor 리셋
+        doc.fillColor('#000000');
+      }
+
       cursorY += rowHeight;
     }
-    doc.y = cursorY + 6;
+
+    // 테이블 하단 테두리
+    doc
+      .moveTo(startX, cursorY)
+      .lineTo(startX + tableAbsoluteWidth, cursorY)
+      .lineWidth(1)
+      .stroke(borderColor);
+    // stroke 후 fillColor 리셋
+    doc.fillColor('#000000');
+
+    // 마지막 페이지의 세로 테두리 (좌우)
+    doc
+      .moveTo(startX, pageStartY)
+      .lineTo(startX, cursorY)
+      .lineWidth(1)
+      .stroke(borderColor);
+    // stroke 후 fillColor 리셋
+    doc.fillColor('#000000');
+
+    doc
+      .moveTo(startX + tableAbsoluteWidth, pageStartY)
+      .lineTo(startX + tableAbsoluteWidth, cursorY)
+      .lineWidth(1)
+      .stroke(borderColor);
+    // stroke 후 fillColor 리셋
+    doc.fillColor('#000000');
+
+    // 색상 및 폰트 완전히 리셋
+    doc.fillColor('#000000');
+    doc.strokeColor('#000000');
+    tryFont(doc, '맑은고딕', 'NanumGothic');
+    doc.fontSize(11);
+
+    doc.y = cursorY + 10;
   } catch (error) {
     console.error('테이블 렌더링 오류:', error);
     doc.fontSize(10);

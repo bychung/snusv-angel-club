@@ -347,7 +347,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
 
   // 2. 사용자 정보 조회
   const { data: user, error: userError } = await brandClient.profiles
-    .select('id, name, email')
+    .select('id, name, email, phone')
     .eq('user_id', userId)
     .single();
 
@@ -419,6 +419,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
         id: member.profile_id,
         name: member.profile?.name || '알 수 없음',
         member_type: isGP ? ('GP' as const) : ('LP' as const),
+        total_units: member.total_units,
         total_amount,
         initial_amount,
       };

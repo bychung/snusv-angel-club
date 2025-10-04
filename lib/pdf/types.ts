@@ -44,11 +44,13 @@ export interface LPAContext {
     id: string;
     name: string;
     email: string;
+    phone: string;
   };
   members: Array<{
     id: string;
     name: string;
     member_type: 'GP' | 'LP';
+    total_units: number;
     total_amount: number;
     initial_amount: number;
   }>;

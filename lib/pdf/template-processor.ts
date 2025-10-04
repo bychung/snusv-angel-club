@@ -105,7 +105,7 @@ export function processTemplateVariables(
   );
   processedText = processedText.replace(
     /\$\{duration\}/g,
-    context.fund.duration ? context.fund.duration.toString() : ''
+    context.fund.duration ? context.fund.duration.toString() : '5'
   );
 
   // 사용자 관련 변수
@@ -120,6 +120,10 @@ export function processTemplateVariables(
   processedText = processedText.replace(
     /\$\{userAddress\}/g,
     context.fund.address || ''
+  );
+  processedText = processedText.replace(
+    /\$\{userPhone\}/g,
+    context.user.phone || ''
   );
 
   // 조합원 관련 변수
