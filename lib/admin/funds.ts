@@ -325,10 +325,10 @@ export async function updateFundDetails(
 export async function getFundDataForDocument(fundId: string, userId: string) {
   const brandClient = await createBrandServerClient();
 
-  // 1. 펀드 기본 정보 조회 (par_value, gp_id, initial_numerator, initial_denominator, duration 포함)
+  // 1. 펀드 기본 정보 조회 (par_value, gp_id, initial_numerator, initial_denominator, duration, closed_at 포함)
   const { data: fund, error: fundError } = await brandClient.funds
     .select(
-      'id, name, address, par_value, payment_schedule, gp_id, initial_numerator, initial_denominator, duration'
+      'id, name, address, par_value, payment_schedule, gp_id, initial_numerator, initial_denominator, duration, closed_at'
     )
     .eq('id', fundId)
     .single();
@@ -434,6 +434,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
       initial_cap,
       payment_schedule: fund.payment_schedule,
       duration: fund.duration,
+      closed_at: fund.closed_at,
     },
     user,
     members,

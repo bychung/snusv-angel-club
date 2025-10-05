@@ -81,9 +81,12 @@ function convertFourDigitsToKorean(num: number): string {
  * 템플릿 변수를 실제 값으로 치환
  */
 export function processTemplateVariables(
-  text: string,
+  text: string | undefined,
   context: LPAContext
 ): string {
+  // text가 없으면 빈 문자열 반환
+  if (!text) return '';
+
   let processedText = text;
 
   // 펀드 관련 변수
@@ -107,6 +110,20 @@ export function processTemplateVariables(
     /\$\{duration\}/g,
     context.fund.duration ? context.fund.duration.toString() : '5'
   );
+
+  // 결성일 (closed_at) - 'YYYY년 MM월 DD일' 형식
+  if (context.fund.closed_at) {
+    const closedDate = new Date(context.fund.closed_at);
+    const year = closedDate.getFullYear();
+    const month = String(closedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(closedDate.getDate()).padStart(2, '0');
+    processedText = processedText.replace(
+      /\$\{startDate\}/g,
+      `${year}년 ${month}월 ${day}일`
+    );
+  } else {
+    processedText = processedText.replace(/\$\{startDate\}/g, '');
+  }
 
   // 사용자 관련 변수
   processedText = processedText.replace(

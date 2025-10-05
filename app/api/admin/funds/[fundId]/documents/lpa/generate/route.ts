@@ -32,6 +32,11 @@ async function buildLPAContext(
   // lib/admin/funds.ts의 헬퍼 함수 사용 (brandClient 사용)
   const { fund, user, members } = await getFundDataForDocument(fundId, userId);
 
+  // 결성일 검증
+  if (!fund.closed_at) {
+    throw new Error('결성일 정보가 없습니다. 기본 정보에서 입력해 주세요.');
+  }
+
   return {
     fund: {
       id: fund.id,
@@ -41,6 +46,7 @@ async function buildLPAContext(
       initial_cap: fund.initial_cap,
       payment_schedule: fund.payment_schedule,
       duration: fund.duration,
+      closed_at: fund.closed_at,
     },
     user: {
       id: user.id,
@@ -109,13 +115,28 @@ export async function POST(
       if (error.message === '관리자 권한이 필요합니다') {
         return NextResponse.json({ error: error.message }, { status: 403 });
       }
+
+      // 사용자에게 보여줄 수 있는 구체적인 에러 메시지들
+      const userFriendlyErrors = [
+        '결성일 정보가 없습니다. 기본 정보에서 입력해 주세요.',
+        '펀드를 찾을 수 없습니다.',
+        '사용자를 찾을 수 없습니다.',
+        '펀드 멤버 조회 실패',
+      ];
+
+      // 에러 메시지가 사용자 친화적인 경우 그대로 반환
+      if (userFriendlyErrors.some(msg => error.message.includes(msg))) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
     }
 
-    // 기타 PDF 생성 오류
+    // 알 수 없는 오류
     return NextResponse.json(
       {
-        error: 'PDF 생성 중 오류가 발생했습니다.',
-        details: error instanceof Error ? error.message : '알 수 없는 오류',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'PDF 생성 중 오류가 발생했습니다.',
       },
       { status: 500 }
     );

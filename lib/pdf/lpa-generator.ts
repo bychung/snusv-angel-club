@@ -6,6 +6,9 @@ import PDFDocument from 'pdfkit';
 import { processTemplateVariables } from './template-processor';
 import type { LPAContext, ProcessedLPAContent, TemplateSection } from './types';
 
+// 상수 정의
+const INDENT_SIZE = 10; // 들여쓰기 크기 (depth 2부터 적용)
+
 /**
  * 한글 폰트 등록
  */
@@ -124,11 +127,17 @@ function addPageFooter(doc: any, pageNumber: number): void {
 
 /**
  * 항목 번호 포맷팅
+ * depth 0: 장(章) 제목 - 별도 렌더링 처리
+ * depth 1: 조(條) 제목 - "제X조 (제목)"
+ * depth 2: ① ② ③ 형식
+ * depth 3: 1. 2. 3. 형식
+ * depth 4: 가. 나. 다. 형식
  */
 function addIndex(depth: number, index: number, text: string): string {
-  if (depth === 0) return text;
+  // depth 0은 장 제목으로 별도 처리
+  if (depth === 0 || depth === 1) return text;
 
-  if (depth === 1) {
+  if (depth === 2) {
     const circled = [
       '①',
       '②',
@@ -157,11 +166,11 @@ function addIndex(depth: number, index: number, text: string): string {
     return `(${index}). ${text}`;
   }
 
-  if (depth === 2) {
+  if (depth === 3) {
     return `${index}. ${text}`;
   }
 
-  if (depth === 3) {
+  if (depth === 4) {
     const korean = [
       '가',
       '나',
@@ -201,12 +210,10 @@ async function renderTable(
 
     const { tableConfig } = section;
 
-    // 결제 방식에 따라 헤더 필터링
+    // 결제 방식에 따라 헤더 필터링 (일시납일 때는 추가출자금만 숨김)
     const tableHeaders =
       context.fund.payment_schedule === 'lump_sum'
-        ? tableConfig.headers.filter(
-            h => h.property !== 'initialAmount' && h.property !== 'restAmount'
-          )
+        ? tableConfig.headers.filter(h => h.property !== 'restAmount')
         : tableConfig.headers;
 
     const tableAbsoluteWidth = doc.page.width - 110;
@@ -243,24 +250,22 @@ async function renderTable(
       const percentage =
         ((member.total_amount / context.fund.total_cap) * 100).toFixed(2) + '%';
 
+      const baseData = {
+        memberType:
+          member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원',
+        name: member.name,
+        units: member.total_units.toLocaleString('ko-KR'),
+        totalAmount: member.total_amount.toLocaleString('ko-KR'),
+        initialAmount: member.initial_amount.toLocaleString('ko-KR'),
+        percentage,
+      };
+
+      // 수시납인 경우에만 추가출자금 포함
       return context.fund.payment_schedule === 'lump_sum'
-        ? {
-            memberType:
-              member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원',
-            name: member.name,
-            units: member.total_units.toLocaleString('ko-KR'),
-            totalAmount: member.total_amount.toLocaleString('ko-KR'),
-            percentage,
-          }
+        ? baseData
         : {
-            memberType:
-              member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원',
-            name: member.name,
-            units: member.total_units.toLocaleString('ko-KR'),
-            totalAmount: member.total_amount.toLocaleString('ko-KR'),
-            initialAmount: member.initial_amount.toLocaleString('ko-KR'),
+            ...baseData,
             restAmount: restAmount.toLocaleString('ko-KR'),
-            percentage,
           };
     });
 
@@ -270,25 +275,24 @@ async function renderTable(
       0
     );
 
+    const baseTotalData = {
+      memberType: '계',
+      name: '',
+      units: totalUnits.toLocaleString('ko-KR'),
+      totalAmount: context.fund.total_cap.toLocaleString('ko-KR'),
+      initialAmount: context.fund.initial_cap.toLocaleString('ko-KR'),
+      percentage: '100.00%',
+    };
+
+    // 수시납인 경우에만 추가출자금 포함
     if (context.fund.payment_schedule === 'lump_sum') {
-      datas.push({
-        memberType: '계',
-        name: '',
-        units: totalUnits.toLocaleString('ko-KR'),
-        totalAmount: context.fund.total_cap.toLocaleString('ko-KR'),
-        percentage: '100.00%',
-      });
+      datas.push(baseTotalData);
     } else {
       datas.push({
-        memberType: '계',
-        name: '',
-        units: totalUnits.toLocaleString('ko-KR'),
-        totalAmount: context.fund.total_cap.toLocaleString('ko-KR'),
-        initialAmount: context.fund.initial_cap.toLocaleString('ko-KR'),
+        ...baseTotalData,
         restAmount: (
           context.fund.total_cap - context.fund.initial_cap
         ).toLocaleString('ko-KR'),
-        percentage: '100.00%',
       });
     }
 
@@ -302,9 +306,9 @@ async function renderTable(
 
     const startX = xPosition ?? 50;
     const startY = doc.y;
-    const rowHeight = 22;
+    const rowHeight = 18;
     const cellPaddingX = 6;
-    const cellPaddingY = 5;
+    const cellPaddingY = 3;
     const borderColor = '#BFBFBF'; // MS Word 테두리 색상
     const headerBgColor = '#D9D9D9'; // MS Word 헤더 배경색
     const totalRowBgColor = '#F2F2F2'; // 합계 행 배경색
@@ -517,8 +521,40 @@ async function renderSection(
   const pageBottomMargin = 80;
   const maxY = doc.page.height - pageBottomMargin;
 
-  // 제목 렌더링
-  if (section.title) {
+  // depth 0: 장(章) 제목 렌더링
+  if (depth === 0 && section.title) {
+    const chapterFontSize = 16;
+    const titleHeight = chapterFontSize + 30;
+
+    if (doc.y + titleHeight > maxY) {
+      doc.addPage();
+      currentPageNumber.value++;
+      addPageFooter(doc, currentPageNumber.value);
+    }
+
+    // 위쪽 간격 추가 (페이지 시작이 아닌 경우에만)
+    if (doc.y > 100) {
+      doc.moveDown(2);
+    }
+
+    doc.fontSize(chapterFontSize);
+    tryFont(doc, '맑은고딕-Bold', 'NanumGothicBold');
+
+    // index가 -1이면 장 번호 없이 title만 표시
+    const chapterTitle =
+      section.index === -1
+        ? section.title
+        : `제 ${section.index} 장    ${section.title}`;
+
+    doc.text(chapterTitle, pageMargin, doc.y, {
+      width: doc.page.width - pageMargin * 2,
+      align: 'center',
+      continued: false,
+    });
+    doc.moveDown(2);
+  }
+  // depth 1: 조(條) 제목 렌더링
+  else if (depth === 1 && section.title) {
     const titleHeight = fontSize + 10;
     if (doc.y + titleHeight > maxY) {
       doc.addPage();
@@ -530,7 +566,7 @@ async function renderSection(
     tryFont(doc, '맑은고딕-Bold', 'NanumGothicBold');
     doc.text(
       `제${section.index}조 (${section.title})`,
-      pageMargin + indent,
+      pageMargin, // depth 1은 indent 없음
       doc.y,
       {
         continued: false,
@@ -548,8 +584,11 @@ async function renderSection(
       processedText
     );
 
+    // depth 0, 1은 indent 없음
+    const currentIndent = depth >= 2 ? indent : 0;
+
     const textOptions = {
-      width: doc.page.width - pageMargin * 2 - indent,
+      width: doc.page.width - pageMargin * 2 - currentIndent,
       align: 'justify' as const,
       lineGap: 2,
     };
@@ -566,15 +605,23 @@ async function renderSection(
 
     doc.fontSize(fontSize - 1);
     tryFont(doc, '맑은고딕', 'NanumGothic');
-    doc.text(processedTextWithIndex, pageMargin + indent, doc.y, textOptions);
+    doc.text(
+      processedTextWithIndex,
+      pageMargin + currentIndent,
+      doc.y,
+      textOptions
+    );
     doc.moveDown(1);
   } else if (section.text && section.type === 'table') {
     const processedText = processTemplateVariables(section.text, context);
 
+    // depth 0, 1은 indent 없음
+    const currentIndent = depth >= 2 ? indent : 0;
+
     doc.fontSize(fontSize - 1);
     tryFont(doc, '맑은고딕', 'NanumGothic');
-    doc.text(processedText, pageMargin + indent, doc.y, {
-      width: doc.page.width - pageMargin * 2 - indent,
+    doc.text(processedText, pageMargin + currentIndent, doc.y, {
+      width: doc.page.width - pageMargin * 2 - currentIndent,
       align: 'justify' as const,
       lineGap: 2,
     });
@@ -583,18 +630,29 @@ async function renderSection(
 
   // 테이블 렌더링
   if (section.type === 'table' && section.tableConfig) {
-    await renderTable(doc, section, context, pageMargin + indent);
+    // depth 0, 1은 indent 없음
+    const currentIndent = depth >= 2 ? indent : 0;
+    await renderTable(doc, section, context, pageMargin + currentIndent);
   }
 
   // 하위 섹션 재귀적으로 렌더링
   if (section.sub && section.sub.length > 0) {
     for (const subSection of section.sub) {
+      // 다음 depth 계산
+      const nextDepth = depth + 1;
+
+      // indent 계산: depth 2부터 적용, index > 0인 경우 indent 증가
+      let nextIndent = indent;
+      if (nextDepth >= 2 && subSection.index > 0) {
+        nextIndent = indent + INDENT_SIZE;
+      }
+
       await renderSection(
         doc,
         subSection,
         context,
-        depth + 1,
-        subSection.index > 0 ? indent + 10 : indent,
+        nextDepth,
+        nextIndent,
         currentPageNumber
       );
     }
@@ -650,7 +708,7 @@ export async function generateLPAPDF(
 
   // 섹션 렌더링
   for (const section of content.sections) {
-    await renderSection(doc, section, context, 0, 10, currentPageNumber);
+    await renderSection(doc, section, context, 0, 0, currentPageNumber);
   }
 
   doc.end();

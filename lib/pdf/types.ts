@@ -3,7 +3,7 @@
 export interface TemplateSection {
   index: number;
   title: string;
-  text: string;
+  text?: string;
   type?: string;
   sub: TemplateSection[];
   tableConfig?: TableConfig;
@@ -39,6 +39,7 @@ export interface LPAContext {
     initial_cap: number;
     payment_schedule: 'lump_sum' | 'capital_call';
     duration: number;
+    closed_at: string | null;
   };
   user: {
     id: string;

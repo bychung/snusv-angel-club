@@ -157,7 +157,27 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
   }, [fundId]);
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+
+      // 결성예정일 변경 시 만기예정일 자동 계산
+      if (
+        field === 'closed_at' &&
+        value &&
+        (formData.status === 'ready' || formData.status === 'processing')
+      ) {
+        const closedDate = new Date(value);
+        if (!isNaN(closedDate.getTime())) {
+          const dissolvedDate = new Date(closedDate);
+          dissolvedDate.setFullYear(
+            dissolvedDate.getFullYear() + formData.duration
+          );
+          newData.dissolved_at = dissolvedDate.toISOString().split('T')[0];
+        }
+      }
+
+      return newData;
+    });
   };
 
   const handleSave = async () => {
@@ -667,7 +687,12 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <BirthDateInput
-                  label="결성일"
+                  label={
+                    formData.status === 'ready' ||
+                    formData.status === 'processing'
+                      ? '결성예정일'
+                      : '결성일'
+                  }
                   value={formData.closed_at}
                   onChange={value => handleInputChange('closed_at', value)}
                 />
@@ -676,10 +701,20 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                   label="등록일"
                   value={formData.registered_at}
                   onChange={value => handleInputChange('registered_at', value)}
+                  disabled={
+                    formData.status === 'ready' ||
+                    formData.status === 'processing' ||
+                    formData.status === 'applied'
+                  }
                 />
 
                 <BirthDateInput
-                  label="만기일"
+                  label={
+                    formData.status === 'ready' ||
+                    formData.status === 'processing'
+                      ? '만기예정일'
+                      : '만기일'
+                  }
                   value={formData.dissolved_at}
                   onChange={value => handleInputChange('dissolved_at', value)}
                 />
