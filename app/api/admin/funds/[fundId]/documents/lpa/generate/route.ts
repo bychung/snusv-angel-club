@@ -1,5 +1,7 @@
 // LPA PDF 생성 API Route
 
+import { getActiveTemplate } from '@/lib/admin/document-templates';
+import { saveFundDocument } from '@/lib/admin/fund-documents';
 import { getFundDataForDocument } from '@/lib/admin/funds';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
@@ -10,16 +12,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as path from 'path';
 
 /**
- * 템플릿 로드
+ * 템플릿 로드 (DB 우선, 없으면 파일)
  */
-async function loadLPATemplate(): Promise<LPATemplate> {
+async function loadLPATemplate(): Promise<{
+  template: LPATemplate;
+  templateId?: string;
+  templateVersion: string;
+}> {
+  // 1. DB에서 활성 템플릿 조회 시도
+  try {
+    const dbTemplate = await getActiveTemplate('lpa');
+    if (dbTemplate) {
+      return {
+        template: {
+          type: 'lpa',
+          version: dbTemplate.version,
+          description: dbTemplate.description || '',
+          content: dbTemplate.content,
+        },
+        templateId: dbTemplate.id,
+        templateVersion: dbTemplate.version,
+      };
+    }
+  } catch (error) {
+    console.warn('DB 템플릿 조회 실패, 파일 템플릿 사용:', error);
+  }
+
+  // 2. DB에 없으면 파일에서 로드
   const templatePath = path.join(
     process.cwd(),
     'template',
     'lpa-template.json'
   );
   const templateContent = fs.readFileSync(templatePath, 'utf-8');
-  return JSON.parse(templateContent) as LPATemplate;
+  const fileTemplate = JSON.parse(templateContent) as LPATemplate;
+
+  return {
+    template: fileTemplate,
+    templateVersion: fileTemplate.version || '1.0.0',
+  };
 }
 
 /**
@@ -69,7 +100,7 @@ export async function POST(
 ) {
   try {
     // 관리자 권한 검증
-    const { user } = await validateAdminAuth(request);
+    const { user, profile } = await validateAdminAuth(request);
 
     const { fundId } = await params;
 
@@ -79,7 +110,7 @@ export async function POST(
     const context = await buildLPAContext(fundId, user.id);
 
     // 2. 템플릿 로드
-    const template = await loadLPATemplate();
+    const { template, templateId, templateVersion } = await loadLPATemplate();
 
     // 3. 템플릿 변수 치환
     const processedContent = processLPATemplate(template, context);
@@ -88,6 +119,28 @@ export async function POST(
     const pdfBuffer = await generateLPAPDF(processedContent, context);
 
     console.log(`LPA PDF 생성 완료: ${pdfBuffer.length} bytes`);
+
+    // 5. DB에 문서 기록 저장
+    try {
+      await saveFundDocument({
+        fundId,
+        type: 'lpa',
+        templateId,
+        templateVersion,
+        processedContent,
+        generationContext: {
+          fundName: context.fund.name,
+          generatedAt: context.generatedAt.toISOString(),
+          membersCount: context.members.length,
+          totalCap: context.fund.total_cap,
+        },
+        generatedBy: profile?.id, // profile.id 사용 (없으면 undefined)
+      });
+      console.log('문서 생성 기록 저장 완료');
+    } catch (error) {
+      console.error('문서 생성 기록 저장 실패:', error);
+      // PDF 생성은 성공했으므로 계속 진행
+    }
 
     // 5. 파일명 생성
     const today = new Date();

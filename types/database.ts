@@ -101,6 +101,32 @@ export interface Document {
   updated_at: string;
 }
 
+// 문서 템플릿 버전 관리 (전체 브랜드 공통)
+export interface DocumentTemplate {
+  id: string;
+  type: string; // 'lpa', 'plan', 'certificate' 등
+  version: string; // '1.0.0', '1.1.0'
+  content: any; // JSONB - 템플릿 전체 구조
+  is_active: boolean;
+  description?: string | null;
+  created_at: string;
+  created_by?: string | null;
+}
+
+// 생성된 문서 기록 (fund를 통해 brand 확인)
+export interface FundDocument {
+  id: string;
+  fund_id: string;
+  type: string; // 문서 타입
+  template_id?: string | null;
+  template_version: string;
+  processed_content: any; // JSONB - 변수 치환 완료된 최종 내용
+  generation_context?: any | null; // JSONB - 재생성용 컨텍스트
+  pdf_storage_path?: string | null;
+  generated_at: string;
+  generated_by?: string | null;
+}
+
 export interface ProfilePermission {
   id: string;
   profile_id: string;
@@ -204,6 +230,16 @@ export interface Database {
         Row: ProfileChange;
         Insert: Omit<ProfileChange, 'id' | 'changed_at'>;
         Update: Partial<Omit<ProfileChange, 'id' | 'changed_at'>>;
+      };
+      document_templates: {
+        Row: DocumentTemplate;
+        Insert: Omit<DocumentTemplate, 'id' | 'created_at'>;
+        Update: Partial<Omit<DocumentTemplate, 'id' | 'created_at'>>;
+      };
+      fund_documents: {
+        Row: FundDocument;
+        Insert: Omit<FundDocument, 'id' | 'generated_at'>;
+        Update: Partial<Omit<FundDocument, 'id' | 'generated_at'>>;
       };
     };
   };

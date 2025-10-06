@@ -38,6 +38,7 @@ import {
   Building2,
   ChevronDown,
   Download,
+  FileCode2,
   FileText,
   RefreshCw,
   Save,
@@ -46,6 +47,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BirthDateInput from '../survey/inputs/BirthDateInput';
+import DocumentGenerationSection from './DocumentGenerationSection';
 import DocumentHistory from './DocumentHistory';
 import DocumentUpload from './DocumentUpload';
 import InvestmentCertificateManager from './InvestmentCertificateManager';
@@ -346,7 +348,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="info" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             기본 정보
@@ -358,6 +360,13 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           <TabsTrigger value="certificates" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             투자확인서
+          </TabsTrigger>
+          <TabsTrigger
+            value="document-generation"
+            className="flex items-center gap-2"
+          >
+            <FileCode2 className="h-4 w-4" />
+            문서 생성
           </TabsTrigger>
         </TabsList>
 
@@ -939,6 +948,37 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               onRefresh={handleDocumentAction}
               refreshKey={certificateRefreshKey}
             />
+          </div>
+        </TabsContent>
+
+        {/* 문서 생성 탭 */}
+        <TabsContent value="document-generation" className="space-y-6">
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              <FileCode2 className="h-5 w-5 text-gray-500" />
+              <h3 className="text-lg font-semibold">문서 자동 생성</h3>
+              <span className="text-sm text-gray-500">
+                - 템플릿 기반 법적 문서 생성 및 버전 관리
+              </span>
+            </div>
+
+            {/* 규약 섹션 */}
+            <DocumentGenerationSection
+              fundId={fundId}
+              fundName={fundDetails.fund.name}
+              documentType="lpa"
+              title="조합 규약 (LPA)"
+              description="Limited Partnership Agreement - 조합원간의 권리와 의무를 규정하는 법적 문서"
+            />
+
+            {/* 향후 추가될 섹션들 */}
+            {/* <DocumentGenerationSection
+              fundId={fundId}
+              fundName={fundDetails.fund.name}
+              documentType="plan"
+              title="결성계획서"
+              description="펀드 결성을 위한 계획서"
+            /> */}
           </div>
         </TabsContent>
       </Tabs>

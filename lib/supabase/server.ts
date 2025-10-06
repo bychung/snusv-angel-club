@@ -94,5 +94,9 @@ export async function createBrandServerClient() {
     ),
     angelInquiries: createTableOperations(supabase, 'angel_inquiries', brand),
     signupInquiries: createTableOperations(supabase, 'signup_inquiries', brand),
+
+    // 브랜드 필터 없는 테이블들 (전체 공통 또는 FK를 통해 브랜드 확인)
+    documentTemplates: supabase.from('document_templates'),
+    fundDocuments: supabase.from('fund_documents'),
   };
 }
