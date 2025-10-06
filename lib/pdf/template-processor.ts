@@ -78,6 +78,15 @@ function convertFourDigitsToKorean(num: number): string {
 }
 
 /**
+ * 미리보기 모드에서 동적 데이터를 마킹
+ * PREVIEW 스타일은 lpa-generator.ts의 STYLE_MARKERS에서 일괄 변경 가능
+ */
+function markPreview(text: string, isPreview: boolean): string {
+  if (!isPreview) return text;
+  return `<<PREVIEW>>${text}<<PREVIEW_END>>`;
+}
+
+/**
  * 템플릿 변수를 실제 값으로 치환
  */
 export function processTemplateVariables(
@@ -87,28 +96,42 @@ export function processTemplateVariables(
   // text가 없으면 빈 문자열 반환
   if (!text) return '';
 
+  const isPreview = context.isPreview || false;
   let processedText = text;
 
   // 펀드 관련 변수
   processedText = processedText.replace(
     /\$\{fundName\}/g,
-    context.fund.name || ''
+    markPreview(context.fund.name || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{fundAddress\}/g,
-    context.fund.address || ''
+    markPreview(context.fund.address || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{totalCapKor\}/g,
-    context.fund.total_cap ? convertNumberToKorean(context.fund.total_cap) : ''
+    markPreview(
+      context.fund.total_cap
+        ? convertNumberToKorean(context.fund.total_cap)
+        : '',
+      isPreview
+    )
   );
   processedText = processedText.replace(
     /\$\{totalCapComma\}/g,
-    context.fund.total_cap ? context.fund.total_cap.toLocaleString('ko-KR') : ''
+    markPreview(
+      context.fund.total_cap
+        ? context.fund.total_cap.toLocaleString('ko-KR')
+        : '',
+      isPreview
+    )
   );
   processedText = processedText.replace(
     /\$\{duration\}/g,
-    context.fund.duration ? context.fund.duration.toString() : '5'
+    markPreview(
+      context.fund.duration ? context.fund.duration.toString() : '5',
+      isPreview
+    )
   );
 
   // 결성일 (closed_at) - 'YYYY년 MM월 DD일' 형식
@@ -119,7 +142,7 @@ export function processTemplateVariables(
     const day = String(closedDate.getDate()).padStart(2, '0');
     processedText = processedText.replace(
       /\$\{startDate\}/g,
-      `${year}년 ${month}월 ${day}일`
+      markPreview(`${year}년 ${month}월 ${day}일`, isPreview)
     );
   } else {
     processedText = processedText.replace(/\$\{startDate\}/g, '');
@@ -128,19 +151,19 @@ export function processTemplateVariables(
   // 사용자 관련 변수
   processedText = processedText.replace(
     /\$\{userName\}/g,
-    context.user.name || ''
+    markPreview(context.user.name || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{userEmail\}/g,
-    context.user.email || ''
+    markPreview(context.user.email || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{userAddress\}/g,
-    context.fund.address || ''
+    markPreview(context.fund.address || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{userPhone\}/g,
-    context.user.phone || ''
+    markPreview(context.user.phone || '', isPreview)
   );
 
   // 조합원 관련 변수
@@ -149,34 +172,34 @@ export function processTemplateVariables(
 
   processedText = processedText.replace(
     /\$\{coGP\}/g,
-    gpMembers.length > 1 ? '공동' : ''
+    markPreview(gpMembers.length > 1 ? '공동' : '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{gpList\}/g,
-    gpMembers.map(m => m.name).join(', ')
+    markPreview(gpMembers.map(m => m.name).join(', '), isPreview)
   );
   processedText = processedText.replace(
     /\$\{lpList\}/g,
-    lpMembers.map(m => m.name).join(', ')
+    markPreview(lpMembers.map(m => m.name).join(', '), isPreview)
   );
 
   // 날짜 관련 변수
   const today = new Date();
   processedText = processedText.replace(
     /\$\{today\}/g,
-    today.toLocaleDateString('ko-KR')
+    markPreview(today.toLocaleDateString('ko-KR'), isPreview)
   );
   processedText = processedText.replace(
     /\$\{year\}/g,
-    today.getFullYear().toString()
+    markPreview(today.getFullYear().toString(), isPreview)
   );
   processedText = processedText.replace(
     /\$\{month\}/g,
-    (today.getMonth() + 1).toString()
+    markPreview((today.getMonth() + 1).toString(), isPreview)
   );
   processedText = processedText.replace(
     /\$\{day\}/g,
-    today.getDate().toString()
+    markPreview(today.getDate().toString(), isPreview)
   );
 
   return processedText;

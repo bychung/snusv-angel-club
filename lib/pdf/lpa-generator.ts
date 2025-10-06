@@ -9,6 +9,42 @@ import type { LPAContext, ProcessedLPAContent, TemplateSection } from './types';
 // 상수 정의
 const INDENT_SIZE = 10; // 들여쓰기 크기 (depth 2부터 적용)
 
+// 스타일 마커 정의 (확장 가능)
+const STYLE_MARKERS = {
+  // 미리보기 전용 마커 - 이 스타일만 변경하면 모든 미리보기 데이터에 일괄 적용
+  PREVIEW: {
+    start: '<<PREVIEW>>',
+    end: '<<PREVIEW_END>>',
+    color: '#0066CC', // 파란색 (변경 가능)
+    bold: true, // true로 변경하면 미리보기 데이터가 굵게 표시
+    italic: false, // true로 변경하면 미리보기 데이터가 기울임체로 표시
+  },
+  // 추가 스타일들 (필요시 사용)
+  BOLD: {
+    start: '<<BOLD>>',
+    end: '<<BOLD_END>>',
+    color: '#000000',
+    bold: true,
+    italic: false,
+  },
+  ITALIC: {
+    start: '<<ITALIC>>',
+    end: '<<ITALIC_END>>',
+    color: '#000000',
+    bold: false,
+    italic: true,
+  },
+  RED: {
+    start: '<<RED>>',
+    end: '<<RED_END>>',
+    color: '#CC0000',
+    bold: false,
+    italic: false,
+  },
+} as const;
+
+type StyleType = keyof typeof STYLE_MARKERS;
+
 /**
  * 한글 폰트 등록
  */
@@ -39,6 +75,244 @@ function registerKoreanFonts(doc: any): void {
   } catch (error) {
     console.error('폰트 등록 실패:', error);
   }
+}
+
+/**
+ * 스타일이 적용된 텍스트 세그먼트
+ */
+interface StyledSegment {
+  text: string;
+  styles: {
+    color: string;
+    bold: boolean;
+    italic: boolean;
+  };
+}
+
+/**
+ * 텍스트에서 스타일 마커를 파싱하여 세그먼트로 분리
+ * 여러 스타일을 중첩해서 사용 가능
+ */
+function parseStyleMarkers(text: string): StyledSegment[] {
+  const segments: StyledSegment[] = [];
+
+  // 모든 마커의 정규식을 생성
+  const markerPatterns = Object.entries(STYLE_MARKERS).map(
+    ([type, config]) => ({
+      type: type as StyleType,
+      start: config.start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+      end: config.end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+      config,
+    })
+  );
+
+  // 마커가 있는지 확인
+  const hasMarker = markerPatterns.some(p => text.includes(p.config.start));
+
+  if (!hasMarker) {
+    // 마커가 없으면 일반 텍스트로 반환
+    return [
+      {
+        text,
+        styles: {
+          color: '#000000',
+          bold: false,
+          italic: false,
+        },
+      },
+    ];
+  }
+
+  // 모든 마커 위치 찾기
+  interface MarkerPosition {
+    index: number;
+    isStart: boolean;
+    type: StyleType;
+    markerLength: number;
+  }
+
+  const markers: MarkerPosition[] = [];
+
+  markerPatterns.forEach(({ type, config }) => {
+    let pos = 0;
+    while ((pos = text.indexOf(config.start, pos)) !== -1) {
+      markers.push({
+        index: pos,
+        isStart: true,
+        type,
+        markerLength: config.start.length,
+      });
+      pos += config.start.length;
+    }
+
+    pos = 0;
+    while ((pos = text.indexOf(config.end, pos)) !== -1) {
+      markers.push({
+        index: pos,
+        isStart: false,
+        type,
+        markerLength: config.end.length,
+      });
+      pos += config.end.length;
+    }
+  });
+
+  // 위치순으로 정렬
+  markers.sort((a, b) => a.index - b.index);
+
+  // 스타일 스택 (중첩 지원)
+  const activeStyles: Set<StyleType> = new Set();
+  let lastIndex = 0;
+
+  markers.forEach(marker => {
+    // 마커 전의 텍스트 추출
+    if (marker.index > lastIndex) {
+      const segmentText = text.substring(lastIndex, marker.index);
+      const currentStyles = computeStyles(activeStyles);
+      segments.push({
+        text: segmentText,
+        styles: currentStyles,
+      });
+    }
+
+    // 스타일 스택 업데이트
+    if (marker.isStart) {
+      activeStyles.add(marker.type);
+    } else {
+      activeStyles.delete(marker.type);
+    }
+
+    lastIndex = marker.index + marker.markerLength;
+  });
+
+  // 남은 텍스트
+  if (lastIndex < text.length) {
+    const segmentText = text.substring(lastIndex);
+    const currentStyles = computeStyles(activeStyles);
+    segments.push({
+      text: segmentText,
+      styles: currentStyles,
+    });
+  }
+
+  return segments;
+}
+
+/**
+ * 활성화된 스타일들을 합성하여 최종 스타일 계산
+ */
+function computeStyles(activeStyles: Set<StyleType>): {
+  color: string;
+  bold: boolean;
+  italic: boolean;
+} {
+  let color = '#000000';
+  let bold = false;
+  let italic = false;
+
+  // 스타일 우선순위: 나중에 추가된 것이 우선
+  activeStyles.forEach(styleType => {
+    const style = STYLE_MARKERS[styleType];
+    if (style.color !== '#000000') {
+      color = style.color;
+    }
+    if (style.bold) {
+      bold = true;
+    }
+    if (style.italic) {
+      italic = true;
+    }
+  });
+
+  return { color, bold, italic };
+}
+
+/**
+ * 스타일 마커를 적용하여 텍스트 렌더링 (줄바꿈, 색상, 볼드, 이탤릭 지원)
+ */
+function renderStyledText(
+  doc: any,
+  text: string,
+  x: number,
+  y: number,
+  options: any,
+  baseFont: {
+    regular: string;
+    bold: string;
+    italic?: string;
+    boldItalic?: string;
+  }
+): void {
+  // 스타일 마커가 없으면 일반 렌더링
+  const hasAnyMarker = Object.values(STYLE_MARKERS).some(marker =>
+    text.includes(marker.start)
+  );
+
+  if (!hasAnyMarker) {
+    doc.text(text, x, y, options);
+    return;
+  }
+
+  // 줄바꿈으로 먼저 분리
+  const lines = text.split('\n');
+
+  // 첫 줄만 위치 지정, 나머지는 자동 줄바꿈
+  lines.forEach((line, lineIndex) => {
+    const segments = parseStyleMarkers(line);
+
+    // 이 줄에 스타일이 없으면 일반 렌더링
+    const hasStyle = segments.some(
+      s => s.styles.color !== '#000000' || s.styles.bold || s.styles.italic
+    );
+
+    if (!hasStyle) {
+      if (lineIndex === 0) {
+        doc.text(line, x, y, { ...options });
+      } else {
+        doc.text(line, { ...options });
+      }
+    } else {
+      // 스타일이 섞인 줄 처리
+      segments.forEach((segment, segmentIndex) => {
+        if (!segment.text) return;
+
+        // 폰트 적용 (볼드/이탤릭)
+        if (
+          segment.styles.bold &&
+          segment.styles.italic &&
+          baseFont.boldItalic
+        ) {
+          tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
+        } else if (segment.styles.bold) {
+          tryFont(doc, baseFont.bold, 'Helvetica-Bold');
+        } else if (segment.styles.italic && baseFont.italic) {
+          tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
+        } else {
+          tryFont(doc, baseFont.regular, 'Helvetica');
+        }
+
+        // 색상 설정
+        doc.fillColor(segment.styles.color);
+
+        // 첫 줄의 첫 세그먼트만 위치 지정
+        if (lineIndex === 0 && segmentIndex === 0) {
+          doc.text(segment.text, x, y, {
+            ...options,
+            continued: segmentIndex < segments.length - 1,
+          });
+        } else {
+          doc.text(segment.text, {
+            ...options,
+            continued: segmentIndex < segments.length - 1,
+          });
+        }
+      });
+
+      // 기본 스타일로 복원
+      tryFont(doc, baseFont.regular, 'Helvetica');
+      doc.fillColor('#000000');
+    }
+  });
 }
 
 /**
@@ -245,19 +519,41 @@ async function renderTable(
     });
 
     // 테이블 데이터 생성
+    const isPreview = context.isPreview || false;
     const datas = sortedMembers.map(member => {
       const restAmount = member.total_amount - member.initial_amount;
       const percentage =
         ((member.total_amount / context.fund.total_cap) * 100).toFixed(2) + '%';
 
       const baseData = {
-        memberType:
-          member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원',
-        name: member.name,
-        units: member.total_units.toLocaleString('ko-KR'),
-        totalAmount: member.total_amount.toLocaleString('ko-KR'),
-        initialAmount: member.initial_amount.toLocaleString('ko-KR'),
-        percentage,
+        memberType: isPreview
+          ? `<<PREVIEW>>${
+              member.member_type === 'GP' ? '업무집행조합원' : '유한책임조합원'
+            }<<PREVIEW_END>>`
+          : member.member_type === 'GP'
+          ? '업무집행조합원'
+          : '유한책임조합원',
+        name: isPreview
+          ? `<<PREVIEW>>${member.name}<<PREVIEW_END>>`
+          : member.name,
+        units: isPreview
+          ? `<<PREVIEW>>${member.total_units.toLocaleString(
+              'ko-KR'
+            )}<<PREVIEW_END>>`
+          : member.total_units.toLocaleString('ko-KR'),
+        totalAmount: isPreview
+          ? `<<PREVIEW>>${member.total_amount.toLocaleString(
+              'ko-KR'
+            )}<<PREVIEW_END>>`
+          : member.total_amount.toLocaleString('ko-KR'),
+        initialAmount: isPreview
+          ? `<<PREVIEW>>${member.initial_amount.toLocaleString(
+              'ko-KR'
+            )}<<PREVIEW_END>>`
+          : member.initial_amount.toLocaleString('ko-KR'),
+        percentage: isPreview
+          ? `<<PREVIEW>>${percentage}<<PREVIEW_END>>`
+          : percentage,
       };
 
       // 수시납인 경우에만 추가출자금 포함
@@ -265,7 +561,11 @@ async function renderTable(
         ? baseData
         : {
             ...baseData,
-            restAmount: restAmount.toLocaleString('ko-KR'),
+            restAmount: isPreview
+              ? `<<PREVIEW>>${restAmount.toLocaleString(
+                  'ko-KR'
+                )}<<PREVIEW_END>>`
+              : restAmount.toLocaleString('ko-KR'),
           };
     });
 
@@ -447,11 +747,56 @@ async function renderTable(
         }
 
         const text = String((row as any)[h.property] ?? '');
-        doc.text(text, cursorX + cellPaddingX, cursorY + cellPaddingY, {
-          width: h.width - cellPaddingX * 2,
-          align: h.align as any,
-          lineGap: 0,
-        });
+
+        // 스타일 마커가 있는 경우 특수 렌더링
+        const hasStyleMarker = Object.values(STYLE_MARKERS).some(marker =>
+          text.includes(marker.start)
+        );
+
+        if (hasStyleMarker) {
+          const segments = parseStyleMarkers(text);
+          const textOptions = {
+            width: h.width - cellPaddingX * 2,
+            align: h.align as any,
+            lineGap: 0,
+          };
+
+          // 위치 설정
+          doc.text('', cursorX + cellPaddingX, cursorY + cellPaddingY, {
+            ...textOptions,
+            continued: false,
+          });
+
+          // 스타일별로 텍스트 렌더링
+          segments.forEach((segment, index) => {
+            if (segment.text) {
+              // 폰트 적용
+              if (segment.styles.bold) {
+                tryFont(doc, '맑은고딕-Bold', 'Helvetica-Bold');
+              } else {
+                tryFont(doc, '맑은고딕', 'Helvetica');
+              }
+
+              // 색상 적용
+              doc.fillColor(segment.styles.color);
+
+              doc.text(segment.text, {
+                ...textOptions,
+                continued: index < segments.length - 1,
+              });
+            }
+          });
+
+          // 스타일 복원
+          tryFont(doc, '맑은고딕', 'Helvetica');
+          doc.fillColor('#000000');
+        } else {
+          doc.text(text, cursorX + cellPaddingX, cursorY + cellPaddingY, {
+            width: h.width - cellPaddingX * 2,
+            align: h.align as any,
+            lineGap: 0,
+          });
+        }
         cursorX += h.width;
       });
 
@@ -595,7 +940,13 @@ async function renderSection(
 
     doc.fontSize(fontSize - 1);
     tryFont(doc, '맑은고딕', 'NanumGothic');
-    const textHeight = doc.heightOfString(processedTextWithIndex, textOptions);
+
+    // 스타일 마커 제거 후 높이 계산
+    const textForHeight = processedTextWithIndex.replace(
+      /<<\w+>>|<<\w+_END>>/g,
+      ''
+    );
+    const textHeight = doc.heightOfString(textForHeight, textOptions);
 
     if (doc.y + textHeight > maxY) {
       doc.addPage();
@@ -605,11 +956,16 @@ async function renderSection(
 
     doc.fontSize(fontSize - 1);
     tryFont(doc, '맑은고딕', 'NanumGothic');
-    doc.text(
+    renderStyledText(
+      doc,
       processedTextWithIndex,
       pageMargin + currentIndent,
       doc.y,
-      textOptions
+      textOptions,
+      {
+        regular: '맑은고딕',
+        bold: '맑은고딕-Bold',
+      }
     );
     doc.moveDown(1);
   } else if (section.text && section.type === 'table') {
@@ -620,11 +976,21 @@ async function renderSection(
 
     doc.fontSize(fontSize - 1);
     tryFont(doc, '맑은고딕', 'NanumGothic');
-    doc.text(processedText, pageMargin + currentIndent, doc.y, {
-      width: doc.page.width - pageMargin * 2 - currentIndent,
-      align: 'justify' as const,
-      lineGap: 2,
-    });
+    renderStyledText(
+      doc,
+      processedText,
+      pageMargin + currentIndent,
+      doc.y,
+      {
+        width: doc.page.width - pageMargin * 2 - currentIndent,
+        align: 'justify' as const,
+        lineGap: 2,
+      },
+      {
+        regular: '맑은고딕',
+        bold: '맑은고딕-Bold',
+      }
+    );
     doc.moveDown(0.5);
   }
 

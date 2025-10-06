@@ -56,6 +56,7 @@ export interface LPAContext {
     initial_amount: number;
   }>;
   generatedAt: Date;
+  isPreview?: boolean; // 미리보기 모드 여부
 }
 
 export interface ProcessedLPAContent {

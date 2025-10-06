@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Eye,
   FileText,
   GitCompare,
   MoreVertical,
@@ -15,6 +16,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import PDFPreviewModal from './PDFPreviewModal';
 
 interface DocumentGenerationActionsProps {
   fundId: string;
@@ -32,6 +34,8 @@ export default function DocumentGenerationActions({
   const [generating, setGenerating] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [hasExistingDocument, setHasExistingDocument] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // 기존 문서 존재 여부 확인
   useEffect(() => {
@@ -132,6 +136,35 @@ export default function DocumentGenerationActions({
     }
   };
 
+  const handlePreview = async () => {
+    try {
+      setPreviewing(true);
+
+      // 미리보기 URL 생성
+      const url = `/api/admin/funds/${fundId}/documents/${documentType}/preview`;
+      setPreviewUrl(url);
+    } catch (err) {
+      console.error('미리보기 오류:', err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : '미리보기 생성 중 오류가 발생했습니다.'
+      );
+      setPreviewing(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setPreviewing(false);
+    setPreviewUrl(null);
+  };
+
+  const handleDownloadFromPreview = () => {
+    // 미리보기 중 다운로드 버튼 클릭 시 실제 생성
+    handleClosePreview();
+    handleGenerate();
+  };
+
   const getDocumentTypeLabel = (type: string) => {
     switch (type) {
       case 'lpa':
@@ -144,83 +177,108 @@ export default function DocumentGenerationActions({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Button
-          size="lg"
-          className="flex-1"
-          onClick={handleGenerate}
-          disabled={generating || regenerating}
-        >
-          <FileText className="h-5 w-5 mr-2" />
-          {generating
-            ? '생성 중...'
-            : hasExistingDocument
-            ? `새로운 ${getDocumentTypeLabel(documentType)} 생성`
-            : `${getDocumentTypeLabel(documentType)} 생성`}
-        </Button>
-
-        {hasExistingDocument && (
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="lg"
-            onClick={handleRegenerate}
-            disabled={generating || regenerating}
+            onClick={handlePreview}
+            disabled={generating || regenerating || previewing}
           >
-            <RefreshCw
-              className={`h-5 w-5 mr-2 ${regenerating ? 'animate-spin' : ''}`}
-            />
-            재생성
+            <Eye className="h-5 w-5 mr-2" />
+            미리보기
           </Button>
-        )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <Button
+            size="lg"
+            className="flex-1"
+            onClick={handleGenerate}
+            disabled={generating || regenerating || previewing}
+          >
+            <FileText className="h-5 w-5 mr-2" />
+            {generating
+              ? '생성 중...'
+              : hasExistingDocument
+              ? `새로운 ${getDocumentTypeLabel(documentType)} 생성`
+              : `${getDocumentTypeLabel(documentType)} 생성`}
+          </Button>
+
+          {hasExistingDocument && (
             <Button
               variant="outline"
-              size="icon"
-              disabled={generating || regenerating}
+              size="lg"
+              onClick={handleRegenerate}
+              disabled={generating || regenerating || previewing}
             >
-              <MoreVertical className="h-5 w-5" />
+              <RefreshCw
+                className={`h-5 w-5 mr-2 ${regenerating ? 'animate-spin' : ''}`}
+              />
+              재생성
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={() => {
-                // TODO: 생성 컨텍스트 확인 모달
-                console.log('생성 컨텍스트 확인:', fundId, documentType);
-              }}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              생성 컨텍스트 확인
-            </DropdownMenuItem>
-            {hasExistingDocument && (
+          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={generating || regenerating || previewing}
+              >
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
               <DropdownMenuItem
                 onClick={() => {
-                  // TODO: 이전 버전과 비교 모달
-                  console.log('이전 버전과 비교:', fundId, documentType);
+                  // TODO: 생성 컨텍스트 확인 모달
+                  console.log('생성 컨텍스트 확인:', fundId, documentType);
                 }}
               >
-                <GitCompare className="h-4 w-4 mr-2" />
-                이전 버전과 비교
+                <Settings className="h-4 w-4 mr-2" />
+                생성 컨텍스트 확인
               </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              {hasExistingDocument && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    // TODO: 이전 버전과 비교 모달
+                    console.log('이전 버전과 비교:', fundId, documentType);
+                  }}
+                >
+                  <GitCompare className="h-4 w-4 mr-2" />
+                  이전 버전과 비교
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        <div className="text-xs text-gray-500">
+          {hasExistingDocument ? (
+            <>
+              기존 문서가 있습니다. 새 문서를 생성하면 이전 기록이
+              업데이트됩니다.
+            </>
+          ) : (
+            <>
+              현재 활성 템플릿을 사용하여 {getDocumentTypeLabel(documentType)}
+              을(를) 생성합니다.
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="text-xs text-gray-500">
-        {hasExistingDocument ? (
-          <>
-            기존 문서가 있습니다. 새 문서를 생성하면 이전 기록이 업데이트됩니다.
-          </>
-        ) : (
-          <>
-            현재 활성 템플릿을 사용하여 {getDocumentTypeLabel(documentType)}
-            을(를) 생성합니다.
-          </>
-        )}
-      </div>
-    </div>
+      {/* PDF 미리보기 모달 */}
+      {previewUrl && (
+        <PDFPreviewModal
+          isOpen={previewing}
+          onClose={handleClosePreview}
+          previewUrl={previewUrl}
+          title={`${getDocumentTypeLabel(documentType)} 미리보기`}
+          description="실제 저장되지 않는 미리보기입니다. 조합 주요 정보는 파란색으로 표시됩니다."
+          onDownload={handleDownloadFromPreview}
+        />
+      )}
+    </>
   );
 }
