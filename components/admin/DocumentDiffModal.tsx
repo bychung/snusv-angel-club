@@ -64,22 +64,37 @@ export default function DocumentDiffModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 모달이 열릴 때 기본값 설정
+  // 모달이 열릴 때 또는 defaultFromId/defaultToId가 변경될 때 설정
   useEffect(() => {
-    if (isOpen && versions.length >= 2) {
-      // 최신 버전과 그 이전 버전을 기본으로 선택
-      if (!toId) {
-        setToId(versions[0].id); // 최신
+    if (isOpen) {
+      // defaultFromId가 주어진 경우 사용, 없으면 두 번째 버전
+      if (defaultFromId) {
+        setFromId(defaultFromId);
+      } else if (versions.length >= 2) {
+        setFromId(versions[1].id);
       }
-      if (!fromId) {
-        setFromId(versions[1].id); // 이전 버전
+
+      // defaultToId가 주어진 경우 사용, 없으면 첫 번째 버전(최신)
+      if (defaultToId) {
+        setToId(defaultToId);
+      } else if (versions.length >= 1) {
+        setToId(versions[0].id);
       }
+    } else {
+      // 모달이 닫힐 때 모든 state 초기화
+      setFromId('');
+      setToId('');
+      setDiff(null);
+      setError(null);
+      setLoading(false);
     }
-  }, [isOpen, versions]);
+  }, [isOpen, defaultFromId, defaultToId, versions]);
 
   // fromId 또는 toId가 변경되면 자동으로 diff 조회
   useEffect(() => {
     if (isOpen && fromId && toId && fromId !== toId) {
+      // 새로운 비교를 시작하기 전에 이전 diff 결과 초기화
+      setDiff(null);
       fetchDiff();
     }
   }, [fromId, toId, isOpen]);

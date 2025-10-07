@@ -121,10 +121,9 @@ export default function GeneratedDocumentsList({
     }
   };
 
-  const handleCompare = (documentId: string) => {
-    setSelectedDocumentId(documentId);
-    setDiffModalOpen(true);
-  };
+  const [previousDocumentId, setPreviousDocumentId] = useState<string | null>(
+    null
+  );
 
   if (loading) {
     return (
@@ -182,6 +181,8 @@ export default function GeneratedDocumentsList({
           <div className="space-y-2">
             {documents.map((doc, index) => {
               const isLatest = doc.is_active || index === 0;
+              const isOldest = index === documents.length - 1;
+              const previousDocument = documents[index + 1]; // 다음 인덱스가 이전 버전
 
               return (
                 <DocumentVersionCard
@@ -190,8 +191,13 @@ export default function GeneratedDocumentsList({
                   fundName={fundName}
                   documentType={documentType}
                   isLatest={isLatest}
+                  showCompareButton={!isOldest}
                   onDelete={handleDelete}
-                  onCompare={handleCompare}
+                  onCompare={() => {
+                    setSelectedDocumentId(doc.id);
+                    setPreviousDocumentId(previousDocument?.id || null);
+                    setDiffModalOpen(true);
+                  }}
                   onDownload={handleDownload}
                 />
               );
@@ -206,12 +212,13 @@ export default function GeneratedDocumentsList({
         onClose={() => {
           setDiffModalOpen(false);
           setSelectedDocumentId(null);
+          setPreviousDocumentId(null);
         }}
         fundId={fundId}
         documentType={documentType}
         versions={documents}
-        defaultFromId={selectedDocumentId || undefined}
-        defaultToId={documents.find(d => d.is_active)?.id}
+        defaultFromId={previousDocumentId || undefined} // 이전 버전
+        defaultToId={selectedDocumentId || undefined} // 현재 선택된 버전
       />
     </>
   );

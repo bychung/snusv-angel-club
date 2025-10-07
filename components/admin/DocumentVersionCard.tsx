@@ -23,8 +23,9 @@ interface DocumentVersionCardProps {
   fundName: string;
   documentType: string;
   isLatest: boolean;
+  showCompareButton: boolean;
   onDelete: (id: string) => Promise<void>;
-  onCompare: (documentId: string) => void;
+  onCompare: () => void;
   onDownload: (documentId: string, version: number) => Promise<void>;
 }
 
@@ -33,6 +34,7 @@ export default function DocumentVersionCard({
   fundName,
   documentType,
   isLatest,
+  showCompareButton,
   onDelete,
   onCompare,
   onDownload,
@@ -125,15 +127,11 @@ export default function DocumentVersionCard({
               {isDownloading ? '다운로드 중...' : '다운로드'}
             </Button>
 
-            {/* 비교 버튼 (최신 버전이 아닐 때만 표시) */}
-            {!isLatest && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onCompare(document.id)}
-              >
+            {/* 비교 버튼 (가장 오래된 버전 제외) */}
+            {showCompareButton && (
+              <Button variant="outline" size="sm" onClick={onCompare}>
                 <GitCompare className="h-4 w-4 mr-1" />
-                최신과 비교
+                이전과 비교
               </Button>
             )}
 
