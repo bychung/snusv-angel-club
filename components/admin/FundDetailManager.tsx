@@ -37,7 +37,6 @@ import {
 import {
   Building2,
   ChevronDown,
-  Download,
   FileCode2,
   FileText,
   RefreshCw,
@@ -69,7 +68,6 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('info');
   const [certificateRefreshKey, setCertificateRefreshKey] = useState(0);
-  const [generatingPDF, setGeneratingPDF] = useState(false);
   const [documentGenerationTrigger, setDocumentGenerationTrigger] = useState(0);
 
   // 폼 데이터
@@ -235,63 +233,6 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
   const handleCertificateRefresh = () => {
     setCertificateRefreshKey(prev => prev + 1);
-  };
-
-  // LPA PDF 생성 핸들러
-  const handleGenerateLPA = async () => {
-    try {
-      setGeneratingPDF(true);
-      setError(null);
-
-      const response = await fetch(
-        `/api/admin/funds/${fundId}/generated-documents/lpa/generate`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'PDF 생성에 실패했습니다.');
-      }
-
-      // PDF 다운로드
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-
-      // Content-Disposition 헤더에서 파일명 추출 시도
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let fileName = `${fundDetails?.fund.name || 'fund'}_규약(안).pdf`;
-
-      if (contentDisposition) {
-        const fileNameMatch = contentDisposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-        );
-        if (fileNameMatch && fileNameMatch[1]) {
-          fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''));
-        }
-      }
-
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      alert('PDF가 생성되었습니다.');
-    } catch (err) {
-      console.error('PDF 생성 오류:', err);
-      setError(
-        err instanceof Error ? err.message : 'PDF 생성 중 오류가 발생했습니다.'
-      );
-    } finally {
-      setGeneratingPDF(false);
-    }
   };
 
   if (loading) {
@@ -891,20 +832,6 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
                       - {DOCUMENT_CATEGORY_DESCRIPTIONS[category]}
                     </span>
                   </div>
-
-                  {/* 규약 섹션에서 펀드 상태가 ready일 때만 임시 규약 생성 버튼 표시 */}
-                  {category === DocumentCategory.AGREEMENT &&
-                    formData.status === 'ready' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerateLPA}
-                        disabled={generatingPDF}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        {generatingPDF ? '생성 중...' : '임시 규약 생성'}
-                      </Button>
-                    )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
