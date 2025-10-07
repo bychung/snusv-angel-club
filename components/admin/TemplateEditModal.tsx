@@ -27,6 +27,7 @@ import {
   Save,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { TemplateCommitModal } from './TemplateEditor/TemplateCommitModal';
 import { TemplatePreviewModal } from './TemplateEditor/TemplatePreviewModal';
 import { TemplateSearchBar } from './TemplateEditor/TemplateSearchBar';
 import { TemplateTextEditor } from './TemplateEditor/TemplateTextEditor';
@@ -67,6 +68,7 @@ export function TemplateEditModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [showCommitModal, setShowCommitModal] = useState(false);
 
   // 변경사항 분석
   const changes = useMemo(() => {
@@ -193,13 +195,18 @@ export function TemplateEditModal({
     alert('모든 변경사항이 초기화되었습니다.');
   };
 
-  // 저장
-  const handleSave = async () => {
+  // 저장 버튼 클릭 - 커밋 모달 열기
+  const handleSaveClick = () => {
     if (changes.length === 0) {
       alert('수정된 내용이 없습니다.');
       return;
     }
 
+    setShowCommitModal(true);
+  };
+
+  // 실제 저장 (커밋 메시지와 함께)
+  const handleSave = async (commitMessage: string) => {
     try {
       setSaving(true);
 
@@ -209,7 +216,7 @@ export function TemplateEditModal({
         body: JSON.stringify({
           content: modified.content,
           version: nextVersion,
-          description: changeDescription,
+          description: commitMessage,
         }),
       });
 
@@ -220,6 +227,7 @@ export function TemplateEditModal({
 
       alert(`템플릿이 v${nextVersion}으로 저장되었습니다.`);
 
+      setShowCommitModal(false);
       onSave?.();
       onClose();
     } catch (error) {
@@ -471,7 +479,7 @@ export function TemplateEditModal({
 
               <Button
                 size="sm"
-                onClick={handleSave}
+                onClick={handleSaveClick}
                 disabled={changes.length === 0 || saving}
               >
                 {saving ? (
@@ -619,6 +627,15 @@ export function TemplateEditModal({
         templateContent={modified.content}
         templateType={template.type}
         originalContent={original.content}
+      />
+
+      {/* 커밋 메시지 입력 모달 */}
+      <TemplateCommitModal
+        isOpen={showCommitModal}
+        onClose={() => setShowCommitModal(false)}
+        onConfirm={handleSave}
+        nextVersion={nextVersion}
+        changes={changes}
       />
     </Dialog>
   );

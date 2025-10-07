@@ -22,6 +22,9 @@ export interface TemplateChange {
   path: string;
   description: string;
   depth: number;
+  oldValue?: string;
+  newValue?: string;
+  displayPath?: string; // 사용자에게 표시할 경로
 }
 
 /**
@@ -46,14 +49,20 @@ export function analyzeTemplateChanges(
 
 /**
  * 재귀적으로 섹션 비교
+ * @param sectionPath 섹션의 실제 index와 depth 정보 배열
  */
 function compareSections(
   originalSections: TemplateSection[],
   modifiedSections: TemplateSection[],
   path: (string | number)[],
-  changes: TemplateChange[]
+  changes: TemplateChange[],
+  sectionPath: Array<{ index: number; depth: number }> = [] // index와 depth를 함께 저장
 ): void {
-  const depth = path.filter(p => typeof p === 'number').length + 1;
+  // depth는 'sections'가 나타나는 횟수로 계산 (0부터 시작)
+  // sections.0 = depth 0 (장)
+  // sections.0.sub.sections.3 = depth 1 (조)
+  // sections.0.sub.sections.3.sub.sections.4 = depth 2 (항)
+  const depth = path.filter(p => p === 'sections').length;
 
   // 섹션 개수 변경 확인
   if (originalSections.length !== modifiedSections.length) {
@@ -62,6 +71,7 @@ function compareSections(
       path: path.join('.'),
       description: `섹션 개수 변경 (${originalSections.length} → ${modifiedSections.length})`,
       depth,
+      displayPath: buildDisplayPath(sectionPath, ''),
     });
   }
 
@@ -74,6 +84,15 @@ function compareSections(
 
     const currentPath = [...path, 'sections', i];
 
+    // 현재 섹션이 비어있는지 확인 (제목과 내용이 모두 없으면 빈 섹션)
+    const section = modifiedSection || originalSection;
+    const isEmptySection = !section?.title && !section?.text;
+
+    // 빈 섹션이 아닌 경우에만 sectionPath에 추가
+    const currentSectionPath = isEmptySection
+      ? sectionPath
+      : [...sectionPath, { index: section?.index || i + 1, depth }];
+
     // 섹션 추가
     if (!originalSection && modifiedSection) {
       changes.push({
@@ -83,6 +102,7 @@ function compareSections(
           modifiedSection.title || modifiedSection.text?.slice(0, 30)
         }"`,
         depth,
+        displayPath: buildDisplayPath(currentSectionPath, ''),
       });
       continue;
     }
@@ -96,6 +116,7 @@ function compareSections(
           originalSection.title || originalSection.text?.slice(0, 30)
         }"`,
         depth,
+        displayPath: buildDisplayPath(currentSectionPath, ''),
       });
       continue;
     }
@@ -109,6 +130,9 @@ function compareSections(
           path: [...currentPath, 'title'].join('.'),
           description: `제목 변경: "${originalSection.title}" → "${modifiedSection.title}"`,
           depth,
+          oldValue: originalSection.title,
+          newValue: modifiedSection.title,
+          displayPath: buildDisplayPath(currentSectionPath, '제목'),
         });
       }
 
@@ -119,6 +143,9 @@ function compareSections(
           path: [...currentPath, 'text'].join('.'),
           description: `내용 변경`,
           depth,
+          oldValue: originalSection.text,
+          newValue: modifiedSection.text,
+          displayPath: buildDisplayPath(currentSectionPath, '내용'),
         });
       }
 
@@ -128,11 +155,47 @@ function compareSections(
           originalSection.sub || [],
           modifiedSection.sub || [],
           [...currentPath, 'sub'],
-          changes
+          changes,
+          currentSectionPath
         );
       }
     }
   }
+}
+
+/**
+ * 표시용 경로 생성 (장은 생략)
+ * @param sectionPath 섹션 인덱스와 depth 정보 배열
+ * @param field '제목', '내용' 등
+ */
+function buildDisplayPath(
+  sectionPath: Array<{ index: number; depth: number }>,
+  field: string
+): string {
+  const parts: string[] = [];
+
+  // depth 0 (장)은 생략하고 depth 1부터 표시
+  for (const item of sectionPath) {
+    if (item.depth === 0) continue; // 장은 생략
+
+    if (item.depth === 1) {
+      parts.push(`제${item.index}조`);
+    } else if (item.depth === 2) {
+      parts.push(`제${item.index}항`);
+    } else if (item.depth === 3) {
+      parts.push(`제${item.index}호`);
+    } else if (item.depth === 4) {
+      parts.push(`제${item.index}목`);
+    } else {
+      parts.push(`제${item.index}항목`);
+    }
+  }
+
+  if (field) {
+    parts.push(field);
+  }
+
+  return parts.join(' > ');
 }
 
 /**
@@ -178,7 +241,9 @@ export function calculateNextVersion(
 }
 
 /**
- * 변경사항 요약 생성
+ * 변경사항 요약 생성 (참고용)
+ * 실제로는 사용자가 직접 커밋 메시지를 입력하도록 되어 있으며,
+ * 이 함수는 사용자가 참고할 수 있도록 자동 생성된 요약을 제공합니다.
  */
 export function generateChangeDescription(changes: TemplateChange[]): string {
   const majorCount = changes.filter(c => c.type === 'major').length;
