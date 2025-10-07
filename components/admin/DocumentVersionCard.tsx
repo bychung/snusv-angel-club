@@ -135,64 +135,59 @@ export default function DocumentVersionCard({
               </Button>
             )}
 
-            {/* 삭제 버튼 (최신 버전이 아닐 때만 활성화) */}
-            {!isLatest ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    disabled={isDeleting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    {isDeleting ? '삭제 중...' : '삭제'}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      ⚠️ v{document.version_number} 문서를 영구
-                      삭제하시겠습니까?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="text-sm text-muted-foreground space-y-2">
-                        <div>
-                          <strong>삭제된 문서는 복구할 수 없습니다.</strong>
-                        </div>
-                        <ul className="list-disc list-inside text-sm">
-                          <li>문서 내용</li>
-                          <li>생성 기록</li>
-                          <li>버전 히스토리</li>
-                        </ul>
-                        <div className="text-xs text-gray-500 mt-2">
-                          이 작업은 되돌릴 수 없습니다.
-                        </div>
+            {/* 삭제 버튼 (모든 버전에서 활성화) */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {isDeleting ? '삭제 중...' : '삭제'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    ⚠️ v{document.version_number} 문서를 영구 삭제하시겠습니까?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="text-sm text-muted-foreground space-y-2">
+                      <div>
+                        <strong>삭제된 문서는 복구할 수 없습니다.</strong>
                       </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>취소</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      영구 삭제
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                title="최신 버전은 삭제할 수 없습니다"
-              >
-                <Trash2 className="h-4 w-4 mr-1" />
-                삭제
-              </Button>
-            )}
+                      <ul className="list-disc list-inside text-sm">
+                        <li>문서 내용</li>
+                        <li>생성 기록</li>
+                        <li>버전 히스토리</li>
+                      </ul>
+                      {isLatest && (
+                        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded mt-2">
+                          <p className="text-xs text-yellow-800">
+                            <strong>최신 버전 삭제 시:</strong> 이전 버전이
+                            자동으로 최신 버전으로 설정됩니다.
+                          </p>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mt-2">
+                        이 작업은 되돌릴 수 없습니다.
+                      </div>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>취소</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    영구 삭제
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </CardContent>

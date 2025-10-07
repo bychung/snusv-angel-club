@@ -96,7 +96,12 @@ export async function createBrandServerClient() {
     signupInquiries: createTableOperations(supabase, 'signup_inquiries', brand),
 
     // 브랜드 필터 없는 테이블들 (전체 공통 또는 FK를 통해 브랜드 확인)
-    documentTemplates: supabase.from('document_templates'),
-    fundDocuments: supabase.from('fund_documents'),
+    get documentTemplates() {
+      return supabase.from('document_templates');
+    },
+    // 매 호출마다 새로운 빌더를 반환하여 쿼리 필터 누적 방지
+    get fundDocuments() {
+      return supabase.from('fund_documents');
+    },
   };
 }

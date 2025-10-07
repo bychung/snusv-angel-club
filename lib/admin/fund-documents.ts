@@ -192,7 +192,7 @@ export async function saveFundDocument(params: {
 
 /**
  * 펀드 문서 삭제 (하드 삭제)
- * 최신 버전(is_active = true)은 삭제 불가
+ * 최신 버전(is_active = true) 삭제 시 바로 이전 버전이 최신이 됨
  */
 export async function deleteFundDocument(documentId: string): Promise<void> {
   const supabase = await createBrandServerClient();
@@ -203,16 +203,95 @@ export async function deleteFundDocument(documentId: string): Promise<void> {
     throw new Error('문서를 찾을 수 없습니다');
   }
 
-  // 2. 최신 버전 삭제 방지
+  console.log('[deleteFundDocument] 삭제 대상 문서:', {
+    documentId,
+    id: doc.id,
+    fund_id: doc.fund_id,
+    type: doc.type,
+    version_number: doc.version_number,
+    is_active: doc.is_active,
+  });
+
+  // 2. 최신 버전(is_active = true)을 삭제하는 경우
   if (doc.is_active) {
-    throw new Error('최신 버전은 삭제할 수 없습니다');
-  }
+    // 2-1. 같은 펀드의 같은 타입의 바로 이전 버전 찾기
+    const { data: previousVersions, error: fetchError } =
+      await supabase.fundDocuments
+        .select('*')
+        .eq('fund_id', doc.fund_id)
+        .eq('type', doc.type)
+        .lt('version_number', doc.version_number)
+        .order('version_number', { ascending: false })
+        .limit(1);
 
-  // 3. 하드 삭제 실행
-  const { error } = await supabase.fundDocuments.delete().eq('id', documentId);
+    if (fetchError) {
+      console.error('[deleteFundDocument] 이전 버전 조회 실패:', fetchError);
+      throw new Error(`이전 버전 조회 실패: ${fetchError.message}`);
+    }
 
-  if (error) {
-    throw new Error(`펀드 문서 삭제 실패: ${error.message}`);
+    const previousVersion =
+      previousVersions && previousVersions.length > 0
+        ? previousVersions[0]
+        : null;
+
+    console.log(
+      '[deleteFundDocument] 이전 버전:',
+      previousVersion
+        ? {
+            id: previousVersion.id,
+            version_number: previousVersion.version_number,
+          }
+        : null
+    );
+
+    // 2-2. 현재 문서를 먼저 삭제 (비활성화하지 않고 바로 삭제)
+    const {
+      error: deleteError,
+      data: deleteData,
+      count,
+    } = await supabase.fundDocuments
+      .delete({ count: 'exact' })
+      .eq('id', documentId)
+      .select();
+
+    if (deleteError) {
+      console.error('[deleteFundDocument] 문서 삭제 실패:', deleteError);
+      throw new Error(`펀드 문서 삭제 실패: ${deleteError.message}`);
+    }
+
+    console.log('[deleteFundDocument] 문서 삭제 성공:', {
+      deletedData: deleteData,
+      count: count,
+    });
+
+    // 2-3. 이전 버전이 있으면 활성화
+    if (previousVersion) {
+      const { error: updateError } = await supabase.fundDocuments
+        .update({ is_active: true })
+        .eq('id', previousVersion.id);
+
+      if (updateError) {
+        console.error(
+          '[deleteFundDocument] 이전 버전 활성화 실패:',
+          updateError
+        );
+        throw new Error(`이전 버전 활성화 실패: ${updateError.message}`);
+      }
+      console.log('[deleteFundDocument] 이전 버전 활성화 성공');
+    }
+  } else {
+    // 3. 최신 버전이 아닌 경우 그냥 삭제
+    const { error, data } = await supabase.fundDocuments
+      .delete()
+      .eq('id', documentId)
+      .select();
+
+    if (error) {
+      console.error('[deleteFundDocument] 문서 삭제 실패:', error);
+      throw new Error(`펀드 문서 삭제 실패: ${error.message}`);
+    }
+
+    console.log('[deleteFundDocument] 문서 삭제 성공:', data);
   }
 }
 
@@ -246,14 +325,43 @@ export async function isDocumentDuplicate(
   delete newContext.generatedAt;
 
   // JSON 문자열로 변환하여 비교 (깊은 비교)
-  const oldContextStr = JSON.stringify(
-    oldContext,
-    Object.keys(oldContext).sort()
-  );
-  const newContextStr = JSON.stringify(
-    newContext,
-    Object.keys(newContext).sort()
-  );
+  // 키를 정렬하여 순서에 관계없이 비교
+  const sortObject = (obj: any): any => {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(sortObject);
+
+    return Object.keys(obj)
+      .sort()
+      .reduce((sorted: any, key) => {
+        sorted[key] = sortObject(obj[key]);
+        return sorted;
+      }, {});
+  };
+
+  const oldContextSorted = sortObject(oldContext);
+  const newContextSorted = sortObject(newContext);
+
+  const oldContextStr = JSON.stringify(oldContextSorted);
+  const newContextStr = JSON.stringify(newContextSorted);
+
+  // 전체 비교 결과가 다를 때 차이점 찾기
+  if (oldContextStr !== newContextStr) {
+    // 차이나는 필드 찾기
+    const allKeys = new Set([
+      ...Object.keys(oldContext),
+      ...Object.keys(newContext),
+    ]);
+    allKeys.forEach(key => {
+      const oldVal = JSON.stringify(oldContext[key]);
+      const newVal = JSON.stringify(newContext[key]);
+      if (oldVal !== newVal) {
+        console.log(`  - ${key}:`, {
+          old: oldContext[key],
+          new: newContext[key],
+        });
+      }
+    });
+  }
 
   return oldContextStr === newContextStr;
 }

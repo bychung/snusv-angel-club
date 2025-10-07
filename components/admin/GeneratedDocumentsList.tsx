@@ -63,7 +63,7 @@ export default function GeneratedDocumentsList({
     try {
       // 특정 버전 다운로드 API 호출
       const response = await fetch(
-        `/api/admin/documents/${documentId}/download`
+        `/api/admin/funds/${fundId}/generated-documents/${documentType}/${documentId}/download`
       );
 
       if (!response.ok) {
