@@ -215,3 +215,45 @@ export async function deleteFundDocument(documentId: string): Promise<void> {
     throw new Error(`펀드 문서 삭제 실패: ${error.message}`);
   }
 }
+
+/**
+ * 최신 문서와 새로 생성할 문서의 context, template_version을 비교하여 중복 여부 확인
+ */
+export async function isDocumentDuplicate(
+  fundId: string,
+  type: string,
+  newGenerationContext: any,
+  newTemplateVersion: string
+): Promise<boolean> {
+  const latestDoc = await getActiveFundDocument(fundId, type);
+
+  if (!latestDoc) {
+    // 최신 문서가 없으면 중복이 아님
+    return false;
+  }
+
+  // 1. template_version 비교
+  if (latestDoc.template_version !== newTemplateVersion) {
+    return false;
+  }
+
+  // 2. generation_context 비교
+  // generatedAt 필드는 제외하고 비교 (생성 시간은 당연히 다름)
+  const oldContext = { ...latestDoc.generation_context };
+  const newContext = { ...newGenerationContext };
+
+  delete oldContext.generatedAt;
+  delete newContext.generatedAt;
+
+  // JSON 문자열로 변환하여 비교 (깊은 비교)
+  const oldContextStr = JSON.stringify(
+    oldContext,
+    Object.keys(oldContext).sort()
+  );
+  const newContextStr = JSON.stringify(
+    newContext,
+    Object.keys(newContext).sort()
+  );
+
+  return oldContextStr === newContextStr;
+}

@@ -70,6 +70,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
   const [activeTab, setActiveTab] = useState('info');
   const [certificateRefreshKey, setCertificateRefreshKey] = useState(0);
   const [generatingPDF, setGeneratingPDF] = useState(false);
+  const [documentGenerationTrigger, setDocumentGenerationTrigger] = useState(0);
 
   // 폼 데이터
   const [formData, setFormData] = useState({
@@ -212,6 +213,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         const errorData = await response.json();
         throw new Error(errorData.error || '펀드 정보 저장에 실패했습니다');
       }
+
+      // 문서 생성 트리거 업데이트 (펀드 정보 변경 시 중복 체크 다시 수행)
+      setDocumentGenerationTrigger(prev => prev + 1);
 
       // 데이터 다시 로드
       window.location.reload();
@@ -969,6 +973,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               documentType="lpa"
               title="조합 규약 (LPA)"
               description="Limited Partnership Agreement - 조합원간의 권리와 의무를 규정하는 법적 문서"
+              fundInfoTrigger={documentGenerationTrigger}
             />
 
             {/* 향후 추가될 섹션들 */}

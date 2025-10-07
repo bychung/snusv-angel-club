@@ -1,95 +1,14 @@
 // LPA PDF 생성 API Route
 
-import { getActiveTemplate } from '@/lib/admin/document-templates';
-import { saveFundDocument } from '@/lib/admin/fund-documents';
-import { getFundDataForDocument } from '@/lib/admin/funds';
+import {
+  isDocumentDuplicate,
+  saveFundDocument,
+} from '@/lib/admin/fund-documents';
+import { buildLPAContext, loadLPATemplate } from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
 import { processLPATemplate } from '@/lib/pdf/template-processor';
-import type { LPAContext, LPATemplate } from '@/lib/pdf/types';
-import * as fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
-import * as path from 'path';
-
-/**
- * 템플릿 로드 (DB 우선, 없으면 파일)
- */
-async function loadLPATemplate(): Promise<{
-  template: LPATemplate;
-  templateId?: string;
-  templateVersion: string;
-}> {
-  // 1. DB에서 활성 템플릿 조회 시도
-  try {
-    const dbTemplate = await getActiveTemplate('lpa');
-    if (dbTemplate) {
-      return {
-        template: {
-          type: 'lpa',
-          version: dbTemplate.version,
-          description: dbTemplate.description || '',
-          content: dbTemplate.content,
-        },
-        templateId: dbTemplate.id,
-        templateVersion: dbTemplate.version,
-      };
-    }
-  } catch (error) {
-    console.warn('DB 템플릿 조회 실패, 파일 템플릿 사용:', error);
-  }
-
-  // 2. DB에 없으면 파일에서 로드
-  const templatePath = path.join(
-    process.cwd(),
-    'template',
-    'lpa-template.json'
-  );
-  const templateContent = fs.readFileSync(templatePath, 'utf-8');
-  const fileTemplate = JSON.parse(templateContent) as LPATemplate;
-
-  return {
-    template: fileTemplate,
-    templateVersion: fileTemplate.version || '1.0.0',
-  };
-}
-
-/**
- * LPA 생성에 필요한 컨텍스트 구성
- */
-async function buildLPAContext(
-  fundId: string,
-  userId: string
-): Promise<LPAContext> {
-  // lib/admin/funds.ts의 헬퍼 함수 사용 (brandClient 사용)
-  const { fund, user, members } = await getFundDataForDocument(fundId, userId);
-
-  // 결성일 검증
-  if (!fund.closed_at) {
-    throw new Error('결성일 정보가 없습니다. 기본 정보에서 입력해 주세요.');
-  }
-
-  return {
-    fund: {
-      id: fund.id,
-      name: fund.name,
-      address: fund.address,
-      total_cap: fund.total_cap,
-      initial_cap: fund.initial_cap,
-      payment_schedule: fund.payment_schedule,
-      duration: fund.duration,
-      closed_at: fund.closed_at,
-    },
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone || '',
-    },
-    members,
-    generatedAt: new Date(),
-    isPreview: false, // 실제 생성 (파란색 적용 안 함)
-  };
-}
 
 /**
  * POST /api/admin/funds/[fundId]/generated-documents/lpa/generate
@@ -107,21 +26,45 @@ export async function POST(
 
     console.log(`LPA PDF 생성 요청: fundId=${fundId}, userId=${user.id}`);
 
-    // 1. 컨텍스트 구성
-    const context = await buildLPAContext(fundId, user.id);
+    // 1. 컨텍스트 구성 (실제 생성, isPreview=false)
+    const context = await buildLPAContext(fundId, user.id, false);
 
     // 2. 템플릿 로드
     const { template, templateId, templateVersion } = await loadLPATemplate();
 
-    // 3. 템플릿 변수 치환
+    // 3. 중복 체크: 최신 버전과 비교하여 context와 template_version이 동일한지 확인
+    const generationContext = {
+      ...context,
+      generatedAt: context.generatedAt.toISOString(),
+    };
+
+    const isDuplicate = await isDocumentDuplicate(
+      fundId,
+      'lpa',
+      generationContext,
+      templateVersion
+    );
+
+    if (isDuplicate) {
+      return NextResponse.json(
+        {
+          error:
+            '이미 동일한 내용의 조합 규약이 최신 버전으로 존재합니다. 펀드 정보를 변경하거나 템플릿을 업데이트한 후 다시 시도해주세요.',
+          code: 'DUPLICATE_DOCUMENT',
+        },
+        { status: 409 }
+      );
+    }
+
+    // 4. 템플릿 변수 치환
     const processedContent = processLPATemplate(template, context);
 
-    // 4. PDF 생성
+    // 5. PDF 생성
     const pdfBuffer = await generateLPAPDF(processedContent, context);
 
     console.log(`LPA PDF 생성 완료: ${pdfBuffer.length} bytes`);
 
-    // 5. DB에 문서 기록 저장
+    // 6. DB에 문서 기록 저장
     try {
       await saveFundDocument({
         fundId,
@@ -129,10 +72,7 @@ export async function POST(
         templateId,
         templateVersion,
         processedContent,
-        generationContext: {
-          ...context,
-          generatedAt: context.generatedAt.toISOString(),
-        },
+        generationContext,
         generatedBy: profile?.id, // profile.id 사용 (없으면 undefined)
       });
       console.log('문서 생성 기록 저장 완료');
@@ -141,12 +81,12 @@ export async function POST(
       // PDF 생성은 성공했으므로 계속 진행
     }
 
-    // 5. 파일명 생성
+    // 7. 파일명 생성
     const today = new Date();
     const dateString = today.toISOString().split('T')[0];
     const fileName = `${context.fund.name}_규약(안)_${dateString}.pdf`;
 
-    // 6. PDF 반환 (Buffer는 BodyInit 타입으로 사용 가능)
+    // 8. PDF 반환 (Buffer는 BodyInit 타입으로 사용 가능)
     return new Response(pdfBuffer as unknown as BodyInit, {
       headers: {
         'Content-Type': 'application/pdf',

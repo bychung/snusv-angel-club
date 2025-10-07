@@ -1,93 +1,10 @@
 // LPA PDF 미리보기 API Route (DB 저장 없음)
 
-import { getActiveTemplate } from '@/lib/admin/document-templates';
-import { getFundDataForDocument } from '@/lib/admin/funds';
+import { buildLPAContext, loadLPATemplate } from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
 import { processLPATemplate } from '@/lib/pdf/template-processor';
-import type { LPAContext, LPATemplate } from '@/lib/pdf/types';
-import * as fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
-import * as path from 'path';
-
-/**
- * 템플릿 로드 (DB 우선, 없으면 파일)
- */
-async function loadLPATemplate(): Promise<{
-  template: LPATemplate;
-  templateId?: string;
-  templateVersion: string;
-}> {
-  // 1. DB에서 활성 템플릿 조회 시도
-  try {
-    const dbTemplate = await getActiveTemplate('lpa');
-    if (dbTemplate) {
-      return {
-        template: {
-          type: 'lpa',
-          version: dbTemplate.version,
-          description: dbTemplate.description || '',
-          content: dbTemplate.content,
-        },
-        templateId: dbTemplate.id,
-        templateVersion: dbTemplate.version,
-      };
-    }
-  } catch (error) {
-    console.warn('DB 템플릿 조회 실패, 파일 템플릿 사용:', error);
-  }
-
-  // 2. DB에 없으면 파일에서 로드
-  const templatePath = path.join(
-    process.cwd(),
-    'template',
-    'lpa-template.json'
-  );
-  const templateContent = fs.readFileSync(templatePath, 'utf-8');
-  const fileTemplate = JSON.parse(templateContent) as LPATemplate;
-
-  return {
-    template: fileTemplate,
-    templateVersion: fileTemplate.version || '1.0.0',
-  };
-}
-
-/**
- * LPA 생성에 필요한 컨텍스트 구성
- */
-async function buildLPAContext(
-  fundId: string,
-  userId: string
-): Promise<LPAContext> {
-  const { fund, user, members } = await getFundDataForDocument(fundId, userId);
-
-  // 결성일 검증
-  if (!fund.closed_at) {
-    throw new Error('결성일 정보가 없습니다. 기본 정보에서 입력해 주세요.');
-  }
-
-  return {
-    fund: {
-      id: fund.id,
-      name: fund.name,
-      address: fund.address,
-      total_cap: fund.total_cap,
-      initial_cap: fund.initial_cap,
-      payment_schedule: fund.payment_schedule,
-      duration: fund.duration,
-      closed_at: fund.closed_at,
-    },
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone || '',
-    },
-    members,
-    generatedAt: new Date(),
-    isPreview: true, // 미리보기 모드
-  };
-}
 
 /**
  * GET /api/admin/funds/[fundId]/documents/lpa/preview
@@ -105,8 +22,8 @@ export async function GET(
 
     console.log(`LPA PDF 미리보기 요청: fundId=${fundId}, userId=${user.id}`);
 
-    // 1. 컨텍스트 구성
-    const context = await buildLPAContext(fundId, user.id);
+    // 1. 컨텍스트 구성 (미리보기 모드, isPreview=true)
+    const context = await buildLPAContext(fundId, user.id, true);
 
     // 2. 템플릿 로드
     const { template } = await loadLPATemplate();

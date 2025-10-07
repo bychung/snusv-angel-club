@@ -23,6 +23,7 @@ interface DocumentGenerationActionsProps {
   fundName: string;
   documentType: string;
   onDocumentGenerated?: () => void;
+  duplicateCheckTrigger?: number;
 }
 
 export default function DocumentGenerationActions({
@@ -30,12 +31,38 @@ export default function DocumentGenerationActions({
   fundName,
   documentType,
   onDocumentGenerated,
+  duplicateCheckTrigger = 0,
 }: DocumentGenerationActionsProps) {
   const [generating, setGenerating] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [hasExistingDocument, setHasExistingDocument] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDuplicate, setIsDuplicate] = useState(false);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+
+  // 중복 체크
+  const checkDuplicate = async () => {
+    try {
+      setCheckingDuplicate(true);
+      const response = await fetch(
+        `/api/admin/funds/${fundId}/generated-documents/${documentType}/check-duplicate`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsDuplicate(data.isDuplicate);
+      } else {
+        // 중복 체크 실패시에는 기본적으로 생성 가능하도록 설정
+        setIsDuplicate(false);
+      }
+    } catch (err) {
+      console.warn('중복 체크 실패:', err);
+      setIsDuplicate(false);
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  };
 
   // 기존 문서 존재 여부 확인
   useEffect(() => {
@@ -48,6 +75,11 @@ export default function DocumentGenerationActions({
         if (response.ok) {
           const data = await response.json();
           setHasExistingDocument(!!data.document);
+
+          // 기존 문서가 있으면 중복 체크 수행
+          if (data.document) {
+            await checkDuplicate();
+          }
         }
       } catch (err) {
         console.warn('기존 문서 확인 실패:', err);
@@ -55,7 +87,7 @@ export default function DocumentGenerationActions({
     };
 
     checkExistingDocument();
-  }, [fundId, documentType]);
+  }, [fundId, documentType, duplicateCheckTrigger]);
 
   const handleGenerate = async () => {
     try {
@@ -73,6 +105,15 @@ export default function DocumentGenerationActions({
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // 중복 문서 에러는 특별히 처리
+        if (errorData.code === 'DUPLICATE_DOCUMENT') {
+          alert(errorData.error);
+          // 중복 상태 업데이트
+          setIsDuplicate(true);
+          return;
+        }
+
         throw new Error(errorData.error || 'PDF 생성에 실패했습니다.');
       }
 
@@ -110,6 +151,9 @@ export default function DocumentGenerationActions({
 
       // 기존 문서 상태 업데이트
       setHasExistingDocument(true);
+
+      // 중복 체크 다시 수행 (새 문서가 생성되었으므로 이제 중복이 됨)
+      await checkDuplicate();
 
       // 간단한 성공 알림 (향후 toast로 대체 가능)
       alert('문서가 생성되었습니다.');
@@ -194,7 +238,12 @@ export default function DocumentGenerationActions({
             size="lg"
             className="flex-1"
             onClick={handleGenerate}
-            disabled={generating || regenerating || previewing}
+            disabled={
+              generating ||
+              regenerating ||
+              previewing ||
+              (hasExistingDocument && isDuplicate)
+            }
           >
             <FileText className="h-5 w-5 mr-2" />
             {generating
@@ -255,10 +304,17 @@ export default function DocumentGenerationActions({
 
         <div className="text-xs text-gray-500">
           {hasExistingDocument ? (
-            <>
-              기존 문서가 있습니다. 새 문서를 생성하면 이전 기록이
-              업데이트됩니다.
-            </>
+            isDuplicate ? (
+              <span className="text-amber-600 font-medium">
+                ⚠️ 최신 버전과 동일한 내용입니다. 펀드 정보를 변경하거나
+                템플릿을 업데이트한 후 다시 시도해주세요.
+              </span>
+            ) : (
+              <>
+                기존 문서가 있습니다. 새 문서를 생성하면 이전 기록이
+                업데이트됩니다.
+              </>
+            )
           ) : (
             <>
               현재 활성 템플릿을 사용하여 {getDocumentTypeLabel(documentType)}

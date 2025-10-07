@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ActiveTemplateInfo from './ActiveTemplateInfo';
 import DocumentGenerationActions from './DocumentGenerationActions';
 import GeneratedDocumentsList from './GeneratedDocumentsList';
@@ -14,6 +14,7 @@ interface DocumentGenerationSectionProps {
   documentType: string;
   title: string;
   description: string;
+  fundInfoTrigger?: number;
 }
 
 export default function DocumentGenerationSection({
@@ -22,19 +23,30 @@ export default function DocumentGenerationSection({
   documentType,
   title,
   description,
+  fundInfoTrigger = 0,
 }: DocumentGenerationSectionProps) {
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
   const [documentsRefreshTrigger, setDocumentsRefreshTrigger] = useState(0);
+  const [duplicateCheckTrigger, setDuplicateCheckTrigger] = useState(0);
 
   const handleTemplateActivated = () => {
     // 활성 템플릿 정보 새로고침
     setTemplateRefreshTrigger(prev => prev + 1);
+    // 템플릿이 변경되면 중복 체크도 다시 수행
+    setDuplicateCheckTrigger(prev => prev + 1);
   };
 
   const handleDocumentGenerated = () => {
     // 생성된 문서 목록 새로고침
     setDocumentsRefreshTrigger(prev => prev + 1);
   };
+
+  // 펀드 정보가 변경되면 중복 체크 다시 수행
+  useEffect(() => {
+    if (fundInfoTrigger > 0) {
+      setDuplicateCheckTrigger(prev => prev + 1);
+    }
+  }, [fundInfoTrigger]);
 
   return (
     <Card>
@@ -63,6 +75,7 @@ export default function DocumentGenerationSection({
           fundName={fundName}
           documentType={documentType}
           onDocumentGenerated={handleDocumentGenerated}
+          duplicateCheckTrigger={duplicateCheckTrigger}
         />
 
         {/* 3. 생성된 문서 목록 */}
