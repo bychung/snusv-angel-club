@@ -3,8 +3,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { DocumentTemplate } from '@/types/database';
-import { CheckCircle2, Eye, Loader2 } from 'lucide-react';
+import { CheckCircle2, Edit, Eye, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { TemplateEditModal } from './TemplateEditModal';
+import { TemplatePreviewModal } from './TemplateEditor/TemplatePreviewModal';
 
 interface ActiveTemplateInfoProps {
   documentType: string;
@@ -18,6 +20,8 @@ export default function ActiveTemplateInfo({
   const [template, setTemplate] = useState<DocumentTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchActiveTemplate = async () => {
@@ -127,18 +131,54 @@ export default function ActiveTemplateInfo({
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            // TODO: 템플릿 상세 보기 모달 또는 페이지
-            console.log('템플릿 상세보기:', template);
-          }}
-        >
-          <Eye className="h-4 w-4" />
-          상세보기
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsPreviewModalOpen(true)}
+            className="border-blue-300 hover:bg-blue-100"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            상세보기
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsEditModalOpen(true)}
+            className="border-blue-300 hover:bg-blue-100"
+          >
+            <Edit className="h-4 w-4 mr-1" />
+            수정
+          </Button>
+        </div>
       </div>
+
+      {/* 템플릿 상세보기 모달 */}
+      {template && (
+        <TemplatePreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          templateContent={template.content}
+          templateType={template.type}
+          // originalContent를 전달하지 않으면 변경사항이 없는 것으로 표시됨
+        />
+      )}
+
+      {/* 템플릿 수정 모달 */}
+      {template && (
+        <TemplateEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          template={template}
+          onSave={() => {
+            // 템플릿이 저장되면 다시 조회
+            setIsEditModalOpen(false);
+            // refreshTrigger를 변경하여 재조회 (부모 컴포넌트에서 관리)
+            window.location.reload(); // 임시 방편
+          }}
+        />
+      )}
     </div>
   );
 }
