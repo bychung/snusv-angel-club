@@ -98,9 +98,12 @@ export default function GeneratedDocumentsList({
 
   const handleDelete = async (documentId: string) => {
     try {
-      const response = await fetch(`/api/admin/fund-documents/${documentId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `/api/admin/funds/${fundId}/generated-documents/lpa/${documentId}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();

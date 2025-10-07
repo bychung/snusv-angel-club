@@ -7,7 +7,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -359,17 +358,21 @@ export default function CompanyDocumentsPage() {
 
         {/* 문서 삭제 확인 다이얼로그 */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
+          <AlertDialogContent aria-describedby="delete-company-doc-description">
             <AlertDialogHeader>
               <AlertDialogTitle>문서 삭제 확인</AlertDialogTitle>
-              <AlertDialogDescription>
-                &quot;{documentToDelete?.file_name}&quot; 문서를 정말로
-                삭제하시겠습니까?
-                <br />
-                <span className="text-red-600 font-medium">
+              <div
+                id="delete-company-doc-description"
+                className="text-sm text-muted-foreground"
+              >
+                <div>
+                  &quot;{documentToDelete?.file_name}&quot; 문서를 정말로
+                  삭제하시겠습니까?
+                </div>
+                <div className="text-red-600 font-medium mt-2">
                   삭제된 문서는 복구할 수 없습니다.
-                </span>
-              </AlertDialogDescription>
+                </div>
+              </div>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel

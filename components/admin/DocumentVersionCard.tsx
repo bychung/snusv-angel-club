@@ -155,18 +155,20 @@ export default function DocumentVersionCard({
                       ⚠️ v{document.version_number} 문서를 영구
                       삭제하시겠습니까?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="space-y-2">
-                      <p>
-                        <strong>삭제된 문서는 복구할 수 없습니다.</strong>
-                      </p>
-                      <ul className="list-disc list-inside text-sm">
-                        <li>문서 내용</li>
-                        <li>생성 기록</li>
-                        <li>버전 히스토리</li>
-                      </ul>
-                      <p className="text-xs text-gray-500 mt-2">
-                        이 작업은 되돌릴 수 없습니다.
-                      </p>
+                    <AlertDialogDescription asChild>
+                      <div className="text-sm text-muted-foreground space-y-2">
+                        <div>
+                          <strong>삭제된 문서는 복구할 수 없습니다.</strong>
+                        </div>
+                        <ul className="list-disc list-inside text-sm">
+                          <li>문서 내용</li>
+                          <li>생성 기록</li>
+                          <li>버전 히스토리</li>
+                        </ul>
+                        <div className="text-xs text-gray-500 mt-2">
+                          이 작업은 되돌릴 수 없습니다.
+                        </div>
+                      </div>
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

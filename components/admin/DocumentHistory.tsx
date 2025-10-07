@@ -5,7 +5,6 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
@@ -329,19 +328,23 @@ export default function DocumentHistory({
                           {deletingId === document.id ? '삭제중...' : '삭제'}
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent aria-describedby="delete-doc-description">
                         <AlertDialogHeader>
                           <AlertDialogTitle>
                             문서를 삭제하시겠습니까?
                           </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            <span className="font-medium">
+                          <div
+                            id="delete-doc-description"
+                            className="text-sm text-muted-foreground"
+                          >
+                            <div className="font-medium">
                               {document.file_name}
-                            </span>
-                            을(를) 삭제하시겠습니까?
-                            <br />
-                            삭제된 문서는 복구할 수 없습니다.
-                          </AlertDialogDescription>
+                            </div>
+                            <div className="mt-1">을(를) 삭제하시겠습니까?</div>
+                            <div className="mt-2 text-red-600">
+                              삭제된 문서는 복구할 수 없습니다.
+                            </div>
+                          </div>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>취소</AlertDialogCancel>
