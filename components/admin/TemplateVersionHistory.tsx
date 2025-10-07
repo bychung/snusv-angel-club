@@ -134,6 +134,11 @@ export default function TemplateVersionHistory({
     });
   };
 
+  // SYSTEM_ADMIN이 아니면 아예 렌더링하지 않음
+  if (!isSystemAdminUser) {
+    return null;
+  }
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger asChild>
@@ -212,7 +217,7 @@ export default function TemplateVersionHistory({
                         </p>
                         <p className="text-xs text-gray-500 mt-2">
                           {formatDate(template.created_at)}
-                          {template.created_by && (
+                          {isSystemAdminUser && template.created_by && (
                             <span> · ID: {template.created_by}</span>
                           )}
                         </p>

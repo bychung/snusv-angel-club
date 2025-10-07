@@ -130,7 +130,9 @@ export default function ActiveTemplateInfo({
             </p>
             <p className="text-xs text-blue-600 mt-2">
               생성일: {formatDate(template.created_at)}
-              {template.created_by && <span> · ID: {template.created_by}</span>}
+              {isSystemAdminUser && template.created_by && (
+                <span> · ID: {template.created_by}</span>
+              )}
             </p>
           </div>
         </div>
