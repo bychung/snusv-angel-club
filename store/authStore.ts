@@ -85,6 +85,9 @@ interface AuthStore {
   // 관리자 상태
   isAdminUser: boolean;
 
+  // 시스템 관리자 상태
+  isSystemAdminUser: boolean;
+
   // 액션
   signIn: (email: string, password: string) => Promise<void>;
   signInWithOAuth: (provider: 'google' | 'kakao') => Promise<void>;
@@ -135,6 +138,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
   // 관리자 상태 초기값
   isAdminUser: false,
+
+  // 시스템 관리자 상태 초기값
+  isSystemAdminUser: false,
 
   signIn: async (email: string, password: string) => {
     set({ isLoading: true, error: null });
@@ -462,6 +468,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           const data = await response.json();
           profile = data.profile;
 
+          // 권한 정보 저장
+          if (data.permissions) {
+            console.log(
+              `[authStore] 권한 정보 저장: isAdmin=${data.permissions.isAdmin}, isSystemAdmin=${data.permissions.isSystemAdmin}`
+            );
+            set({
+              isAdminUser: data.permissions.isAdmin || false,
+              isSystemAdminUser: data.permissions.isSystemAdmin || false,
+            });
+          }
+
           // 공유받은 프로필인지 로그
           if (data.isSharedProfile) {
             console.log(
@@ -512,6 +529,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
             profile: null,
             userFunds: [],
             isAdminUser: false,
+            isSystemAdminUser: false,
           });
 
           throw new Error('PROFILE_NOT_FOUND');
@@ -528,6 +546,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           profile: null,
           userFunds: [],
           isAdminUser: false,
+          isSystemAdminUser: false,
         });
 
         throw new Error('PROFILE_NOT_FOUND');

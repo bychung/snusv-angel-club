@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/authStore';
 import type { DocumentTemplate } from '@/types/database';
 import { CheckCircle2, Edit, Eye, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -22,6 +23,9 @@ export default function ActiveTemplateInfo({
   const [error, setError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+
+  // authStore에서 권한 가져오기
+  const { isSystemAdminUser } = useAuthStore();
 
   useEffect(() => {
     const fetchActiveTemplate = async () => {
@@ -142,15 +146,18 @@ export default function ActiveTemplateInfo({
             상세보기
           </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditModalOpen(true)}
-            className="border-blue-300 hover:bg-blue-100"
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            수정
-          </Button>
+          {/* SYSTEM_ADMIN만 수정 버튼 표시 */}
+          {isSystemAdminUser && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditModalOpen(true)}
+              className="border-blue-300 hover:bg-blue-100"
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              수정
+            </Button>
+          )}
         </div>
       </div>
 
@@ -166,7 +173,8 @@ export default function ActiveTemplateInfo({
       )}
 
       {/* 템플릿 수정 모달 */}
-      {template && (
+      {/* SYSTEM_ADMIN만 표시 */}
+      {template && isSystemAdminUser && (
         <TemplateEditModal
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}

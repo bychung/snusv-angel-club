@@ -1,21 +1,29 @@
 import type { User } from '@supabase/supabase-js';
 import { NextRequest } from 'next/server';
 import { createBrandServerClient } from '../supabase/server';
+import { isSystemAdmin } from './system-admin';
 
 /**
  * 사용자가 관리자인지 확인 (DB 기반, 서버용)
- * 1. 본인 프로필의 role 확인
- * 2. profile_permissions를 통해 admin 권한이 있는 프로필 확인
+ * 1. SYSTEM_ADMIN 확인 (환경변수 기반)
+ * 2. 본인 프로필의 role 확인
+ * 3. profile_permissions를 통해 admin 권한이 있는 프로필 확인
  */
 export async function isAdminServer(user: User | null): Promise<boolean> {
   if (!user?.id) return false;
+
+  // 1. SYSTEM_ADMIN 체크 (최우선 - DB 조회 불필요)
+  if (isSystemAdmin(user)) {
+    console.log(`[isAdminServer] SYSTEM_ADMIN 권한으로 접근: ${user.email}`);
+    return true;
+  }
 
   try {
     const brandClient = await createBrandServerClient();
 
     console.log(`[isAdminServer] 사용자 ID: ${user.id}, 이메일: ${user.email}`);
 
-    // 1. 먼저 본인 프로필의 role 확인 (기존 로직)
+    // 2. 본인 프로필의 role 확인 (기존 로직)
     const { data: ownProfile, error: ownError } = await brandClient.profiles
       .select('role')
       .eq('user_id', user.id)
@@ -28,7 +36,7 @@ export async function isAdminServer(user: User | null): Promise<boolean> {
       }
     }
 
-    // 2. profile_permissions를 통해 admin 권한이 있는 프로필 확인
+    // 3. profile_permissions를 통해 admin 권한이 있는 프로필 확인
     const { data: permissions, error: permError } =
       await brandClient.profilePermissions
         .select(

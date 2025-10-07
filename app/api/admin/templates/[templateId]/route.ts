@@ -1,8 +1,10 @@
 // 템플릿 수정 API
 // PUT /api/admin/templates/:templateId - 템플릿 내용 수정 (새 버전 생성)
+// ⚠️ SYSTEM_ADMIN 전용 API
 
 import { createTemplate } from '@/lib/admin/document-templates';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
+import { requireSystemAdmin } from '@/lib/auth/system-admin';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
@@ -11,7 +13,18 @@ export async function PUT(
 ) {
   try {
     // 관리자 권한 검증
-    const user = await validateAdminAuth(request);
+    const { user, profile } = await validateAdminAuth(request);
+
+    // SYSTEM_ADMIN 전용 체크
+    if (!requireSystemAdmin(user)) {
+      return NextResponse.json(
+        {
+          error:
+            '시스템 관리자 권한이 필요합니다. 템플릿 수정은 SYSTEM_ADMIN만 가능합니다.',
+        },
+        { status: 403 }
+      );
+    }
 
     const { templateId } = await params;
     const body = await request.json();
@@ -43,8 +56,12 @@ export async function PUT(
       content,
       description,
       isActive: true, // 새로 생성된 템플릿을 바로 활성화
-      createdBy: user.profile?.id,
+      createdBy: profile?.id,
     });
+
+    console.log(
+      `[템플릿 수정] SYSTEM_ADMIN ${user.email}이(가) 템플릿 v${version}을 생성했습니다.`
+    );
 
     return NextResponse.json({
       template: newTemplate,

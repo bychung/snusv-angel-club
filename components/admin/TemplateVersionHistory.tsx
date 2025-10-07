@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 import type { DocumentTemplate } from '@/types/database';
 import {
   ChevronDown,
@@ -40,6 +41,9 @@ export default function TemplateVersionHistory({
   const [error, setError] = useState<string | null>(null);
   const [activating, setActivating] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // authStore에서 권한 가져오기
+  const { isSystemAdminUser } = useAuthStore();
 
   const fetchTemplates = async () => {
     try {
@@ -216,7 +220,8 @@ export default function TemplateVersionHistory({
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {!template.is_active && (
+                      {/* SYSTEM_ADMIN만 활성화 버튼 표시 */}
+                      {!template.is_active && isSystemAdminUser && (
                         <Button
                           variant="outline"
                           size="sm"

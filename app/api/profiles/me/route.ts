@@ -1,11 +1,14 @@
+import { isAdminServer } from '@/lib/auth/admin-server';
 import { validateUserAccess } from '@/lib/auth/permissions';
+import { isSystemAdmin } from '@/lib/auth/system-admin';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * 현재 사용자의 프로필 정보 조회
+ * 현재 사용자의 프로필 정보 및 권한 조회
  * 1. 본인 프로필이 있으면 반환
  * 2. 없으면 profile_permissions로 접근 가능한 첫 번째 프로필 반환
+ * 3. 권한 정보 (isAdmin, isSystemAdmin) 포함
  */
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +19,10 @@ export async function GET(request: NextRequest) {
     const { user } = authResult;
 
     const brandClient = await createBrandServerClient();
+
+    // 권한 확인
+    const isAdminUser = await isAdminServer(user);
+    const isSystemAdminUser = isSystemAdmin(user);
 
     // 1. 먼저 본인 프로필 확인
     const { data: ownProfile, error: ownError } = await brandClient.profiles
@@ -28,6 +35,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         profile: ownProfile,
         accessType: 'owner',
+        permissions: {
+          isAdmin: isAdminUser,
+          isSystemAdmin: isSystemAdminUser,
+        },
       });
     }
 
@@ -56,6 +67,10 @@ export async function GET(request: NextRequest) {
         profile: profile,
         accessType: permissions.permission_type,
         isSharedProfile: true,
+        permissions: {
+          isAdmin: isAdminUser,
+          isSystemAdmin: isSystemAdminUser,
+        },
       });
     }
 
