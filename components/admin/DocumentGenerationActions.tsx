@@ -42,7 +42,7 @@ export default function DocumentGenerationActions({
     const checkExistingDocument = async () => {
       try {
         const response = await fetch(
-          `/api/admin/funds/${fundId}/documents?type=${documentType}`
+          `/api/admin/funds/${fundId}/generated-documents?type=${documentType}`
         );
 
         if (response.ok) {
@@ -62,7 +62,7 @@ export default function DocumentGenerationActions({
       setGenerating(true);
 
       const response = await fetch(
-        `/api/admin/funds/${fundId}/documents/${documentType}/generate`,
+        `/api/admin/funds/${fundId}/generated-documents/${documentType}/generate`,
         {
           method: 'POST',
           headers: {
@@ -141,7 +141,7 @@ export default function DocumentGenerationActions({
       setPreviewing(true);
 
       // 미리보기 URL 생성
-      const url = `/api/admin/funds/${fundId}/documents/${documentType}/preview`;
+      const url = `/api/admin/funds/${fundId}/generated-documents/${documentType}/preview`;
       setPreviewUrl(url);
     } catch (err) {
       console.error('미리보기 오류:', err);

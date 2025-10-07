@@ -16,6 +16,7 @@ export async function getFundDocument(
     .select('*')
     .eq('fund_id', fundId)
     .eq('type', type)
+    .eq('is_active', true)
     .single();
 
   if (error) {
@@ -72,7 +73,55 @@ export async function getFundDocumentById(
 }
 
 /**
- * 펀드 문서 생성 또는 업데이트
+ * 특정 펀드의 특정 타입 문서 버전들 조회
+ */
+export async function getFundDocumentVersions(
+  fundId: string,
+  type: string
+): Promise<FundDocument[]> {
+  const supabase = await createBrandServerClient();
+
+  const { data, error } = await supabase.fundDocuments
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('type', type)
+    .order('version_number', { ascending: false });
+
+  if (error) {
+    throw new Error(`펀드 문서 버전 조회 실패: ${error.message}`);
+  }
+
+  return data || [];
+}
+
+/**
+ * 활성 문서(최신 버전) 조회
+ */
+export async function getActiveFundDocument(
+  fundId: string,
+  type: string
+): Promise<FundDocument | null> {
+  const supabase = await createBrandServerClient();
+
+  const { data, error } = await supabase.fundDocuments
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('type', type)
+    .eq('is_active', true)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    throw new Error(`활성 문서 조회 실패: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * 펀드 문서 생성 (새 버전으로 항상 생성)
  */
 export async function saveFundDocument(params: {
   fundId: string;
@@ -97,60 +146,69 @@ export async function saveFundDocument(params: {
     generatedBy,
   } = params;
 
-  // 기존 문서가 있는지 확인
-  const existing = await getFundDocument(fundId, type);
+  // 1. 기존 문서들의 최대 버전 번호 조회
+  const { data: existingDocs } = await supabase.fundDocuments
+    .select('version_number')
+    .eq('fund_id', fundId)
+    .eq('type', type)
+    .order('version_number', { ascending: false })
+    .limit(1);
 
-  if (existing) {
-    // 업데이트
-    const { data, error } = await supabase.fundDocuments
-      .update({
-        template_id: templateId,
-        template_version: templateVersion,
-        processed_content: processedContent,
-        generation_context: generationContext,
-        pdf_storage_path: pdfStoragePath,
-        generated_by: generatedBy,
-        generated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
-      .select()
-      .single();
+  const nextVersion =
+    existingDocs && existingDocs.length > 0
+      ? existingDocs[0].version_number + 1
+      : 1;
 
-    if (error) {
-      throw new Error(`펀드 문서 업데이트 실패: ${error.message}`);
-    }
+  // 2. 기존 활성 문서들 비활성화
+  await supabase.fundDocuments
+    .update({ is_active: false })
+    .eq('fund_id', fundId)
+    .eq('type', type)
+    .eq('is_active', true);
 
-    return data;
-  } else {
-    // 신규 생성
-    const { data, error } = await supabase.fundDocuments
-      .insert({
-        fund_id: fundId,
-        type,
-        template_id: templateId,
-        template_version: templateVersion,
-        processed_content: processedContent,
-        generation_context: generationContext,
-        pdf_storage_path: pdfStoragePath,
-        generated_by: generatedBy,
-      })
-      .select()
-      .single();
+  // 3. 새 버전 생성 (항상 insert)
+  const { data, error } = await supabase.fundDocuments
+    .insert({
+      fund_id: fundId,
+      type,
+      version_number: nextVersion,
+      is_active: true,
+      template_id: templateId,
+      template_version: templateVersion,
+      processed_content: processedContent,
+      generation_context: generationContext,
+      pdf_storage_path: pdfStoragePath,
+      generated_by: generatedBy,
+    })
+    .select()
+    .single();
 
-    if (error) {
-      throw new Error(`펀드 문서 생성 실패: ${error.message}`);
-    }
-
-    return data;
+  if (error) {
+    throw new Error(`펀드 문서 생성 실패: ${error.message}`);
   }
+
+  return data;
 }
 
 /**
- * 펀드 문서 삭제
+ * 펀드 문서 삭제 (하드 삭제)
+ * 최신 버전(is_active = true)은 삭제 불가
  */
 export async function deleteFundDocument(documentId: string): Promise<void> {
   const supabase = await createBrandServerClient();
 
+  // 1. 문서 조회
+  const doc = await getFundDocumentById(documentId);
+  if (!doc) {
+    throw new Error('문서를 찾을 수 없습니다');
+  }
+
+  // 2. 최신 버전 삭제 방지
+  if (doc.is_active) {
+    throw new Error('최신 버전은 삭제할 수 없습니다');
+  }
+
+  // 3. 하드 삭제 실행
   const { error } = await supabase.fundDocuments.delete().eq('id', documentId);
 
   if (error) {

@@ -125,7 +125,7 @@ Response:
 #### 2. LPA 생성 (수정됨)
 
 ```
-POST /api/admin/funds/:fundId/documents/lpa/generate
+POST /api/admin/funds/:fundId/generated-documents/lpa/generate
 
 - 기존과 동일하게 PDF 다운로드
 - 추가로 DB에 문서 생성 기록 저장
@@ -191,7 +191,7 @@ curl http://localhost:3000/api/admin/templates/types/lpa
 
 ```typescript
 // 특정 펀드의 기존 문서를 현재 활성 템플릿으로 재생성
-POST /api/admin/funds/:fundId/documents/lpa/generate
+POST /api/admin/funds/:fundId/generated-documents/lpa/generate
 ```
 
 ## 헬퍼 함수

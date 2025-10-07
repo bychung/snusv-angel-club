@@ -118,6 +118,8 @@ export interface FundDocument {
   id: string;
   fund_id: string;
   type: string; // 문서 타입
+  version_number: number; // 버전 번호 (1부터 시작)
+  is_active: boolean; // 활성 버전 여부 (최신 버전만 true)
   template_id?: string | null;
   template_version: string;
   processed_content: any; // JSONB - 변수 치환 완료된 최종 내용
@@ -125,6 +127,8 @@ export interface FundDocument {
   pdf_storage_path?: string | null;
   generated_at: string;
   generated_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProfilePermission {

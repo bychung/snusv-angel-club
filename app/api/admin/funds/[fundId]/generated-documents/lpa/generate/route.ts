@@ -92,7 +92,7 @@ async function buildLPAContext(
 }
 
 /**
- * POST /api/admin/funds/[fundId]/documents/lpa/generate
+ * POST /api/admin/funds/[fundId]/generated-documents/lpa/generate
  * LPA PDF 생성 및 다운로드
  */
 export async function POST(
@@ -130,10 +130,8 @@ export async function POST(
         templateVersion,
         processedContent,
         generationContext: {
-          fundName: context.fund.name,
+          ...context,
           generatedAt: context.generatedAt.toISOString(),
-          membersCount: context.members.length,
-          totalCap: context.fund.total_cap,
         },
         generatedBy: profile?.id, // profile.id 사용 (없으면 undefined)
       });

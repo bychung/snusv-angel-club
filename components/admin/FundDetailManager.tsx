@@ -240,7 +240,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
       setError(null);
 
       const response = await fetch(
-        `/api/admin/funds/${fundId}/documents/lpa/generate`,
+        `/api/admin/funds/${fundId}/generated-documents/lpa/generate`,
         {
           method: 'POST',
           headers: {

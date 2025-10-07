@@ -52,3 +52,21 @@ export function isCommonDocument(category: DocumentCategory): boolean {
 export function isInvestmentCertificate(category: DocumentCategory): boolean {
   return category === DocumentCategory.INVESTMENT_CERTIFICATE;
 }
+
+export interface DocumentDiff {
+  fromVersion: number;
+  toVersion: number;
+  changes: DocumentChange[];
+  summary: {
+    added: number;
+    removed: number;
+    modified: number;
+  };
+}
+export interface DocumentChange {
+  path: string; // 예: "articles[2].content"
+  type: 'added' | 'removed' | 'modified';
+  oldValue?: string;
+  newValue?: string;
+  displayPath?: string; // 사용자 친화적 경로명
+}
