@@ -325,10 +325,10 @@ export async function updateFundDetails(
 export async function getFundDataForDocument(fundId: string, userId: string) {
   const brandClient = await createBrandServerClient();
 
-  // 1. 펀드 기본 정보 조회 (par_value, gp_id, initial_numerator, initial_denominator, duration, closed_at 포함)
+  // 1. 펀드 기본 정보 조회 (par_value, gp_id, initial_numerator, initial_denominator, duration, closed_at, abbreviation 포함)
   const { data: fund, error: fundError } = await brandClient.funds
     .select(
-      'id, name, address, par_value, payment_schedule, gp_id, initial_numerator, initial_denominator, duration, closed_at'
+      'id, name, abbreviation, address, par_value, payment_schedule, gp_id, initial_numerator, initial_denominator, duration, closed_at'
     )
     .eq('id', fundId)
     .single();
@@ -363,7 +363,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
     throw new Error('사용자를 찾을 수 없습니다.');
   }
 
-  // 3. 펀드 멤버 조회 (profile과 조인)
+  // 3. 펀드 멤버 조회 (profile과 조인, 별지에 필요한 추가 정보 포함)
   const { data: fundMembers, error: membersError } =
     await brandClient.fundMembers
       .select(
@@ -374,7 +374,12 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
       total_units,
       profile:profiles (
         id,
-        name
+        name,
+        address,
+        phone,
+        birth_date,
+        business_number,
+        entity_type
       )
     `
       )
@@ -401,7 +406,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
     (total_cap * fund.initial_numerator) / fund.initial_denominator
   );
 
-  // 6. 멤버 데이터 변환 (member_type 결정, amount 계산)
+  // 6. 멤버 데이터 변환 (member_type 결정, amount 계산, 별지용 추가 정보 포함)
   const members =
     fundMembers?.map((member: any) => {
       // GP 여부 확인 (fund.gp_id 배열에 포함되어 있으면 GP)
@@ -422,6 +427,12 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
         total_units: member.total_units,
         total_amount,
         initial_amount,
+        // 별지용 추가 정보
+        address: member.profile?.address || null,
+        phone: member.profile?.phone || null,
+        birth_date: member.profile?.birth_date || null,
+        business_number: member.profile?.business_number || null,
+        entity_type: member.profile?.entity_type || 'individual',
       };
     }) || [];
 
@@ -429,7 +440,9 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
     fund: {
       id: fund.id,
       name: fund.name,
+      abbreviation: fund.abbreviation, // 펀드 약칭 추가
       address: fund.address,
+      par_value: fund.par_value,
       total_cap,
       initial_cap,
       payment_schedule: fund.payment_schedule,

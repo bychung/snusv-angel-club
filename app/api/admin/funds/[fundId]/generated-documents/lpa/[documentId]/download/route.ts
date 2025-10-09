@@ -1,4 +1,5 @@
 import { getFundDocumentById } from '@/lib/admin/fund-documents';
+import { loadLPATemplate } from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
 import { NextRequest } from 'next/server';
@@ -36,13 +37,20 @@ export async function GET(
     let pdfBuffer: Buffer;
 
     if (document.type === 'lpa') {
-      pdfBuffer = await generateLPAPDF(document.processed_content, {
-        fund: context.fund || {},
-        members: context.members || [],
-        user: context.user || {},
-        generatedAt: new Date(document.generated_at),
-        isPreview: false,
-      });
+      // 템플릿 로드 (별지 정보를 위해 필요)
+      const { template } = await loadLPATemplate();
+
+      pdfBuffer = await generateLPAPDF(
+        document.processed_content,
+        {
+          fund: context.fund || {},
+          members: context.members || [],
+          user: context.user || {},
+          generatedAt: new Date(document.generated_at),
+          isPreview: false,
+        },
+        template
+      );
     } else {
       // 다른 문서 타입 지원 (향후 확장)
       return Response.json(

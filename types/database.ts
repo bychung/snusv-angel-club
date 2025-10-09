@@ -107,6 +107,7 @@ export interface DocumentTemplate {
   type: string; // 'lpa', 'plan', 'certificate' 등
   version: string; // '1.0.0', '1.1.0'
   content: any; // JSONB - 템플릿 전체 구조
+  appendix?: any | null; // JSONB - 별지 정보 (조합원서명단, 조합원동의서 등)
   is_active: boolean;
   description?: string | null;
   created_at: string;

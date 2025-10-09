@@ -31,8 +31,8 @@ export async function GET(
     // 3. 템플릿 변수 치환
     const processedContent = processLPATemplate(template, context);
 
-    // 4. PDF 생성
-    const pdfBuffer = await generateLPAPDF(processedContent, context);
+    // 4. PDF 생성 (템플릿도 함께 전달)
+    const pdfBuffer = await generateLPAPDF(processedContent, context, template);
 
     console.log(`LPA PDF 미리보기 생성 완료: ${pdfBuffer.length} bytes`);
 

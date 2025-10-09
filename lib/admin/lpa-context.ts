@@ -24,6 +24,7 @@ export async function loadLPATemplate(): Promise<{
           version: dbTemplate.version,
           description: dbTemplate.description || '',
           content: dbTemplate.content,
+          appendix: dbTemplate.appendix, // 별지 정보 포함
         },
         templateId: dbTemplate.id,
         templateVersion: dbTemplate.version,
@@ -71,7 +72,9 @@ export async function buildLPAContext(
     fund: {
       id: fund.id,
       name: fund.name,
+      nameShort: fund.abbreviation, // 펀드 약칭 추가
       address: fund.address,
+      par_value: fund.par_value,
       total_cap: fund.total_cap,
       initial_cap: fund.initial_cap,
       payment_schedule: fund.payment_schedule,

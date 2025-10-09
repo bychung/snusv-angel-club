@@ -34,6 +34,7 @@ interface TemplateFile {
   version: string;
   description: string;
   content: any;
+  appendix: any;
 }
 
 async function migrateTemplate(filePath: string): Promise<void> {
@@ -83,6 +84,7 @@ async function migrateTemplate(filePath: string): Promise<void> {
       version: template.version,
       description: template.description,
       content: template.content,
+      appendix: template.appendix,
       is_active: isActive,
     })
     .select()

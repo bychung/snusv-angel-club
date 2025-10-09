@@ -105,8 +105,41 @@ export function processTemplateVariables(
     markPreview(context.fund.name || '', isPreview)
   );
   processedText = processedText.replace(
+    /\$\{fundNameShort\}/g,
+    markPreview(context.fund.nameShort || context.fund.name || '', isPreview)
+  );
+  processedText = processedText.replace(
     /\$\{fundAddress\}/g,
     markPreview(context.fund.address || '', isPreview)
+  );
+  // 출자 1좌 금액 관련 변수
+  processedText = processedText.replace(
+    /\$\{parValueKor\}/g,
+    markPreview(
+      context.fund.par_value
+        ? convertNumberToKorean(context.fund.par_value)
+        : '',
+      isPreview
+    )
+  );
+  processedText = processedText.replace(
+    /\$\{parValueComma\}/g,
+    markPreview(
+      context.fund.par_value
+        ? context.fund.par_value.toLocaleString('ko-KR')
+        : '',
+      isPreview
+    )
+  );
+  // 하위 호환: ${parValue}가 있으면 한글 표기로 대체
+  processedText = processedText.replace(
+    /\$\{parValue\}/g,
+    markPreview(
+      context.fund.par_value
+        ? convertNumberToKorean(context.fund.par_value)
+        : '',
+      isPreview
+    )
   );
   processedText = processedText.replace(
     /\$\{totalCapKor\}/g,
@@ -182,6 +215,49 @@ export function processTemplateVariables(
     /\$\{lpList\}/g,
     markPreview(lpMembers.map(m => m.name).join(', '), isPreview)
   );
+
+  // currentMember 컨텍스트 변수 (별지 렌더링용)
+  if (context.currentMember) {
+    const member = context.currentMember;
+
+    processedText = processedText.replace(
+      /\$\{name\}/g,
+      markPreview(member.name || '', isPreview)
+    );
+    processedText = processedText.replace(
+      /\$\{address\}/g,
+      markPreview(member.address || '', isPreview)
+    );
+    processedText = processedText.replace(
+      /\$\{shares\}/g,
+      markPreview(
+        member.total_units ? member.total_units.toString() : '0',
+        isPreview
+      )
+    );
+    processedText = processedText.replace(
+      /\$\{contact\}/g,
+      markPreview(member.phone || '', isPreview)
+    );
+
+    // 생년월일 또는 사업자번호 (개인은 생년월일, 법인은 사업자번호)
+    const birthDateOrBusinessNumber =
+      member.entity_type === 'corporate'
+        ? member.business_number || ''
+        : member.birth_date || '';
+    processedText = processedText.replace(
+      /\$\{birthDateOrBusinessNumber\}/g,
+      markPreview(birthDateOrBusinessNumber, isPreview)
+    );
+    processedText = processedText.replace(
+      /\$\{birthDate\}/g,
+      markPreview(member.birth_date || '', isPreview)
+    );
+    processedText = processedText.replace(
+      /\$\{businessNumber\}/g,
+      markPreview(member.business_number || '', isPreview)
+    );
+  }
 
   // 날짜 관련 변수
   const today = new Date();

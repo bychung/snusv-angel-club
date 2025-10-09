@@ -4,7 +4,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument from 'pdfkit';
 import { processTemplateVariables } from './template-processor';
-import type { LPAContext, ProcessedLPAContent, TemplateSection } from './types';
+import type {
+  AppendixContentElement,
+  AppendixDefinition,
+  AppendixFilter,
+  LPAContext,
+  LPATemplate,
+  ProcessedLPAContent,
+  TemplateSection,
+} from './types';
 
 // 상수 정의
 const INDENT_SIZE = 10; // 들여쓰기 크기 (depth 2부터 적용)
@@ -273,44 +281,99 @@ function renderStyledText(
       }
     } else {
       // 스타일이 섞인 줄 처리
-      segments.forEach((segment, segmentIndex) => {
-        if (!segment.text) return;
+      const hasAlign =
+        options &&
+        options.width &&
+        (options.align === 'right' || options.align === 'center');
 
-        // 폰트 적용 (볼드/이탤릭)
-        if (
-          segment.styles.bold &&
-          segment.styles.italic &&
-          baseFont.boldItalic
-        ) {
-          tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
-        } else if (segment.styles.bold) {
-          tryFont(doc, baseFont.bold, 'Helvetica-Bold');
-        } else if (segment.styles.italic && baseFont.italic) {
-          tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
-        } else {
-          tryFont(doc, baseFont.regular, 'Helvetica');
+      if (hasAlign) {
+        // 우측/가운데 정렬 시: 세그먼트들을 절대 좌표로 이어붙여 한 줄에 정확히 배치
+        // 1) 세그먼트 폭 측정 (세그먼트별 폰트 적용 상태에서)
+        const widths: number[] = [];
+        segments.forEach(seg => {
+          if (seg.styles.bold && seg.styles.italic && baseFont.boldItalic) {
+            tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
+          } else if (seg.styles.bold) {
+            tryFont(doc, baseFont.bold, 'Helvetica-Bold');
+          } else if (seg.styles.italic && baseFont.italic) {
+            tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
+          } else {
+            tryFont(doc, baseFont.regular, 'Helvetica');
+          }
+          widths.push(doc.widthOfString(seg.text || ''));
+        });
+
+        // 2) 전체 폭과 시작 X 계산
+        const totalWidth = widths.reduce((a, b) => a + b, 0);
+        let startX = x;
+        if (options.align === 'right') {
+          startX = x + (options.width as number) - totalWidth;
+        } else if (options.align === 'center') {
+          startX = x + ((options.width as number) - totalWidth) / 2;
         }
 
-        // 색상 설정
-        doc.fillColor(segment.styles.color);
+        // 3) 절대 좌표로 이어붙이기 (align/width 옵션 없이)
+        const baseY = lineIndex === 0 ? y : doc.y;
+        const savedY = doc.y;
+        let cursorX = startX;
+        segments.forEach((seg, i) => {
+          if (!seg.text) return;
 
-        // 첫 줄의 첫 세그먼트만 위치 지정
-        if (lineIndex === 0 && segmentIndex === 0) {
-          doc.text(segment.text, x, y, {
-            ...options,
-            continued: segmentIndex < segments.length - 1,
-          });
+          if (seg.styles.bold && seg.styles.italic && baseFont.boldItalic) {
+            tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
+          } else if (seg.styles.bold) {
+            tryFont(doc, baseFont.bold, 'Helvetica-Bold');
+          } else if (seg.styles.italic && baseFont.italic) {
+            tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
+          } else {
+            tryFont(doc, baseFont.regular, 'Helvetica');
+          }
+          doc.fillColor(seg.styles.color);
+
+          // 절대 좌표로 배치; lineBreak: false로 줄바꿈 방지
+          doc.text(seg.text, cursorX, baseY, { lineBreak: false });
+          cursorX += widths[i] || 0;
+        });
+
+        // 다음 줄로 진행되도록 y를 한 줄 내린다
+        doc.y = savedY;
+        doc.moveDown(1);
+
+        // 복원
+        tryFont(doc, baseFont.regular, 'Helvetica');
+        doc.fillColor('#000000');
+      } else {
+        // 정렬 없으면 기존 방식
+        if (lineIndex === 0) {
+          doc.text('', x, y, { ...options, continued: true });
         } else {
-          doc.text(segment.text, {
-            ...options,
-            continued: segmentIndex < segments.length - 1,
-          });
+          doc.text('', { ...options, continued: true });
         }
-      });
 
-      // 기본 스타일로 복원
-      tryFont(doc, baseFont.regular, 'Helvetica');
-      doc.fillColor('#000000');
+        segments.forEach((segment, segmentIndex) => {
+          if (!segment.text) return;
+          if (
+            segment.styles.bold &&
+            segment.styles.italic &&
+            baseFont.boldItalic
+          ) {
+            tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
+          } else if (segment.styles.bold) {
+            tryFont(doc, baseFont.bold, 'Helvetica-Bold');
+          } else if (segment.styles.italic && baseFont.italic) {
+            tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
+          } else {
+            tryFont(doc, baseFont.regular, 'Helvetica');
+          }
+          doc.fillColor(segment.styles.color);
+
+          const isLast = segmentIndex === segments.length - 1;
+          doc.text(segment.text, { continued: !isLast });
+        });
+
+        tryFont(doc, baseFont.regular, 'Helvetica');
+        doc.fillColor('#000000');
+      }
     }
   });
 }
@@ -1026,11 +1089,297 @@ async function renderSection(
 }
 
 /**
+ * 조합원 필터링
+ */
+function filterMembers(filter: AppendixFilter, context: LPAContext) {
+  switch (filter) {
+    case 'gpMembers':
+      return context.members.filter(m => m.member_type === 'GP');
+    case 'lpMembers':
+      return context.members.filter(m => m.member_type === 'LP');
+    case 'allMembers':
+      return context.members;
+    default:
+      return [];
+  }
+}
+
+/**
+ * 별지 헤더 렌더링
+ */
+function renderAppendixHeader(doc: any, headerText: string): void {
+  const pageMargin = 50;
+
+  doc.fontSize(10);
+  tryFont(doc, '맑은고딕', 'NanumGothic');
+  doc.text(headerText, pageMargin, doc.y, {
+    width: doc.page.width - pageMargin * 2,
+    align: 'left',
+  });
+  doc.moveDown(2);
+}
+
+/**
+ * 별지 타이틀 렌더링
+ */
+function renderAppendixTitle(doc: any, title: string): void {
+  const pageMargin = 50;
+
+  doc.fontSize(16);
+  tryFont(doc, '맑은고딕-Bold', 'NanumGothicBold');
+  doc.text(title, pageMargin, doc.y, {
+    width: doc.page.width - pageMargin * 2,
+    align: 'center',
+  });
+  doc.moveDown(2);
+}
+
+/**
+ * 별지 컨텐츠 요소 렌더링
+ */
+async function renderAppendixContentElement(
+  doc: any,
+  element: AppendixContentElement,
+  context: LPAContext
+): Promise<void> {
+  const pageMargin = 50;
+
+  switch (element.type) {
+    case 'paragraph': {
+      const processedText = processTemplateVariables(
+        element.text || '',
+        context
+      );
+      doc.fontSize(11);
+      tryFont(doc, '맑은고딕', 'NanumGothic');
+      renderStyledText(
+        doc,
+        processedText,
+        pageMargin,
+        doc.y,
+        {
+          width: doc.page.width - pageMargin * 2,
+          align: (element.align || 'left') as any,
+          lineGap: 2,
+        },
+        {
+          regular: '맑은고딕',
+          bold: '맑은고딕-Bold',
+        }
+      );
+      doc.moveDown(1);
+      break;
+    }
+
+    case 'form-fields': {
+      doc.fontSize(11);
+      tryFont(doc, '맑은고딕', 'NanumGothic');
+
+      for (const field of element.fields || []) {
+        const value = processTemplateVariables(field.variable, context);
+        const labelText = field.seal
+          ? `${field.label} : ${value}    (인)`
+          : `${field.label} : ${value}`;
+
+        // 스타일 마커 처리를 위해 renderStyledText 사용
+        renderStyledText(
+          doc,
+          labelText,
+          pageMargin + 20,
+          doc.y,
+          {
+            width: doc.page.width - pageMargin * 2 - 20,
+            align: 'left' as any,
+            lineGap: 0,
+          },
+          {
+            regular: '맑은고딕',
+            bold: '맑은고딕-Bold',
+          }
+        );
+        doc.moveDown(0.5);
+      }
+      break;
+    }
+
+    case 'spacer': {
+      doc.moveDown(element.lines || 1);
+      break;
+    }
+
+    case 'date-field': {
+      doc.fontSize(11);
+      tryFont(doc, '맑은고딕', 'NanumGothic');
+      doc.text(element.format || '년    월    일', pageMargin, doc.y, {
+        width: doc.page.width - pageMargin * 2,
+        align: 'center',
+      });
+      doc.moveDown(1);
+      break;
+    }
+  }
+}
+
+/**
+ * 섹션 반복 렌더링 (별지1 스타일)
+ */
+async function renderRepeatingSectionAppendix(
+  doc: any,
+  appendixDef: AppendixDefinition,
+  members: any[],
+  context: LPAContext,
+  currentPageNumber: { value: number }
+): Promise<void> {
+  const pageMargin = 50;
+
+  // 새 페이지 시작
+  doc.addPage();
+  currentPageNumber.value++;
+
+  // 헤더 렌더링
+  if (appendixDef.template.header) {
+    renderAppendixHeader(doc, appendixDef.template.header.text);
+  }
+
+  // 타이틀 렌더링
+  if (appendixDef.title) {
+    renderAppendixTitle(doc, appendixDef.template.title || '');
+  }
+
+  // 각 조합원에 대해 섹션 반복
+  for (const member of members) {
+    // currentMember 설정
+    const memberContext: LPAContext = {
+      ...context,
+      currentMember: member,
+    };
+
+    for (const section of appendixDef.template.sections || []) {
+      if (section.title) {
+        doc.fontSize(12);
+        tryFont(doc, '맑은고딕-Bold', 'NanumGothicBold');
+        doc.text(section.title, pageMargin, doc.y);
+        doc.moveDown(1);
+      }
+
+      // 필드 렌더링
+      doc.fontSize(11);
+      tryFont(doc, '맑은고딕', 'NanumGothic');
+
+      for (const field of section.fields) {
+        const value = processTemplateVariables(field.variable, memberContext);
+        // 스타일 마커 처리를 위해 renderStyledText 사용
+        const labelText = (field as any).seal
+          ? `${field.label} : ${value}    (인)`
+          : `${field.label} : ${value}`;
+        renderStyledText(
+          doc,
+          labelText,
+          pageMargin + 20,
+          doc.y,
+          {
+            width: doc.page.width - pageMargin * 2 - 20,
+            align: 'left' as any,
+            lineGap: 0,
+          },
+          {
+            regular: '맑은고딕',
+            bold: '맑은고딕-Bold',
+          }
+        );
+        doc.moveDown(0.5);
+      }
+
+      doc.moveDown(2);
+    }
+  }
+
+  addPageFooter(doc, currentPageNumber.value);
+}
+
+/**
+ * 페이지 반복 렌더링 (별지2 스타일)
+ */
+async function renderRepeatingPageAppendix(
+  doc: any,
+  appendixDef: AppendixDefinition,
+  members: any[],
+  context: LPAContext,
+  currentPageNumber: { value: number }
+): Promise<void> {
+  for (const member of members) {
+    // 새 페이지 시작
+    doc.addPage();
+    currentPageNumber.value++;
+
+    // currentMember 설정
+    const memberContext: LPAContext = {
+      ...context,
+      currentMember: member,
+    };
+
+    // 헤더
+    if (appendixDef.template.header) {
+      renderAppendixHeader(doc, appendixDef.template.header.text);
+    }
+
+    // 타이틀
+    if (appendixDef.template.title) {
+      renderAppendixTitle(doc, appendixDef.template.title);
+    }
+
+    // 컨텐츠 요소들 렌더링
+    for (const element of appendixDef.template.content || []) {
+      await renderAppendixContentElement(doc, element, memberContext);
+    }
+
+    addPageFooter(doc, currentPageNumber.value);
+  }
+}
+
+/**
+ * 별지 렌더링 메인 함수
+ */
+async function renderAppendix(
+  doc: any,
+  appendixDef: AppendixDefinition,
+  context: LPAContext,
+  currentPageNumber: { value: number }
+): Promise<void> {
+  // 필터에 따라 조합원 선택
+  const members = filterMembers(appendixDef.filter, context);
+
+  if (members.length === 0) {
+    console.log(`별지 ${appendixDef.id}: 렌더링할 조합원이 없습니다.`);
+    return;
+  }
+
+  if (appendixDef.type === 'repeating-section') {
+    await renderRepeatingSectionAppendix(
+      doc,
+      appendixDef,
+      members,
+      context,
+      currentPageNumber
+    );
+  } else if (appendixDef.type === 'repeating-page') {
+    await renderRepeatingPageAppendix(
+      doc,
+      appendixDef,
+      members,
+      context,
+      currentPageNumber
+    );
+  }
+}
+
+/**
  * LPA PDF 생성
  */
 export async function generateLPAPDF(
   content: ProcessedLPAContent,
-  context: LPAContext
+  context: LPAContext,
+  template?: LPATemplate
 ): Promise<Buffer> {
   // PDFKit는 기본 폰트가 지정되지 않으면 Helvetica를 로드하려고 하므로,
   // 생성 시점에 번들된 TTF 폰트를 기본 폰트로 지정한다.
@@ -1075,6 +1424,14 @@ export async function generateLPAPDF(
   // 섹션 렌더링
   for (const section of content.sections) {
     await renderSection(doc, section, context, 0, 0, currentPageNumber);
+  }
+
+  // 별지 렌더링
+  if (template?.appendix && template.appendix.length > 0) {
+    console.log(`별지 ${template.appendix.length}개 렌더링 시작`);
+    for (const appendixDef of template.appendix) {
+      await renderAppendix(doc, appendixDef, context, currentPageNumber);
+    }
   }
 
   doc.end();
