@@ -187,3 +187,21 @@ export function validateDate(value: string): boolean {
     date.getDate() === day
   );
 }
+
+/**
+ * 정렬용 이름 추출 (회사 형태 접두사 제거)
+ * @param name - 원본 이름/회사명
+ * @returns 회사 형태 접두사가 제거된 이름
+ * @example
+ * getNameForSorting("주식회사 가나다") // "가나다"
+ * getNameForSorting("(주)라마바") // "라마바"
+ * getNameForSorting("㈜사아자") // "사아자"
+ */
+export function getNameForSorting(name: string): string {
+  return name
+    .replace(/^주식회사\s*/g, '') // 앞의 "주식회사" 제거
+    .replace(/\s*주식회사$/g, '') // 뒤의 "주식회사" 제거
+    .replace(/^\(주\)\s*/g, '') // 앞의 "(주)" 제거
+    .replace(/^㈜\s*/g, '') // 앞의 "㈜" 제거
+    .trim();
+}

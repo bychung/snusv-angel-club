@@ -1573,7 +1573,7 @@
       "id": "appendix2",
       "title": "조합원동의서",
       "type": "repeating-page",
-      "filter": "allMembers",
+      "filter": "lpMembers",
       "pageBreak": "before",
       "template": {
         "header": {

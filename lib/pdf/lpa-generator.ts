@@ -3,6 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument from 'pdfkit';
+import { getNameForSorting } from '../format-utils';
 import { processTemplateVariables } from './template-processor';
 import type {
   AppendixContentElement,
@@ -559,16 +560,6 @@ async function renderTable(
       0
     );
 
-    // 정렬용 이름 추출 (회사 형태 접두사 제거)
-    const getNameForSorting = (name: string): string => {
-      return name
-        .replace(/^주식회사\s*/g, '') // 앞의 "주식회사" 제거
-        .replace(/\s*주식회사$/g, '') // 뒤의 "주식회사" 제거
-        .replace(/^\(주\)\s*/g, '') // 앞의 "(주)" 제거
-        .replace(/^㈜\s*/g, '') // 앞의 "㈜" 제거
-        .trim();
-    };
-
     // 조합원 정렬: GP 먼저, 각 그룹 내에서 가나다순
     const sortedMembers = [...context.members].sort((a, b) => {
       // 1. GP가 LP보다 먼저
@@ -1089,19 +1080,31 @@ async function renderSection(
 }
 
 /**
- * 조합원 필터링
+ * 조합원 필터링 (이름 가나다순 정렬, 회사 형태 접두사 제외)
  */
 function filterMembers(filter: AppendixFilter, context: LPAContext) {
+  let filtered: typeof context.members;
+
   switch (filter) {
     case 'gpMembers':
-      return context.members.filter(m => m.member_type === 'GP');
+      filtered = context.members.filter(m => m.member_type === 'GP');
+      break;
     case 'lpMembers':
-      return context.members.filter(m => m.member_type === 'LP');
+      filtered = context.members.filter(m => m.member_type === 'LP');
+      break;
     case 'allMembers':
-      return context.members;
+      filtered = context.members;
+      break;
     default:
       return [];
   }
+
+  // 이름 기준 가나다순 정렬 (회사 형태 접두사 제거 후)
+  return filtered.sort((a, b) => {
+    const nameA = getNameForSorting(a.name);
+    const nameB = getNameForSorting(b.name);
+    return nameA.localeCompare(nameB, 'ko-KR');
+  });
 }
 
 /**
@@ -1177,9 +1180,19 @@ async function renderAppendixContentElement(
 
       for (const field of element.fields || []) {
         const value = processTemplateVariables(field.variable, context);
+
+        // 법인의 경우 "생년월일" 레이블을 "사업자번호"로 변경
+        let displayLabel = field.label;
+        if (field.label === '생년월일' && context.currentMember) {
+          const member = context.currentMember as any;
+          if (member.entity_type === 'corporate') {
+            displayLabel = '사업자번호';
+          }
+        }
+
         const labelText = field.seal
-          ? `${field.label} : ${value}    (인)`
-          : `${field.label} : ${value}`;
+          ? `${displayLabel} : ${value}    (인)`
+          : `${displayLabel} : ${value}`;
 
         // 스타일 마커 처리를 위해 renderStyledText 사용
         renderStyledText(
@@ -1268,10 +1281,20 @@ async function renderRepeatingSectionAppendix(
 
       for (const field of section.fields) {
         const value = processTemplateVariables(field.variable, memberContext);
+
+        // 법인의 경우 "생년월일" 레이블을 "사업자번호"로 변경
+        let displayLabel = field.label;
+        if (field.label === '생년월일' && member) {
+          const memberData = member as any;
+          if (memberData.entity_type === 'corporate') {
+            displayLabel = '사업자번호';
+          }
+        }
+
         // 스타일 마커 처리를 위해 renderStyledText 사용
         const labelText = (field as any).seal
-          ? `${field.label} : ${value}    (인)`
-          : `${field.label} : ${value}`;
+          ? `${displayLabel} : ${value}    (인)`
+          : `${displayLabel} : ${value}`;
         renderStyledText(
           doc,
           labelText,
