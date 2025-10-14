@@ -89,7 +89,10 @@ export function createBrandClient() {
     // 브랜드 필터 자동 적용 테이블 작업들
     profiles: createTableOperations(supabase, 'profiles', brand),
     funds: createTableOperations(supabase, 'funds', brand),
-    fundMembers: createTableOperations(supabase, 'fund_members', brand),
+    // fund_members는 soft delete 지원
+    fundMembers: createTableOperations(supabase, 'fund_members', brand, {
+      hasSoftDelete: true,
+    }),
     fundMemberChanges: createTableOperations(
       supabase,
       'fund_member_changes',

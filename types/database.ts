@@ -53,6 +53,7 @@ export interface FundMember {
   investment_units: number;
   total_units: number; // 약정출자좌수
   updated_by?: string | null; // 최종 수정자 프로필 ID
+  deleted_at?: string | null; // Soft delete timestamp
   brand: string;
   created_at: string;
   updated_at: string;

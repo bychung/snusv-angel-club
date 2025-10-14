@@ -72,6 +72,7 @@ export default function ExportControls() {
           id,
           investment_units,
           total_units,
+          deleted_at,
           created_at,
           updated_at,
           fund:funds (par_value)
@@ -100,6 +101,11 @@ export default function ExportControls() {
         순번: index + 1,
       };
 
+      // soft delete된 조합원 제외
+      const activeFundMembers = (user.fund_members || []).filter(
+        (member: any) => !member.deleted_at
+      );
+
       // 기본 정보
       if (options.includeFields.basicInfo) {
         row['이름/회사명'] = user.name;
@@ -124,8 +130,8 @@ export default function ExportControls() {
       }
 
       // 출자 정보
-      if (options.includeFields.investmentInfo && user.fund_members?.[0]) {
-        const investment = user.fund_members[0];
+      if (options.includeFields.investmentInfo && activeFundMembers[0]) {
+        const investment = activeFundMembers[0];
         row['출자좌수'] = investment.investment_units;
         row['약정출자좌수'] = investment.total_units;
         row['출자금액'] =

@@ -15,24 +15,29 @@ export interface MemberWithFund extends Profile {
 
 /**
  * 특정 펀드의 조합원 목록을 조회합니다 (서버에서만 실행)
+ * @param fundId - 펀드 ID
+ * @param includeDeleted - 삭제된 조합원도 포함할지 여부 (기본값: false)
  */
 export async function getFundMembers(
-  fundId: string
+  fundId: string,
+  includeDeleted: boolean = false
 ): Promise<MemberWithFund[]> {
   const brandClient = await createBrandServerClient();
 
-  let query = brandClient.fundMembers
-    .select(
-      `
+  // includeDeleted에 따라 적절한 select 메서드 선택
+  const selectMethod = includeDeleted
+    ? brandClient.fundMembers.selectWithDeleted
+    : brandClient.fundMembers.select;
+
+  const { data: fundMembers, error } = await selectMethod(
+    `
       *,
       profile:profiles (*),
       fund:funds (name, abbreviation, par_value, payment_schedule)
     `
-    )
+  )
     .eq('fund_id', fundId)
     .order('created_at', { ascending: false });
-
-  const { data: fundMembers, error } = await query;
 
   if (error) {
     console.error('펀드 조합원 조회 실패:', error);
@@ -65,6 +70,7 @@ export async function getAllUsers(): Promise<MemberWithFund[]> {
       fund_members (
         id,
         investment_units,
+        deleted_at,
         created_at,
         updated_at,
         fund:funds (
@@ -86,6 +92,10 @@ export async function getAllUsers(): Promise<MemberWithFund[]> {
 
   const usersWithStatus: MemberWithFund[] = profiles.map((profile: any) => ({
     ...profile,
+    // soft delete된 조합원 제외
+    fund_members: (profile.fund_members || []).filter(
+      (member: any) => !member.deleted_at
+    ),
     registration_status: profile.user_id ? 'registered' : 'survey_only',
   }));
 

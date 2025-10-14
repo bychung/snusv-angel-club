@@ -50,6 +50,7 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
         id, 
         investment_units,
         total_units,
+        deleted_at,
         profile:profiles (
           id,
           user_id
@@ -67,7 +68,11 @@ export async function getAllFunds(): Promise<FundWithStats[]> {
   // 각 펀드별 통계 계산
   const fundsWithStats: FundWithStats[] =
     fundsData?.map((fund: any) => {
-      const members = fund.fund_members || [];
+      // soft delete된 조합원 제외 (deleted_at이 null인 것만)
+      const members = (fund.fund_members || []).filter(
+        (member: any) => !member.deleted_at
+      );
+
       const totalInvestment = members.reduce(
         (sum: number, member: any) =>
           sum + member.investment_units * fund.par_value,
