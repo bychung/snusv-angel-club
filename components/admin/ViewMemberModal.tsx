@@ -181,6 +181,18 @@ export default function ViewMemberModal({
                   </div>
                 )}
               </div>
+
+              {/* 메모 섹션 */}
+              {member.memo && (
+                <div className="md:col-span-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    메모
+                  </label>
+                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-wrap bg-gray-100 p-3 rounded-md">
+                    {member.memo}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

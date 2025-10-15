@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { MemberWithFund } from '@/lib/admin/members';
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/format-utils';
 import { createBrandClient } from '@/lib/supabase/client';
@@ -59,6 +60,7 @@ export default function EditMemberModal({
     total_units: 0,
     role: 'USER' as 'ADMIN' | 'USER',
     email_notifications: [] as EmailNotificationType[],
+    memo: '',
   });
   const [fundMinUnits, setFundMinUnits] = useState<number>(1); // 펀드의 최소 출자좌수
   const [paymentSchedule, setPaymentSchedule] = useState<
@@ -82,6 +84,7 @@ export default function EditMemberModal({
         total_units: totalUnits,
         role: member.role,
         email_notifications: member.email_notifications || [],
+        memo: member.memo || '',
       });
 
       // 펀드 정보 가져오기 (fund_id가 있는 경우에만)
@@ -151,7 +154,8 @@ export default function EditMemberModal({
         formData.business_number !== (member.business_number || '') ||
         formData.role !== member.role ||
         JSON.stringify(formData.email_notifications) !==
-          JSON.stringify(member.email_notifications || []);
+          JSON.stringify(member.email_notifications || []) ||
+        formData.memo !== (member.memo || '');
 
       // 프로필 정보가 변경된 경우에만 업데이트
       if (profileChanged) {
@@ -165,6 +169,7 @@ export default function EditMemberModal({
             business_number: formData.business_number || null,
             role: formData.role,
             email_notifications: formData.email_notifications,
+            memo: formData.memo || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', member.id);
@@ -617,7 +622,6 @@ export default function EditMemberModal({
               </div>
             )}
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="address">주소 *</Label>
             <Input
@@ -629,7 +633,20 @@ export default function EditMemberModal({
               required
             />
           </div>
-
+          l{' '}
+          <div className="space-y-2">
+            <Label htmlFor="memo">메모</Label>
+            <Textarea
+              id="memo"
+              value={formData.memo}
+              onChange={e => setFormData({ ...formData, memo: e.target.value })}
+              placeholder="관리자 전용 메모를 입력하세요..."
+              rows={4}
+            />
+            <p className="text-xs text-gray-500">
+              조합원에 대한 메모를 자유롭게 작성할 수 있습니다. (관리자 전용)
+            </p>
+          </div>
           <div className="bg-gray-50 p-4 rounded-lg">
             <h4 className="font-medium text-gray-900 mb-2">기본 정보</h4>
             <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
@@ -655,7 +672,6 @@ export default function EditMemberModal({
               )}
             </div>
           </div>
-
           <DialogFooter>
             <Button
               type="button"

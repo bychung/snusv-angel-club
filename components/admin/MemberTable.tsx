@@ -252,6 +252,11 @@ export default function MemberTable({
                               )}
                           {mode === 'fund_members' &&
                             getStatusBadge(member.registration_status)}
+                          {member.memo && (
+                            <span className="text-sm text-gray-500 truncate max-w-xs">
+                              {member.memo}
+                            </span>
+                          )}
                         </div>
                       </div>
 

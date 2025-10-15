@@ -16,6 +16,7 @@ export interface Profile {
   address: string;
   role: 'ADMIN' | 'USER';
   email_notifications?: EmailNotificationType[];
+  memo?: string | null;
   brand: string;
   created_at: string;
   updated_at: string;
