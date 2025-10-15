@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { DeleteSectionModal } from './TemplateEditor/DeleteSectionModal';
+import { FundDocumentConfirmModal } from './TemplateEditor/FundDocumentConfirmModal';
 import { TemplateCommitModal } from './TemplateEditor/TemplateCommitModal';
 import { TemplatePreviewModal } from './TemplateEditor/TemplatePreviewModal';
 import { TemplateSearchBar } from './TemplateEditor/TemplateSearchBar';
@@ -84,6 +85,7 @@ export function TemplateEditModal({
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
+  const [showFundConfirmModal, setShowFundConfirmModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTargetPath, setDeleteTargetPath] = useState<string | null>(null);
 
@@ -393,9 +395,9 @@ export function TemplateEditModal({
       return;
     }
 
-    // 펀드 규약은 바로 저장, 글로벌 템플릿은 커밋 모달 표시
+    // 펀드 규약과 글로벌 템플릿 모두 확인 모달 표시
     if (fundId) {
-      handleSaveFundDocument();
+      setShowFundConfirmModal(true);
     } else {
       setShowCommitModal(true);
     }
@@ -500,6 +502,7 @@ export function TemplateEditModal({
 
       alert('규약이 저장되고 다운로드되었습니다.');
 
+      setShowFundConfirmModal(false);
       onSave?.();
       onClose();
     } catch (error) {
@@ -1090,6 +1093,17 @@ export function TemplateEditModal({
           onConfirm={handleSave}
           nextVersion={nextVersion}
           changes={changes}
+        />
+      )}
+
+      {/* 펀드 규약 확인 모달 */}
+      {fundId && (
+        <FundDocumentConfirmModal
+          isOpen={showFundConfirmModal}
+          onClose={() => setShowFundConfirmModal(false)}
+          onConfirm={handleSaveFundDocument}
+          changes={changes}
+          fundName={fundName}
         />
       )}
 
