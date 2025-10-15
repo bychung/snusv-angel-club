@@ -1,7 +1,7 @@
 // LPA 중복 체크 API Route
 
 import { isDocumentDuplicate } from '@/lib/admin/fund-documents';
-import { buildLPAContext, loadLPATemplate } from '@/lib/admin/lpa-context';
+import { buildLPAContext } from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -22,10 +22,7 @@ export async function GET(
     // 1. 컨텍스트 구성 (중복 체크용, isPreview=false)
     const context = await buildLPAContext(fundId, user.id, false);
 
-    // 2. 템플릿 로드
-    const { templateVersion } = await loadLPATemplate();
-
-    // 3. 중복 체크
+    // 2. 중복 체크 (펀드 정보만 비교, 템플릿 버전은 비교하지 않음)
     const generationContext = {
       ...context,
       generatedAt: context.generatedAt.toISOString(),
@@ -34,8 +31,8 @@ export async function GET(
     const isDuplicate = await isDocumentDuplicate(
       fundId,
       'lpa',
-      generationContext,
-      templateVersion
+      generationContext
+      // templateVersion을 전달하지 않으므로 펀드 정보만 비교
     );
 
     return NextResponse.json({

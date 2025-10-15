@@ -21,7 +21,6 @@ import {
 } from '@/components/ui/select';
 import type { FundWithStats } from '@/lib/admin/funds';
 import { canShowSurveyLink } from '@/lib/fund-status';
-import { createBrandClient } from '@/lib/supabase/client';
 import { Check, Link2, Plus } from 'lucide-react';
 import { useState } from 'react';
 
@@ -147,25 +146,28 @@ export function CreateFundDialog() {
 
     setIsCreating(true);
     try {
-      // brandClient를 사용해서 브랜드 자동 처리
-      const brandClient = createBrandClient();
+      // API를 통한 펀드 생성 (템플릿 초기화 포함)
+      const response = await fetch('/api/admin/funds', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newFundName.trim(),
+          abbreviation: newFundAbbreviation.trim() || null,
+          par_value: newFundParValue,
+          min_units: newFundMinUnits,
+          payment_schedule: paymentSchedule,
+          initial_numerator: initialNumerator,
+          initial_denominator: initialDenominator,
+          duration: duration,
+        }),
+      });
 
-      const { data, error } = await brandClient.funds
-        .insert([
-          {
-            name: newFundName.trim(),
-            abbreviation: newFundAbbreviation.trim() || null,
-            par_value: newFundParValue,
-            min_units: newFundMinUnits,
-            payment_schedule: paymentSchedule,
-            initial_numerator: initialNumerator,
-            initial_denominator: initialDenominator,
-            duration: duration,
-          },
-        ])
-        .select();
-
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '펀드 생성에 실패했습니다');
+      }
 
       // 페이지 새로고침으로 새 펀드 반영
       window.location.reload();
@@ -182,6 +184,9 @@ export function CreateFundDialog() {
       setDuration(5);
     } catch (error) {
       console.error('펀드 생성 실패:', error);
+      alert(
+        error instanceof Error ? error.message : '펀드 생성에 실패했습니다'
+      );
     } finally {
       setIsCreating(false);
     }

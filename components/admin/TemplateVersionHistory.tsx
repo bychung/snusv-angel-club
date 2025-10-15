@@ -26,14 +26,18 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import TemplateDiffModal from './TemplateDiffModal';
+import { TemplatePreviewModal } from './TemplateEditor/TemplatePreviewModal';
 
 interface TemplateVersionHistoryProps {
   documentType: string;
+  fundId?: string; // 펀드별 템플릿 조회 시 전달, 없으면 글로벌 템플릿
   onTemplateActivated?: () => void; // 템플릿 활성화 후 상위 컴포넌트 새로고침용
 }
 
 export default function TemplateVersionHistory({
   documentType,
+  fundId,
   onTemplateActivated,
 }: TemplateVersionHistoryProps) {
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
@@ -41,6 +45,15 @@ export default function TemplateVersionHistory({
   const [error, setError] = useState<string | null>(null);
   const [activating, setActivating] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  // 미리보기 모달 상태
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<DocumentTemplate | null>(null);
+
+  // Diff 모달 상태
+  const [diffModalOpen, setDiffModalOpen] = useState(false);
+  const [selectedForDiff, setSelectedForDiff] = useState<string | null>(null);
 
   // authStore에서 권한 가져오기
   const { isSystemAdminUser } = useAuthStore();
@@ -50,13 +63,16 @@ export default function TemplateVersionHistory({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(
-        `/api/admin/templates/types/${documentType}`
-      );
+      // fundId가 있으면 펀드별 템플릿, 없으면 글로벌 템플릿 조회
+      const apiUrl = fundId
+        ? `/api/admin/funds/${fundId}/templates/${documentType}/versions`
+        : `/api/admin/templates/types/${documentType}`;
+
+      const response = await fetch(apiUrl);
 
       if (response.ok) {
         const data = await response.json();
-        setTemplates(data.templates || []);
+        setTemplates(data.templates || data.versions || []);
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || '템플릿 목록 조회 실패');
@@ -68,25 +84,31 @@ export default function TemplateVersionHistory({
     }
   };
 
+  // 컴포넌트 마운트 시 템플릿 목록 자동 로드
   useEffect(() => {
-    if (isOpen && templates.length === 0 && !loading && !error) {
-      fetchTemplates();
-    }
-  }, [isOpen, templates.length, loading, error]);
+    fetchTemplates();
+  }, [documentType, fundId]); // documentType이나 fundId가 변경되면 재로드
 
   const handleActivate = async (templateId: string) => {
     try {
       setActivating(templateId);
 
-      const response = await fetch(
-        `/api/admin/templates/${templateId}/activate`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      // fundId가 있으면 펀드별 활성화 API, 없으면 글로벌 활성화 API
+      const apiUrl = fundId
+        ? `/api/admin/funds/${fundId}/templates/${documentType}/activate`
+        : `/api/admin/templates/${templateId}/activate`;
+
+      const body = fundId
+        ? { templateId } // 펀드별 API는 body에 templateId 전달
+        : undefined; // 글로벌 API는 body 없음
+
+      const response = await fetch(apiUrl, {
+        method: fundId ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -114,16 +136,49 @@ export default function TemplateVersionHistory({
     }
   };
 
-  const handleViewTemplate = (templateId: string) => {
-    // TODO: 템플릿 상세보기 모달
-    console.log('템플릿 상세보기:', templateId);
-    alert('템플릿 상세보기는 아직 구현되지 않았습니다.');
+  const handleViewTemplate = async (templateId: string) => {
+    try {
+      // 템플릿 상세 조회
+      const response = await fetch(`/api/admin/templates/${templateId}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '템플릿 조회 실패');
+      }
+
+      const data = await response.json();
+      setSelectedTemplate(data.template);
+      setPreviewModalOpen(true);
+    } catch (err) {
+      console.error('템플릿 조회 오류:', err);
+      alert(
+        err instanceof Error
+          ? err.message
+          : '템플릿을 조회하는 중 오류가 발생했습니다.'
+      );
+    }
   };
 
   const handleCompare = (templateId: string) => {
-    // TODO: 활성 버전과 비교 모달
-    console.log('활성 버전과 비교:', templateId);
-    alert('템플릿 비교 기능은 아직 구현되지 않았습니다.');
+    // 현재 템플릿의 인덱스 찾기
+    const currentIndex = templates.findIndex(t => t.id === templateId);
+
+    if (currentIndex === -1) {
+      alert('템플릿을 찾을 수 없습니다.');
+      return;
+    }
+
+    // 직전 버전 찾기 (배열은 최신순이므로 다음 인덱스)
+    const previousTemplate = templates[currentIndex + 1];
+
+    if (!previousTemplate) {
+      alert('비교할 이전 버전이 없습니다.');
+      return;
+    }
+
+    // Diff 모달 열기 (이전 버전 vs 현재 버전)
+    setSelectedForDiff(templateId);
+    setDiffModalOpen(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -273,6 +328,36 @@ export default function TemplateVersionHistory({
           </>
         )}
       </CollapsibleContent>
+
+      {/* 템플릿 미리보기 모달 */}
+      {selectedTemplate && (
+        <TemplatePreviewModal
+          isOpen={previewModalOpen}
+          onClose={() => {
+            setPreviewModalOpen(false);
+            setSelectedTemplate(null);
+          }}
+          templateContent={selectedTemplate.content}
+          templateType={selectedTemplate.type}
+        />
+      )}
+
+      {/* 템플릿 Diff 모달 */}
+      <TemplateDiffModal
+        isOpen={diffModalOpen}
+        onClose={() => {
+          setDiffModalOpen(false);
+          setSelectedForDiff(null);
+        }}
+        templates={templates}
+        defaultFromId={
+          selectedForDiff
+            ? templates[templates.findIndex(t => t.id === selectedForDiff) + 1]
+                ?.id
+            : undefined
+        }
+        defaultToId={selectedForDiff || undefined}
+      />
     </Collapsible>
   );
 }

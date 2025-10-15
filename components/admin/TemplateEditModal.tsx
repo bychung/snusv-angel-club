@@ -45,6 +45,8 @@ interface TemplateEditModalProps {
   isOpen: boolean;
   onClose: () => void;
   template: DocumentTemplate;
+  fundId?: string; // 펀드별 규약 수정 시 전달
+  fundName?: string; // 펀드별 규약 수정 시 전달
   onSave?: () => void;
 }
 
@@ -52,6 +54,8 @@ export function TemplateEditModal({
   isOpen,
   onClose,
   template,
+  fundId,
+  fundName,
   onSave,
 }: TemplateEditModalProps) {
   // 원본과 수정본
@@ -195,17 +199,22 @@ export function TemplateEditModal({
     alert('모든 변경사항이 초기화되었습니다.');
   };
 
-  // 저장 버튼 클릭 - 커밋 모달 열기
+  // 저장 버튼 클릭
   const handleSaveClick = () => {
     if (changes.length === 0) {
       alert('수정된 내용이 없습니다.');
       return;
     }
 
-    setShowCommitModal(true);
+    // 펀드 규약은 바로 저장, 글로벌 템플릿은 커밋 모달 표시
+    if (fundId) {
+      handleSaveFundDocument();
+    } else {
+      setShowCommitModal(true);
+    }
   };
 
-  // 실제 저장 (커밋 메시지와 함께)
+  // 글로벌 템플릿 저장 (커밋 메시지와 함께)
   const handleSave = async (commitMessage: string) => {
     try {
       setSaving(true);
@@ -236,6 +245,75 @@ export function TemplateEditModal({
         error instanceof Error
           ? error.message
           : '템플릿 저장 중 오류가 발생했습니다.'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 펀드 규약 저장 (PDF 생성 및 다운로드)
+  const handleSaveFundDocument = async () => {
+    if (!fundId || !fundName) return;
+
+    try {
+      setSaving(true);
+
+      // 규약 저장 + PDF 생성 (한 번의 API 호출로 처리)
+      const response = await fetch(
+        `/api/admin/funds/${fundId}/generated-documents/${template.type}/generate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            modifiedContent: modified.content,
+            modifiedAppendix: modified.appendix,
+            changeDescription,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '규약 저장 및 생성에 실패했습니다');
+      }
+
+      // PDF 다운로드
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+
+      // Content-Disposition 헤더에서 파일명 추출 시도
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = `${fundName}_규약(안)_${
+        new Date().toISOString().split('T')[0]
+      }.pdf`;
+
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(
+          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+        );
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = decodeURIComponent(fileNameMatch[1].replace(/['"]/g, ''));
+        }
+      }
+
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('규약이 저장되고 다운로드되었습니다.');
+
+      onSave?.();
+      onClose();
+    } catch (error) {
+      console.error('규약 저장 실패:', error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : '규약 저장 중 오류가 발생했습니다.'
       );
     } finally {
       setSaving(false);
@@ -448,7 +526,13 @@ export function TemplateEditModal({
             <div className="flex items-center gap-3">
               <FileText className="h-5 w-5 text-gray-600" />
               <DialogTitle>
-                템플릿 수정 - {template.type.toUpperCase()} v{template.version}
+                {fundId
+                  ? `펀드 규약 수정 - ${template.type.toUpperCase()} v${
+                      template.version
+                    } (${fundName})`
+                  : `템플릿 수정 - ${template.type.toUpperCase()} v${
+                      template.version
+                    }`}
               </DialogTitle>
               {changes.length > 0 && (
                 <Badge
@@ -629,14 +713,16 @@ export function TemplateEditModal({
         originalContent={original.content}
       />
 
-      {/* 커밋 메시지 입력 모달 */}
-      <TemplateCommitModal
-        isOpen={showCommitModal}
-        onClose={() => setShowCommitModal(false)}
-        onConfirm={handleSave}
-        nextVersion={nextVersion}
-        changes={changes}
-      />
+      {/* 커밋 메시지 입력 모달 (글로벌 템플릿만) */}
+      {!fundId && (
+        <TemplateCommitModal
+          isOpen={showCommitModal}
+          onClose={() => setShowCommitModal(false)}
+          onConfirm={handleSave}
+          nextVersion={nextVersion}
+          changes={changes}
+        />
+      )}
     </Dialog>
   );
 }

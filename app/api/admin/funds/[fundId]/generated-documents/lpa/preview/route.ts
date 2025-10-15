@@ -1,6 +1,9 @@
 // LPA PDF 미리보기 API Route (DB 저장 없음)
 
-import { buildLPAContext, loadLPATemplate } from '@/lib/admin/lpa-context';
+import {
+  buildLPAContext,
+  loadLPATemplateForDocument,
+} from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
 import { processLPATemplate } from '@/lib/pdf/template-processor';
@@ -25,8 +28,8 @@ export async function GET(
     // 1. 컨텍스트 구성 (미리보기 모드, isPreview=true)
     const context = await buildLPAContext(fundId, user.id, true);
 
-    // 2. 템플릿 로드
-    const { template } = await loadLPATemplate();
+    // 2. 템플릿 로드 (fund_documents 기반, 없으면 글로벌 템플릿)
+    const { template } = await loadLPATemplateForDocument(fundId);
 
     // 3. 템플릿 변수 치환
     const processedContent = processLPATemplate(template, context);

@@ -102,7 +102,7 @@ export interface Document {
   updated_at: string;
 }
 
-// 문서 템플릿 버전 관리 (전체 브랜드 공통)
+// 문서 템플릿 버전 관리 (글로벌 + 펀드별)
 export interface DocumentTemplate {
   id: string;
   type: string; // 'lpa', 'plan', 'certificate' 등
@@ -111,8 +111,17 @@ export interface DocumentTemplate {
   appendix?: any | null; // JSONB - 별지 정보 (조합원서명단, 조합원동의서 등)
   is_active: boolean;
   description?: string | null;
+  fund_id?: string | null; // NULL이면 글로벌 템플릿, 값이 있으면 펀드별 템플릿
   created_at: string;
   created_by?: string | null;
+}
+
+// 템플릿 유형 구분
+export type TemplateScope = 'global' | 'fund';
+
+// 스코프 정보를 포함한 템플릿 (UI용)
+export interface TemplateWithScope extends DocumentTemplate {
+  scope: TemplateScope;
 }
 
 // 생성된 문서 기록 (fund를 통해 brand 확인)

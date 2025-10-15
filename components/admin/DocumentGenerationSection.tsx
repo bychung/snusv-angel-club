@@ -3,10 +3,8 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import ActiveTemplateInfo from './ActiveTemplateInfo';
 import DocumentGenerationActions from './DocumentGenerationActions';
 import GeneratedDocumentsList from './GeneratedDocumentsList';
-import TemplateVersionHistory from './TemplateVersionHistory';
 
 interface DocumentGenerationSectionProps {
   fundId: string;
@@ -63,13 +61,7 @@ export default function DocumentGenerationSection({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* 1. 현재 활성 템플릿 정보 */}
-        <ActiveTemplateInfo
-          documentType={documentType}
-          refreshTrigger={templateRefreshTrigger}
-        />
-
-        {/* 2. 문서 생성 액션 */}
+        {/* 1. 문서 생성 액션 */}
         <DocumentGenerationActions
           fundId={fundId}
           fundName={fundName}
@@ -78,18 +70,12 @@ export default function DocumentGenerationSection({
           duplicateCheckTrigger={duplicateCheckTrigger}
         />
 
-        {/* 3. 생성된 문서 목록 */}
+        {/* 2. 생성된 문서 목록 */}
         <GeneratedDocumentsList
           fundId={fundId}
           fundName={fundName}
           documentType={documentType}
           refreshTrigger={documentsRefreshTrigger}
-        />
-
-        {/* 4. 템플릿 버전 히스토리 (접기/펼치기) */}
-        <TemplateVersionHistory
-          documentType={documentType}
-          onTemplateActivated={handleTemplateActivated}
         />
       </CardContent>
     </Card>

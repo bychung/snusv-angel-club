@@ -200,13 +200,13 @@ function buildDisplayPath(
 
 /**
  * depth에 따른 변경 타입 결정
- * - depth 1~2 (장, 조): major (x.0.0)
- * - depth 3 (항): minor (x.y.0)
- * - depth 4+ (호, 목 등): patch (x.y.z)
+ * - depth 0~1 (장, 조): major (x.0.0)
+ * - depth 2 (항): minor (x.y.0)
+ * - depth 3+ (호, 목 등): patch (x.y.z)
  */
 function getChangeType(depth: number): ChangeType {
-  if (depth <= 2) return 'major';
-  if (depth === 3) return 'minor';
+  if (depth <= 1) return 'major';
+  if (depth === 2) return 'minor';
   return 'patch';
 }
 

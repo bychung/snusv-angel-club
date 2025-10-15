@@ -7,7 +7,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { DocumentTemplate } from '@/types/database';
 import {
+  Edit,
   Eye,
   FileText,
   GitCompare,
@@ -17,6 +19,8 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import PDFPreviewModal from './PDFPreviewModal';
+import { TemplateEditModal } from './TemplateEditModal';
+import { TemplateVersionHistoryModal } from './TemplateVersionHistoryModal';
 
 interface DocumentGenerationActionsProps {
   fundId: string;
@@ -41,6 +45,12 @@ export default function DocumentGenerationActions({
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
 
+  // 템플릿 관련 상태
+  const [currentTemplate, setCurrentTemplate] =
+    useState<DocumentTemplate | null>(null);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+
   // 중복 체크
   const checkDuplicate = async () => {
     try {
@@ -64,7 +74,7 @@ export default function DocumentGenerationActions({
     }
   };
 
-  // 기존 문서 존재 여부 확인
+  // 기존 문서 존재 여부 확인 & 템플릿 로드
   useEffect(() => {
     const checkExistingDocument = async () => {
       try {
@@ -86,7 +96,23 @@ export default function DocumentGenerationActions({
       }
     };
 
+    const loadTemplate = async () => {
+      try {
+        const response = await fetch(
+          `/api/admin/funds/${fundId}/templates/${documentType}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentTemplate(data.template);
+        }
+      } catch (err) {
+        console.warn('템플릿 로드 실패:', err);
+      }
+    };
+
     checkExistingDocument();
+    loadTemplate();
   }, [fundId, documentType, duplicateCheckTrigger]);
 
   const handleGenerate = async () => {
@@ -209,6 +235,24 @@ export default function DocumentGenerationActions({
     handleGenerate();
   };
 
+  const handleTemplateEdit = () => {
+    if (!currentTemplate) {
+      alert('템플릿을 로드할 수 없습니다.');
+      return;
+    }
+    setShowTemplateEditor(true);
+  };
+
+  const handleTemplateSave = () => {
+    // 템플릿 저장 후 새로고침
+    window.location.reload();
+  };
+
+  const handleVersionActivate = () => {
+    // 버전 활성화 후 템플릿 재로드
+    window.location.reload();
+  };
+
   const getDocumentTypeLabel = (type: string) => {
     switch (type) {
       case 'lpa':
@@ -223,6 +267,36 @@ export default function DocumentGenerationActions({
   return (
     <>
       <div className="space-y-4">
+        {/* 현재 규약 버전 정보 */}
+        {/* {currentTemplate && (
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-sm mb-1">
+                  📄 현재 규약 버전
+                </h4>
+                <p className="text-sm text-gray-600">
+                  {getDocumentTypeLabel(documentType)} v
+                  {currentTemplate.version}
+                </p>
+                {currentTemplate.description && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {currentTemplate.description}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowVersionHistory(true)}
+              >
+                <History className="h-4 w-4 mr-1" />
+                버전 히스토리
+              </Button>
+            </div>
+          </div>
+        )} */}
+
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -306,21 +380,36 @@ export default function DocumentGenerationActions({
           {hasExistingDocument ? (
             isDuplicate ? (
               <span className="text-amber-600 font-medium">
-                ⚠️ 최신 버전과 동일한 내용입니다. 펀드 정보를 변경하거나
-                템플릿을 업데이트한 후 다시 시도해주세요.
+                ⚠️ 최신 버전과 동일한 내용입니다. 펀드 정보를 변경하거나 규약을
+                수정한 후 다시 시도해주세요.
               </span>
             ) : (
               <>
-                기존 문서가 있습니다. 새 문서를 생성하면 이전 기록이
-                업데이트됩니다.
+                기존 규약이 있습니다. 새 규약을 생성하면 새 버전으로 저장됩니다.
               </>
             )
           ) : (
             <>
-              현재 활성 템플릿을 사용하여 {getDocumentTypeLabel(documentType)}
-              을(를) 생성합니다.
+              최초 규약을 생성합니다. 이후 '규약 수정'으로 수정하실 수 있습니다.
             </>
           )}
+        </div>
+
+        {/* 규약 수정 버튼 */}
+        <div>
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={handleTemplateEdit}
+            disabled={!currentTemplate}
+          >
+            <Edit className="h-5 w-5 mr-2" />
+            규약 수정
+          </Button>
+          <p className="text-xs text-gray-500 mt-2">
+            💡 규약을 수정하면 새 버전으로 저장되고 PDF가 다운로드됩니다
+          </p>
         </div>
       </div>
 
@@ -333,6 +422,30 @@ export default function DocumentGenerationActions({
           title={`${getDocumentTypeLabel(documentType)} 미리보기`}
           description="실제 저장되지 않는 미리보기입니다. 조합 주요 정보는 파란색으로 표시됩니다."
           onDownload={handleDownloadFromPreview}
+        />
+      )}
+
+      {/* 템플릿 편집 모달 */}
+      {showTemplateEditor && currentTemplate && (
+        <TemplateEditModal
+          isOpen={showTemplateEditor}
+          onClose={() => setShowTemplateEditor(false)}
+          template={currentTemplate}
+          fundId={fundId}
+          fundName={fundName}
+          onSave={handleTemplateSave}
+        />
+      )}
+
+      {/* 버전 히스토리 모달 */}
+      {showVersionHistory && (
+        <TemplateVersionHistoryModal
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          fundId={fundId}
+          fundName={fundName}
+          documentType={documentType}
+          onVersionActivate={handleVersionActivate}
         />
       )}
     </>

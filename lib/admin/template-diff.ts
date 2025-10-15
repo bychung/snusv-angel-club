@@ -1,19 +1,19 @@
-// 문서 버전 간 Diff 생성 및 분석
+// 템플릿 버전 간 Diff 생성 및 분석
 import * as jsondiff from 'jsondiffpatch';
-import { getFundDocumentById } from './fund-documents';
+import { getTemplateById } from './document-templates';
 
-export interface DocumentChange {
-  path: string; // 예: "articles[2].content"
+export interface TemplateChange {
+  path: string; // 예: "sections[2].title"
   type: 'added' | 'removed' | 'modified';
   oldValue?: string;
   newValue?: string;
   displayPath?: string; // 사용자 친화적 경로명
 }
 
-export interface DocumentDiff {
-  fromVersion: number;
-  toVersion: number;
-  changes: DocumentChange[];
+export interface TemplateDiff {
+  fromVersion: string;
+  toVersion: string;
+  changes: TemplateChange[];
   summary: {
     added: number;
     removed: number;
@@ -25,17 +25,14 @@ export interface DocumentDiff {
  * 비교에서 제외할 필드 목록
  */
 const EXCLUDED_FIELDS = [
-  'processedAt',
-  'generatedAt',
-  'timestamp',
+  'id',
   'created_at',
   'updated_at',
-  'id',
   'is_active',
   'created_by',
   'fund_id',
-  'version_number', // 버전 번호는 당연히 다름
-  'changeDescription', // 변경 설명은 제외
+  'version', // 버전은 당연히 바뀌므로 제외
+  'description', // 설명도 당연히 바뀌므로 제외
 ];
 
 /**
@@ -60,31 +57,36 @@ function sanitizeForComparison(obj: any): any {
 }
 
 /**
- * 두 문서 버전을 비교하여 변경사항 추출
+ * 두 템플릿 버전을 비교하여 변경사항 추출
  */
-export async function compareDocumentVersions(
-  fromDocId: string,
-  toDocId: string
-): Promise<DocumentDiff> {
-  // 1. 두 문서 조회
-  const [fromDoc, toDoc] = await Promise.all([
-    getFundDocumentById(fromDocId),
-    getFundDocumentById(toDocId),
+export async function compareTemplateVersions(
+  fromTemplateId: string,
+  toTemplateId: string
+): Promise<TemplateDiff> {
+  // 1. 두 템플릿 조회
+  const [fromTemplate, toTemplate] = await Promise.all([
+    getTemplateById(fromTemplateId),
+    getTemplateById(toTemplateId),
   ]);
 
-  if (!fromDoc || !toDoc) {
-    throw new Error('문서를 찾을 수 없습니다');
+  if (!fromTemplate || !toTemplate) {
+    throw new Error('템플릿을 찾을 수 없습니다');
   }
 
-  // 2. 비교 대상 데이터 준비 (content + context)
+  // 타입이 다른 템플릿은 비교 불가
+  if (fromTemplate.type !== toTemplate.type) {
+    throw new Error('다른 타입의 템플릿은 비교할 수 없습니다');
+  }
+
+  // 2. 비교 대상 데이터 준비 (content + appendix만, version/description 제외)
   const fromData = {
-    content: fromDoc.processed_content,
-    context: fromDoc.generation_context,
+    content: fromTemplate.content,
+    appendix: fromTemplate.appendix,
   };
 
   const toData = {
-    content: toDoc.processed_content,
-    context: toDoc.generation_context,
+    content: toTemplate.content,
+    appendix: toTemplate.appendix,
   };
 
   // 3. 비교에서 제외할 필드 제거
@@ -102,14 +104,14 @@ export async function compareDocumentVersions(
 
   if (!delta) {
     return {
-      fromVersion: fromDoc.version_number,
-      toVersion: toDoc.version_number,
+      fromVersion: fromTemplate.version,
+      toVersion: toTemplate.version,
       changes: [],
       summary: { added: 0, removed: 0, modified: 0 },
     };
   }
 
-  // 5. Delta를 변경사항 배열로 변환 (원본 데이터를 rootContent로 전달)
+  // 5. Delta를 변경사항 배열로 변환 (원본 템플릿을 rootContent로 전달)
   const changes = extractChanges(
     delta,
     sanitizedFromData,
@@ -125,8 +127,8 @@ export async function compareDocumentVersions(
   };
 
   return {
-    fromVersion: fromDoc.version_number,
-    toVersion: toDoc.version_number,
+    fromVersion: fromTemplate.version,
+    toVersion: toTemplate.version,
     changes,
     summary,
   };
@@ -140,8 +142,8 @@ function extractChanges(
   originalContent: any,
   basePath: string = '',
   rootContent?: any
-): DocumentChange[] {
-  const changes: DocumentChange[] = [];
+): TemplateChange[] {
+  const changes: TemplateChange[] = [];
 
   // 최초 호출시 rootContent 설정
   if (!rootContent) {
@@ -226,7 +228,6 @@ function formatValue(value: any): string {
     if (Object.keys(value).length === 0) {
       return '(빈 객체)';
     }
-
     // 객체나 배열은 JSON으로 변환 (들여쓰기)
     const json = JSON.stringify(value, null, 2);
     if (json.length > 200) {
@@ -279,83 +280,50 @@ function getSectionIndexByPath(
  * 경로를 사용자 친화적 이름으로 변환
  */
 function getDisplayPath(path: string, rootContent?: any): string {
-  // content. 또는 context. 접두사 제거
-  let cleanPath = path.replace(/^(content|context)\./, '');
-
-  // 기본 매핑
-  const pathMapping: Record<string, string> = {
-    // Context 관련
-    fundName: '펀드명',
-    'fund.name': '펀드명',
-    'fund.address': '펀드 주소',
-    'fund.total_cap': '총출자금액',
-    'fund.initial_cap': '초기 출자금액',
-    'fund.par_value': '1좌당 금액',
-    'fund.closed_at': '결성일',
-    'fund.duration': '존속기간',
-    'fund.payment_schedule': '출자방식',
-    members: '조합원 정보',
-    membersCount: '조합원 수',
-    totalCap: '총 출자금액',
-    'gp.name': '업무집행조합원',
-    'gp.address': '업무집행조합원 주소',
-    'user.name': '사용자명',
-    'user.email': '사용자 이메일',
+  // 필드명 매핑
+  const fieldMapping: Record<string, string> = {
+    title: '제목',
+    text: '내용',
+    index: '순서',
+    type: '타입',
+    filter: '필터',
+    id: 'ID',
   };
 
-  // 매핑된 경로가 있으면 반환
-  if (pathMapping[cleanPath]) {
-    return pathMapping[cleanPath];
+  // content. 또는 appendix. 접두사 확인
+  let prefix = '';
+  let workPath = path;
+
+  if (path.startsWith('content.')) {
+    prefix = '본문';
+    workPath = path.substring('content.'.length);
+  } else if (path.startsWith('appendix.')) {
+    prefix = '부칙';
+    workPath = path.substring('appendix.'.length);
+  } else if (path === 'appendix') {
+    return '부칙';
+  } else if (path === 'content') {
+    return '본문';
   }
 
-  // 배열 인덱스 처리 (예: articles.0 -> 제1조)
-  const articleMatch = cleanPath.match(/articles\.(\d+)\.?(.*)$/);
-  if (articleMatch) {
-    const index = parseInt(articleMatch[1]);
-    const subPath = articleMatch[2];
-    const articleName = `제${index + 1}조`;
-
-    if (subPath) {
-      const subMapping: Record<string, string> = {
-        title: '제목',
-        content: '내용',
-        number: '번호',
-        text: '내용',
-      };
-      return `${articleName} - ${subMapping[subPath] || subPath}`;
+  // appendix 배열 항목 처리
+  if (prefix === '부칙') {
+    const appendixItemMatch = workPath.match(/^(\d+)\.(.+)$/);
+    if (appendixItemMatch) {
+      const index = parseInt(appendixItemMatch[1]);
+      const field = appendixItemMatch[2];
+      return `${prefix} ${index + 1}번 - ${fieldMapping[field] || field}`;
     }
-    return articleName;
-  }
-
-  // 멤버 관련 처리 (예: members.0.name -> 조합원 1 - 이름)
-  const memberMatch = cleanPath.match(/members\.(\d+)\.(.+)$/);
-  if (memberMatch) {
-    const index = parseInt(memberMatch[1]);
-    const field = memberMatch[2];
-    const fieldMapping: Record<string, string> = {
-      name: '이름',
-      units: '출자좌수',
-      amount: '출자금액',
-      total_units: '총 출자좌수',
-      total_amount: '총 출자금액',
-      initial_amount: '초기 출자금액',
-      member_type: '조합원 유형',
-    };
-    return `조합원 ${index + 1} - ${fieldMapping[field] || field}`;
+    if (!workPath || workPath === '.' || workPath === '') {
+      return prefix;
+    }
   }
 
   // sections 경로 분석 (예: sections.3.sub.25.sub.0.text)
-  const sectionsMatch = cleanPath.match(/^sections\.(\d+)\.(.+)$/);
+  const sectionsMatch = workPath.match(/^sections\.(\d+)\.(.+)$/);
   if (sectionsMatch && rootContent) {
     const sectionArrayIndex = parseInt(sectionsMatch[1]);
     const remainingPath = sectionsMatch[2]; // 예: "sub.25.sub.0.text"
-
-    const fieldMapping: Record<string, string> = {
-      title: '제목',
-      text: '내용',
-      index: '순서',
-      type: '타입',
-    };
 
     // 필드명 추출 (마지막 부분)
     const parts = remainingPath.split('.');
@@ -406,6 +374,7 @@ function getDisplayPath(path: string, rootContent?: any): string {
     }
   }
 
-  // 기본: 경로를 그대로 표시 (점 대신 화살표로)
-  return cleanPath.replace(/\./g, ' → ');
+  // fallback: 경로를 그대로 표시
+  const displayPath = workPath.replace(/\./g, ' → ');
+  return prefix ? `${prefix} → ${displayPath}` : displayPath;
 }

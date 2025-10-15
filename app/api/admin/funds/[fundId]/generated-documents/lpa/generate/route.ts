@@ -4,7 +4,10 @@ import {
   isDocumentDuplicate,
   saveFundDocument,
 } from '@/lib/admin/fund-documents';
-import { buildLPAContext, loadLPATemplate } from '@/lib/admin/lpa-context';
+import {
+  buildLPAContext,
+  loadLPATemplateForDocument,
+} from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
 import { processLPATemplate } from '@/lib/pdf/template-processor';
@@ -13,6 +16,8 @@ import { NextRequest, NextResponse } from 'next/server';
 /**
  * POST /api/admin/funds/[fundId]/generated-documents/lpa/generate
  * LPA PDF 생성 및 다운로드
+ * - body에 modifiedContent가 있으면 수정된 내용으로 생성 (규약 수정 시)
+ * - 없으면 기존 템플릿으로 생성 (일반 생성 시)
  */
 export async function POST(
   request: NextRequest,
@@ -24,47 +29,80 @@ export async function POST(
 
     const { fundId } = await params;
 
-    console.log(`LPA PDF 생성 요청: fundId=${fundId}, userId=${user.id}`);
+    // body에서 수정된 내용 확인 (규약 수정 모달에서 호출 시)
+    const body = await request.json().catch(() => ({}));
+    const { modifiedContent, modifiedAppendix, changeDescription } = body;
+
+    console.log(
+      `LPA PDF 생성 요청: fundId=${fundId}, userId=${
+        user.id
+      }, isModified=${!!modifiedContent}`
+    );
 
     // 1. 컨텍스트 구성 (실제 생성, isPreview=false)
     const context = await buildLPAContext(fundId, user.id, false);
 
     // 2. 템플릿 로드
-    const { template, templateId, templateVersion } = await loadLPATemplate();
+    let template;
+    let templateId;
+    let templateVersion;
 
-    // 3. 중복 체크: 최신 버전과 비교하여 context와 template_version이 동일한지 확인
+    if (modifiedContent) {
+      // 수정된 내용이 있으면 그것을 템플릿으로 사용
+      template = {
+        type: 'lpa' as const,
+        version: 'modified',
+        description: changeDescription || '규약 수정',
+        content: modifiedContent,
+        appendix: modifiedAppendix,
+      };
+      templateVersion = 'modified';
+      console.log('수정된 규약 내용 사용');
+    } else {
+      // 없으면 기존 로직 (fund_documents 기반, 없으면 글로벌 템플릿)
+      const loaded = await loadLPATemplateForDocument(fundId);
+      template = loaded.template;
+      templateId = loaded.templateId;
+      templateVersion = loaded.templateVersion;
+    }
+
+    // 3. generation_context 구성
     const generationContext = {
       ...context,
       generatedAt: context.generatedAt.toISOString(),
+      ...(changeDescription && { changeDescription }), // 수정 설명 추가
     };
 
-    const isDuplicate = await isDocumentDuplicate(
-      fundId,
-      'lpa',
-      generationContext,
-      templateVersion
-    );
-
-    if (isDuplicate) {
-      return NextResponse.json(
-        {
-          error:
-            '이미 동일한 내용의 조합 규약이 최신 버전으로 존재합니다. 펀드 정보를 변경하거나 템플릿을 업데이트한 후 다시 시도해주세요.',
-          code: 'DUPLICATE_DOCUMENT',
-        },
-        { status: 409 }
+    // 4. 중복 체크 (수정된 내용이 있으면 중복 체크 스킵)
+    if (!modifiedContent) {
+      const isDuplicate = await isDocumentDuplicate(
+        fundId,
+        'lpa',
+        generationContext,
+        templateVersion
       );
+
+      if (isDuplicate) {
+        return NextResponse.json(
+          {
+            error:
+              '이미 동일한 내용의 조합 규약이 최신 버전으로 존재합니다. 펀드 정보를 변경하거나 규약을 수정한 후 다시 시도해주세요.',
+            code: 'DUPLICATE_DOCUMENT',
+          },
+          { status: 409 }
+        );
+      }
     }
 
-    // 4. 템플릿 변수 치환
+    // 5. 템플릿 변수 치환
     const processedContent = processLPATemplate(template, context);
 
-    // 5. PDF 생성 (템플릿도 함께 전달)
+    // 6. PDF 생성 (템플릿도 함께 전달)
     const pdfBuffer = await generateLPAPDF(processedContent, context, template);
 
     console.log(`LPA PDF 생성 완료: ${pdfBuffer.length} bytes`);
 
-    // 6. DB에 문서 기록 저장
+    // 7. DB에 문서 기록 저장
     try {
       await saveFundDocument({
         fundId,
@@ -81,12 +119,12 @@ export async function POST(
       // PDF 생성은 성공했으므로 계속 진행
     }
 
-    // 7. 파일명 생성
+    // 8. 파일명 생성
     const today = new Date();
     const dateString = today.toISOString().split('T')[0];
     const fileName = `${context.fund.name}_규약(안)_${dateString}.pdf`;
 
-    // 8. PDF 반환 (Buffer는 BodyInit 타입으로 사용 가능)
+    // 9. PDF 반환 (Buffer는 BodyInit 타입으로 사용 가능)
     return new Response(pdfBuffer as unknown as BodyInit, {
       headers: {
         'Content-Type': 'application/pdf',

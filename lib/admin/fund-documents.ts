@@ -296,33 +296,39 @@ export async function deleteFundDocument(documentId: string): Promise<void> {
 }
 
 /**
- * 최신 문서와 새로 생성할 문서의 context, template_version을 비교하여 중복 여부 확인
+ * 최신 문서와 새로 생성할 문서의 generation_context를 비교하여 중복 여부 확인
+ * templateVersion이 제공되면 템플릿 버전도 함께 비교 (규약 수정 시)
+ * templateVersion이 없으면 generation_context만 비교 (펀드 정보 기반 생성 시)
  */
 export async function isDocumentDuplicate(
   fundId: string,
   type: string,
   newGenerationContext: any,
-  newTemplateVersion: string
+  newTemplateVersion?: string
 ): Promise<boolean> {
   const latestDoc = await getActiveFundDocument(fundId, type);
 
   if (!latestDoc) {
-    // 최신 문서가 없으면 중복이 아님
     return false;
   }
 
-  // 1. template_version 비교
-  if (latestDoc.template_version !== newTemplateVersion) {
+  // 1. template_version 비교 (제공된 경우만)
+  if (newTemplateVersion && latestDoc.template_version !== newTemplateVersion) {
     return false;
   }
 
   // 2. generation_context 비교
-  // generatedAt 필드는 제외하고 비교 (생성 시간은 당연히 다름)
+  // generatedAt, isPreview, changeDescription 필드는 제외하고 비교
   const oldContext = { ...latestDoc.generation_context };
   const newContext = { ...newGenerationContext };
 
+  // 비교에서 제외할 필드들
   delete oldContext.generatedAt;
   delete newContext.generatedAt;
+  delete oldContext.isPreview;
+  delete newContext.isPreview;
+  delete oldContext.changeDescription; // 규약 수정 시에만 사용
+  delete newContext.changeDescription;
 
   // JSON 문자열로 변환하여 비교 (깊은 비교)
   // 키를 정렬하여 순서에 관계없이 비교
@@ -343,25 +349,6 @@ export async function isDocumentDuplicate(
 
   const oldContextStr = JSON.stringify(oldContextSorted);
   const newContextStr = JSON.stringify(newContextSorted);
-
-  // 전체 비교 결과가 다를 때 차이점 찾기
-  if (oldContextStr !== newContextStr) {
-    // 차이나는 필드 찾기
-    const allKeys = new Set([
-      ...Object.keys(oldContext),
-      ...Object.keys(newContext),
-    ]);
-    allKeys.forEach(key => {
-      const oldVal = JSON.stringify(oldContext[key]);
-      const newVal = JSON.stringify(newContext[key]);
-      if (oldVal !== newVal) {
-        console.log(`  - ${key}:`, {
-          old: oldContext[key],
-          new: newContext[key],
-        });
-      }
-    });
-  }
 
   return oldContextStr === newContextStr;
 }
