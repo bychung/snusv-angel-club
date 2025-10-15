@@ -59,105 +59,132 @@ function compareSections(
   sectionPath: Array<{ index: number; depth: number }> = [] // index와 depth를 함께 저장
 ): void {
   // depth는 'sections'가 나타나는 횟수로 계산 (0부터 시작)
-  // sections.0 = depth 0 (장)
-  // sections.0.sub.sections.3 = depth 1 (조)
-  // sections.0.sub.sections.3.sub.sections.4 = depth 2 (항)
   const depth = path.filter(p => p === 'sections').length;
 
-  // 섹션 개수 변경 확인
-  if (originalSections.length !== modifiedSections.length) {
-    changes.push({
-      type: getChangeType(depth),
-      path: path.join('.'),
-      description: `섹션 개수 변경 (${originalSections.length} → ${modifiedSections.length})`,
-      depth,
-      displayPath: buildDisplayPath(sectionPath, ''),
-    });
-  }
+  // 수정본의 각 항목에 대해 처리
+  for (
+    let modifiedIdx = 0;
+    modifiedIdx < modifiedSections.length;
+    modifiedIdx++
+  ) {
+    const modifiedSection = modifiedSections[modifiedIdx];
+    const currentPath = [...path, 'sections', modifiedIdx];
 
-  // 각 섹션 비교
-  const maxLength = Math.max(originalSections.length, modifiedSections.length);
+    // 신규 항목인 경우
+    if (modifiedSection._isNew) {
+      const currentSectionPath = [
+        ...sectionPath,
+        { index: modifiedSection.index || modifiedIdx + 1, depth },
+      ];
 
-  for (let i = 0; i < maxLength; i++) {
-    const originalSection = originalSections[i];
-    const modifiedSection = modifiedSections[i];
-
-    const currentPath = [...path, 'sections', i];
-
-    // 현재 섹션이 비어있는지 확인 (제목과 내용이 모두 없으면 빈 섹션)
-    const section = modifiedSection || originalSection;
-    const isEmptySection = !section?.title && !section?.text;
-
-    // 빈 섹션이 아닌 경우에만 sectionPath에 추가
-    const currentSectionPath = isEmptySection
-      ? sectionPath
-      : [...sectionPath, { index: section?.index || i + 1, depth }];
-
-    // 섹션 추가
-    if (!originalSection && modifiedSection) {
       changes.push({
         type: getChangeType(depth),
         path: currentPath.join('.'),
         description: `섹션 추가: "${
-          modifiedSection.title || modifiedSection.text?.slice(0, 30)
+          modifiedSection.title ||
+          modifiedSection.text?.slice(0, 30) ||
+          '(빈 항목)'
         }"`,
         depth,
         displayPath: buildDisplayPath(currentSectionPath, ''),
+        oldValue: '', // 신규 항목이므로 기존 값 없음
+        newValue: modifiedSection.title || modifiedSection.text || '(빈 항목)', // 추가된 내용
       });
       continue;
     }
 
-    // 섹션 삭제
-    if (originalSection && !modifiedSection) {
+    // 기존 항목: 현재 인덱스 이전의 신규 항목 개수를 세어 원본 인덱스 계산
+    let newItemsBefore = 0;
+    for (let i = 0; i < modifiedIdx; i++) {
+      if (modifiedSections[i]._isNew) {
+        newItemsBefore++;
+      }
+    }
+
+    // 원본 인덱스 = 현재 인덱스 - 이전 신규 항목 개수
+    const originalIdx = modifiedIdx - newItemsBefore;
+
+    // 범위를 벗어나면 스킵
+    if (originalIdx < 0 || originalIdx >= originalSections.length) {
+      continue;
+    }
+
+    const originalSection = originalSections[originalIdx];
+    const currentSectionPath = [
+      ...sectionPath,
+      { index: modifiedSection.index || modifiedIdx + 1, depth },
+    ];
+
+    // 제목 변경
+    if (originalSection.title !== modifiedSection.title) {
       changes.push({
         type: getChangeType(depth),
-        path: currentPath.join('.'),
-        description: `섹션 삭제: "${
-          originalSection.title || originalSection.text?.slice(0, 30)
-        }"`,
+        path: [...currentPath, 'title'].join('.'),
+        description: `제목 변경: "${originalSection.title}" → "${modifiedSection.title}"`,
         depth,
-        displayPath: buildDisplayPath(currentSectionPath, ''),
+        oldValue: originalSection.title,
+        newValue: modifiedSection.title,
+        displayPath: buildDisplayPath(currentSectionPath, '제목'),
       });
-      continue;
     }
 
-    // 섹션 내용 변경
-    if (originalSection && modifiedSection) {
-      // 제목 변경
-      if (originalSection.title !== modifiedSection.title) {
+    // 텍스트 변경
+    if (originalSection.text !== modifiedSection.text) {
+      changes.push({
+        type: getChangeType(depth),
+        path: [...currentPath, 'text'].join('.'),
+        description: `내용 변경`,
+        depth,
+        oldValue: originalSection.text,
+        newValue: modifiedSection.text,
+        displayPath: buildDisplayPath(currentSectionPath, '내용'),
+      });
+    }
+
+    // 하위 섹션 재귀 비교
+    if (originalSection.sub || modifiedSection.sub) {
+      compareSections(
+        originalSection.sub || [],
+        modifiedSection.sub || [],
+        [...currentPath, 'sub'],
+        changes,
+        currentSectionPath
+      );
+    }
+  }
+
+  // 삭제된 항목 확인 (원본에는 있지만 수정본에 없는 경우)
+  const newItemsCount = modifiedSections.filter(s => s._isNew).length;
+  const expectedModifiedCount = originalSections.length + newItemsCount;
+
+  if (modifiedSections.length < expectedModifiedCount) {
+    // 삭제가 있음
+    const deletedCount = expectedModifiedCount - modifiedSections.length;
+    for (let i = 0; i < deletedCount; i++) {
+      const deletedOriginalIdx = originalSections.length - deletedCount + i;
+      if (
+        deletedOriginalIdx >= 0 &&
+        deletedOriginalIdx < originalSections.length
+      ) {
+        const originalSection = originalSections[deletedOriginalIdx];
+        const currentPath = [...path, 'sections', deletedOriginalIdx];
+        const currentSectionPath = [
+          ...sectionPath,
+          { index: originalSection.index || deletedOriginalIdx + 1, depth },
+        ];
+
         changes.push({
           type: getChangeType(depth),
-          path: [...currentPath, 'title'].join('.'),
-          description: `제목 변경: "${originalSection.title}" → "${modifiedSection.title}"`,
+          path: currentPath.join('.'),
+          description: `섹션 삭제: "${
+            originalSection.title || originalSection.text?.slice(0, 30)
+          }"`,
           depth,
-          oldValue: originalSection.title,
-          newValue: modifiedSection.title,
-          displayPath: buildDisplayPath(currentSectionPath, '제목'),
+          displayPath: buildDisplayPath(currentSectionPath, ''),
+          oldValue:
+            originalSection.title || originalSection.text || '(빈 항목)', // 삭제된 내용
+          newValue: '', // 삭제되었으므로 새 값 없음
         });
-      }
-
-      // 텍스트 변경
-      if (originalSection.text !== modifiedSection.text) {
-        changes.push({
-          type: getChangeType(depth),
-          path: [...currentPath, 'text'].join('.'),
-          description: `내용 변경`,
-          depth,
-          oldValue: originalSection.text,
-          newValue: modifiedSection.text,
-          displayPath: buildDisplayPath(currentSectionPath, '내용'),
-        });
-      }
-
-      // 하위 섹션 재귀 비교
-      if (originalSection.sub || modifiedSection.sub) {
-        compareSections(
-          originalSection.sub || [],
-          modifiedSection.sub || [],
-          [...currentPath, 'sub'],
-          changes,
-          currentSectionPath
-        );
       }
     }
   }

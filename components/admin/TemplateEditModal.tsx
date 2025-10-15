@@ -23,10 +23,13 @@ import {
   Eye,
   FileText,
   Loader2,
+  Plus,
   RotateCcw,
   Save,
+  Trash2,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { DeleteSectionModal } from './TemplateEditor/DeleteSectionModal';
 import { TemplateCommitModal } from './TemplateEditor/TemplateCommitModal';
 import { TemplatePreviewModal } from './TemplateEditor/TemplatePreviewModal';
 import { TemplateSearchBar } from './TemplateEditor/TemplateSearchBar';
@@ -59,10 +62,18 @@ export function TemplateEditModal({
   onSave,
 }: TemplateEditModalProps) {
   // 원본과 수정본
-  const [original] = useState<DocumentTemplate>(template);
+  const [original, setOriginal] = useState<DocumentTemplate>(template);
   const [modified, setModified] = useState<DocumentTemplate>(
     JSON.parse(JSON.stringify(template))
   );
+
+  // template prop이 변경되면 상태 초기화
+  useEffect(() => {
+    if (isOpen) {
+      setOriginal(template);
+      setModified(JSON.parse(JSON.stringify(template)));
+    }
+  }, [isOpen, template]);
 
   // UI 상태
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -73,6 +84,8 @@ export function TemplateEditModal({
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showCommitModal, setShowCommitModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTargetPath, setDeleteTargetPath] = useState<string | null>(null);
 
   // 변경사항 분석
   const changes = useMemo(() => {
@@ -188,6 +201,180 @@ export function TemplateEditModal({
     setModified(newModified);
   };
 
+  // Index 재정렬 함수
+  const recalculateIndices = (
+    sections: TemplateSection[],
+    startIndex: number = 1
+  ): TemplateSection[] => {
+    return sections.map((section, idx) => {
+      const newSection = { ...section };
+
+      // index가 음수가 아니면 재정렬 (음수는 부칙 등 특수 항목)
+      if (section.index >= 0) {
+        newSection.index = startIndex + idx;
+      }
+
+      // 하위 항목도 재귀적으로 처리
+      if (newSection.sub && newSection.sub.length > 0) {
+        newSection.sub = recalculateIndices(newSection.sub, 1);
+      }
+
+      return newSection;
+    });
+  };
+
+  // _isNew 플래그 제거 함수 (저장 전 정리용)
+  const removeIsNewFlags = (content: any): any => {
+    if (!content || typeof content !== 'object') return content;
+
+    if (Array.isArray(content)) {
+      return content.map(item => removeIsNewFlags(item));
+    }
+
+    const cleaned: any = {};
+    for (const key in content) {
+      if (key !== '_isNew') {
+        cleaned[key] = removeIsNewFlags(content[key]);
+      }
+    }
+    return cleaned;
+  };
+
+  // 경로에서 섹션과 부모 배열 가져오기
+  const getSectionAndParent = (path: string) => {
+    const pathParts = path.split('.');
+    const newModified = JSON.parse(JSON.stringify(modified));
+    let current: any = newModified.content;
+    let parent: any = null;
+    let parentKey: string | null = null;
+    let arrayIndex: number = -1;
+
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (part === 'sections' || part === 'sub') {
+        parent = current;
+        parentKey = part;
+        const index = parseInt(pathParts[i + 1]);
+        arrayIndex = index;
+        current = current[part][index];
+        i++; // 인덱스 스킵
+      }
+    }
+
+    return { section: current, parent, parentKey, arrayIndex, newModified };
+  };
+
+  // 하위 항목 개수 계산 (재귀)
+  const countChildren = (section: TemplateSection): number => {
+    if (!section.sub || section.sub.length === 0) return 0;
+
+    let count = section.sub.length;
+    section.sub.forEach(child => {
+      count += countChildren(child);
+    });
+
+    return count;
+  };
+
+  // 항목 즉시 추가
+  const handleAddSectionWithPosition = (
+    path: string,
+    position: 'before' | 'after' | 'child'
+  ) => {
+    // 깊은 복사
+    const newModified = JSON.parse(JSON.stringify(modified));
+
+    // 경로 파싱
+    const pathParts = path.split('.');
+    let current: any = newModified.content;
+    let parent: any = null;
+    let parentKey: string | null = null;
+    let arrayIndex: number = -1;
+
+    // 경로를 따라가면서 대상 찾기
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (part === 'sections' || part === 'sub') {
+        parent = current;
+        parentKey = part;
+        const index = parseInt(pathParts[i + 1]);
+        arrayIndex = index;
+        current = current[part][index];
+        i++; // 인덱스 스킵
+      }
+    }
+
+    if (!current) {
+      console.error('항목을 찾을 수 없습니다:', path);
+      return;
+    }
+
+    // 새 섹션 생성 (빈 항목)
+    const newSection: TemplateSection = {
+      index: 1, // 임시값, 나중에 재정렬됨
+      title: '',
+      text: '',
+      sub: [],
+      _isNew: true, // 신규 항목 표시 (임시 플래그)
+    };
+
+    if (position === 'child') {
+      // 하위 항목으로 추가
+      if (!current.sub) {
+        current.sub = [];
+      }
+      current.sub.push(newSection);
+      current.sub = recalculateIndices(current.sub, 1);
+    } else if (parent && parentKey && arrayIndex >= 0) {
+      // 형제 항목으로 추가
+      const siblings = parent[parentKey];
+      const insertIndex = position === 'before' ? arrayIndex : arrayIndex + 1;
+      siblings.splice(insertIndex, 0, newSection);
+      // Index 재정렬
+      parent[parentKey] = recalculateIndices(siblings, 1);
+    }
+
+    console.log('항목 추가됨:', { position, path, newModified });
+    setModified(newModified);
+  };
+
+  // 항목 삭제 확인
+  const handleDeleteClick = (path: string) => {
+    setDeleteTargetPath(path);
+    setShowDeleteModal(true);
+  };
+
+  // 항목 삭제 실행
+  const handleDeleteSection = () => {
+    if (!deleteTargetPath) return;
+
+    const { parent, parentKey, arrayIndex, newModified } =
+      getSectionAndParent(deleteTargetPath);
+
+    if (!parent || !parentKey || arrayIndex < 0) {
+      alert('삭제할 수 없는 항목입니다.');
+      return;
+    }
+
+    // 배열에서 제거
+    const siblings = parent[parentKey];
+    siblings.splice(arrayIndex, 1);
+
+    // Index 재정렬
+    parent[parentKey] = recalculateIndices(siblings, 1);
+
+    setModified(newModified);
+    setShowDeleteModal(false);
+    setDeleteTargetPath(null);
+
+    // 선택 해제
+    setSelectedPath(null);
+
+    alert('항목이 삭제되었습니다.');
+  };
+
   // 초기화
   const handleReset = () => {
     if (!confirm('모든 변경사항이 초기화됩니다. 계속하시겠습니까?')) {
@@ -219,11 +406,14 @@ export function TemplateEditModal({
     try {
       setSaving(true);
 
+      // _isNew 플래그 제거
+      const cleanedContent = removeIsNewFlags(modified.content);
+
       const response = await fetch(`/api/admin/templates/${template.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: modified.content,
+          content: cleanedContent,
           version: nextVersion,
           description: commitMessage,
         }),
@@ -258,6 +448,10 @@ export function TemplateEditModal({
     try {
       setSaving(true);
 
+      // _isNew 플래그 제거
+      const cleanedContent = removeIsNewFlags(modified.content);
+      const cleanedAppendix = removeIsNewFlags(modified.appendix);
+
       // 규약 저장 + PDF 생성 (한 번의 API 호출로 처리)
       const response = await fetch(
         `/api/admin/funds/${fundId}/generated-documents/${template.type}/generate`,
@@ -265,8 +459,8 @@ export function TemplateEditModal({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            modifiedContent: modified.content,
-            modifiedAppendix: modified.appendix,
+            modifiedContent: cleanedContent,
+            modifiedAppendix: cleanedAppendix,
             changeDescription,
           }),
         }
@@ -392,129 +586,286 @@ export function TemplateEditModal({
     parentPath: string,
     parentDepth: number
   ): React.ReactNode => {
-    return subSections.map((subSection, idx) => {
-      const subPath = `${parentPath}.sub.${idx}`;
-      const originalSubSection = originalSubSections[idx];
+    return (
+      <>
+        {subSections.map((subSection, idx) => {
+          const subPath = `${parentPath}.sub.${idx}`;
 
-      if (!originalSubSection) return null;
+          // 신규 항목인 경우 원본을 빈 객체로 처리
+          let originalSubSection;
+          if (subSection._isNew) {
+            originalSubSection = {
+              index: subSection.index,
+              title: '',
+              text: '',
+              sub: [],
+            };
+          } else {
+            // 기존 항목: 현재 인덱스 이전의 신규 항목 개수를 세어 원본 인덱스 계산
+            let newItemsBefore = 0;
+            for (let i = 0; i < idx; i++) {
+              if (subSections[i]._isNew) {
+                newItemsBefore++;
+              }
+            }
 
-      // 현재 서브섹션의 실제 depth (부모 depth + 1)
-      const currentDepth = parentDepth + 1;
+            // 원본 인덱스 = 현재 인덱스 - 이전 신규 항목 개수
+            const originalIdx = idx - newItemsBefore;
 
-      // 인덱스 포맷팅 - 실제 문서 구조에 맞춤
-      const getIndexLabel = (depth: number, index: number) => {
-        // 음수 인덱스는 표기하지 않음
-        if (index < 0) return '';
+            if (originalIdx >= 0 && originalIdx < originalSubSections.length) {
+              originalSubSection = originalSubSections[originalIdx];
+            } else {
+              // 범위를 벗어나면 빈 객체
+              originalSubSection = {
+                index: subSection.index,
+                title: '',
+                text: '',
+                sub: [],
+              };
+            }
+          }
 
-        if (depth === 1) return `제${index}조`; // 조
+          // 현재 서브섹션의 실제 depth (부모 depth + 1)
+          const currentDepth = parentDepth + 1;
 
-        // 항
-        if (depth === 2) {
-          const circled = [
-            '①',
-            '②',
-            '③',
-            '④',
-            '⑤',
-            '⑥',
-            '⑦',
-            '⑧',
-            '⑨',
-            '⑩',
-            '⑪',
-            '⑫',
-            '⑬',
-            '⑭',
-            '⑮',
-            '⑯',
-            '⑰',
-            '⑱',
-            '⑲',
-            '⑳',
-          ];
-          if (index >= 1 && index <= 20) return circled[index - 1];
-          return `(${index})`;
-        }
+          // 인덱스 포맷팅 - 실제 문서 구조에 맞춤
+          const getIndexLabel = (depth: number, index: number) => {
+            // 음수 인덱스는 표기하지 않음
+            if (index < 0) return '';
 
-        // 호
-        if (depth === 3) return `${index}.`;
+            if (depth === 1) return `제${index}조`; // 조
 
-        // 목
-        if (depth === 4) {
-          const korean = [
-            '가',
-            '나',
-            '다',
-            '라',
-            '마',
-            '바',
-            '사',
-            '아',
-            '자',
-            '차',
-            '카',
-            '타',
-            '파',
-            '하',
-          ];
-          if (index >= 1 && index <= 14) return `${korean[index - 1]}.`;
-          return `[${index}]`;
-        }
+            // 항
+            if (depth === 2) {
+              const circled = [
+                '①',
+                '②',
+                '③',
+                '④',
+                '⑤',
+                '⑥',
+                '⑦',
+                '⑧',
+                '⑨',
+                '⑩',
+                '⑪',
+                '⑫',
+                '⑬',
+                '⑭',
+                '⑮',
+                '⑯',
+                '⑰',
+                '⑱',
+                '⑲',
+                '⑳',
+              ];
+              if (index >= 1 && index <= 20) return circled[index - 1];
+              return `(${index})`;
+            }
 
-        return `${index})`;
-      };
+            // 호
+            if (depth === 3) return `${index}.`;
 
-      const indexLabel = getIndexLabel(currentDepth, subSection.index);
-      const indentLevel = parentDepth;
+            // 목
+            if (depth === 4) {
+              const korean = [
+                '가',
+                '나',
+                '다',
+                '라',
+                '마',
+                '바',
+                '사',
+                '아',
+                '자',
+                '차',
+                '카',
+                '타',
+                '파',
+                '하',
+              ];
+              if (index >= 1 && index <= 14) return `${korean[index - 1]}.`;
+              return `[${index}]`;
+            }
 
-      return (
-        <div key={subPath} style={{ marginLeft: `${indentLevel * 24}px` }}>
-          {idx > 0 && <Separator className="my-4" />}
+            return `${index})`;
+          };
 
-          {/* 제목이 있는 경우 */}
-          {subSection.title && (
-            <div className="mb-4">
-              <TemplateTextEditor
-                originalText={originalSubSection.title || ''}
-                modifiedText={subSection.title}
-                onChange={newText =>
-                  handleTextChange(`${subPath}.title`, newText)
-                }
-                searchQuery={searchQuery}
-                label={indexLabel ? `${indexLabel} 제목` : '제목'}
-              />
-            </div>
-          )}
+          const indexLabel = getIndexLabel(currentDepth, subSection.index);
+          const indentLevel = parentDepth;
 
-          {/* 텍스트가 있는 경우 */}
-          {subSection.text && (
-            <div className="mb-4">
-              <TemplateTextEditor
-                originalText={originalSubSection.text || ''}
-                modifiedText={subSection.text}
-                onChange={newText =>
-                  handleTextChange(`${subPath}.text`, newText)
-                }
-                searchQuery={searchQuery}
-                label={indexLabel || '내용'}
-              />
-            </div>
-          )}
-
-          {/* 하위 항목이 있으면 재귀 호출 */}
-          {subSection.sub && subSection.sub.length > 0 && (
-            <div>
-              {renderSubSections(
-                subSection.sub,
-                originalSubSection.sub || [],
-                subPath,
-                currentDepth
+          return (
+            <div key={subPath}>
+              {/* 항목 사이에 추가 버튼 (첫 번째 항목 전) */}
+              {idx === 0 && (
+                <div
+                  style={{ marginLeft: `${indentLevel * 24}px` }}
+                  className="py-2 border-t border-dashed border-gray-300 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50/50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    handleAddSectionWithPosition(subPath, 'before');
+                  }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-gray-500 hover:text-blue-600"
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleAddSectionWithPosition(subPath, 'before');
+                    }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    여기에 추가
+                  </Button>
+                </div>
               )}
+
+              <div style={{ marginLeft: `${indentLevel * 24}px` }}>
+                {idx > 0 && <Separator className="my-4" />}
+
+                {/* 신규 항목이거나 제목/텍스트가 있는 경우 렌더링 */}
+                {(subSection.title || subSection.text || subSection._isNew) && (
+                  <div className="space-y-4">
+                    {/* 제목 영역 - 조(depth 1)까지만 표시 */}
+                    {currentDepth <= 1 &&
+                      (subSection.title || subSection._isNew) && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm font-medium text-gray-700">
+                              {indexLabel ? `${indexLabel} 제목` : '제목'}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => {
+                                  handleAddSectionWithPosition(
+                                    subPath,
+                                    'child'
+                                  );
+                                }}
+                                title="하위 항목 추가"
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                하위 추가
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteClick(subPath)}
+                                title="삭제"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          <TemplateTextEditor
+                            originalText={originalSubSection.title || ''}
+                            modifiedText={subSection.title || ''}
+                            onChange={newText =>
+                              handleTextChange(`${subPath}.title`, newText)
+                            }
+                            searchQuery={searchQuery}
+                            label=""
+                          />
+                        </div>
+                      )}
+
+                    {/* 텍스트 영역 */}
+                    {(subSection.text ||
+                      subSection._isNew ||
+                      currentDepth > 1) && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-sm font-medium text-gray-700">
+                            {indexLabel || '내용'}
+                          </div>
+                          {(currentDepth > 1 || !subSection.title) && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => {
+                                  handleAddSectionWithPosition(
+                                    subPath,
+                                    'child'
+                                  );
+                                }}
+                                title="하위 항목 추가"
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                하위 추가
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDeleteClick(subPath)}
+                                title="삭제"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        <TemplateTextEditor
+                          originalText={
+                            (originalSubSection.text as string) || ''
+                          }
+                          modifiedText={subSection.text || ''}
+                          onChange={newText =>
+                            handleTextChange(`${subPath}.text`, newText)
+                          }
+                          searchQuery={searchQuery}
+                          label=""
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 하위 항목이 있으면 재귀 호출 */}
+                {subSection.sub && subSection.sub.length > 0 && (
+                  <div>
+                    {renderSubSections(
+                      subSection.sub,
+                      originalSubSection.sub || [],
+                      subPath,
+                      currentDepth
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* 항목 사이에 추가 버튼 (각 항목 후) */}
+              <div
+                style={{ marginLeft: `${indentLevel * 24}px` }}
+                className="py-2 border-t border-dashed border-gray-300 flex items-center justify-center hover:border-blue-400 hover:bg-blue-50/50 transition-colors cursor-pointer"
+                onClick={() => {
+                  handleAddSectionWithPosition(subPath, 'after');
+                }}
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-xs text-gray-500 hover:text-blue-600"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleAddSectionWithPosition(subPath, 'after');
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  여기에 추가
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-      );
-    });
+          );
+        })}
+      </>
+    );
   };
 
   return (
@@ -617,6 +968,10 @@ export function TemplateEditModal({
                 searchResults={searchResults}
                 onToggleSection={handleToggleSection}
                 onSelectSection={handleSelectSection}
+                onAddSection={path => {
+                  handleAddSectionWithPosition(path, 'after');
+                }}
+                onDeleteSection={handleDeleteClick}
                 searchQuery={searchQuery}
               />
             </ScrollArea>
@@ -630,10 +985,24 @@ export function TemplateEditModal({
                   <div className="space-y-6 max-w-5xl">
                     {/* 섹션 헤더 */}
                     {sectionLabel && (
-                      <div className="pb-2 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {sectionLabel}
-                        </h3>
+                      <div className="pb-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {sectionLabel}
+                          </h3>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                selectedPath && handleDeleteClick(selectedPath)
+                              }
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              삭제
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -723,6 +1092,49 @@ export function TemplateEditModal({
           changes={changes}
         />
       )}
+
+      {/* 항목 삭제 모달 */}
+      <DeleteSectionModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeleteTargetPath(null);
+        }}
+        onConfirm={handleDeleteSection}
+        sectionLabel={
+          deleteTargetPath
+            ? (() => {
+                const { section: delSection } = getSelectedSection();
+                return delSection
+                  ? getSectionFullLabel(
+                      delSection.index,
+                      getPathDepth(deleteTargetPath),
+                      delSection.title || '(제목 없음)'
+                    )
+                  : '항목';
+              })()
+            : '항목'
+        }
+        childCount={
+          deleteTargetPath
+            ? (() => {
+                const pathParts = deleteTargetPath.split('.');
+                const newModified = JSON.parse(JSON.stringify(modified));
+                let current: any = newModified.content;
+
+                for (let i = 0; i < pathParts.length; i++) {
+                  const part = pathParts[i];
+                  if (part === 'sections' || part === 'sub') {
+                    current = current[part][parseInt(pathParts[i + 1])];
+                    i++;
+                  }
+                }
+
+                return countChildren(current);
+              })()
+            : 0
+        }
+      />
     </Dialog>
   );
 }

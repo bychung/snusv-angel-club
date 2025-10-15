@@ -1,7 +1,9 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 interface TemplateSection {
   index: number;
@@ -19,6 +21,8 @@ interface TemplateTreeProps {
   searchResults: Set<string>;
   onToggleSection: (path: string) => void;
   onSelectSection: (path: string) => void;
+  onAddSection?: (path: string) => void;
+  onDeleteSection?: (path: string) => void;
   searchQuery?: string;
 }
 
@@ -101,8 +105,11 @@ export function TemplateTree({
   searchResults,
   onToggleSection,
   onSelectSection,
+  onAddSection,
+  onDeleteSection,
   searchQuery = '',
 }: TemplateTreeProps) {
+  const [hoveredPath, setHoveredPath] = useState<string | null>(null);
   const renderSection = (
     section: TemplateSection,
     path: string,
@@ -129,22 +136,29 @@ export function TemplateTree({
         : section.title // 인덱스가 없으면 "부칙"
       : section.text?.slice(0, 50) || '(내용 없음)';
 
+    const showActions = hoveredPath === path || isSelected;
+
     return (
       <div key={path} className="select-none">
         <div
           className={cn(
-            'flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer transition-colors',
+            'flex items-center gap-2 py-2 px-3 rounded-md cursor-pointer transition-colors group',
             'hover:bg-gray-100',
             isSelected && 'bg-blue-100 hover:bg-blue-200',
             isChanged && 'border-l-4 border-blue-500',
             depth === 0 && 'font-semibold'
           )}
           style={{ paddingLeft: `${depth * 20 + 12}px` }}
-          onClick={() => {
-            onSelectSection(path);
-            // 하위 항목이 있으면 토글도 함께 수행
-            if (hasChildren && depth < 1) {
-              onToggleSection(path);
+          onMouseEnter={() => setHoveredPath(path)}
+          onMouseLeave={() => setHoveredPath(null)}
+          onClick={e => {
+            // 버튼 클릭이 아닌 경우만 선택
+            if (!(e.target as HTMLElement).closest('button')) {
+              onSelectSection(path);
+              // 하위 항목이 있으면 토글도 함께 수행
+              if (hasChildren && depth < 1) {
+                onToggleSection(path);
+              }
             }
           }}
         >
@@ -163,7 +177,7 @@ export function TemplateTree({
           {(!hasChildren || depth >= 1) && <div className="w-5 h-5" />}
 
           {/* 레이블 */}
-          <div className="flex-1 flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 min-w-0">
             <span
               className={cn(
                 'text-sm truncate',
@@ -177,6 +191,45 @@ export function TemplateTree({
             {/* 변경 표시 */}
             {isChanged && <span className="text-xs text-blue-600">●</span>}
           </div>
+
+          {/* 액션 버튼 (호버 시 표시) */}
+          {showActions && (onAddSection || onDeleteSection) && (
+            <div
+              className="flex items-center gap-1 ml-2"
+              onClick={e => e.stopPropagation()}
+            >
+              {onAddSection && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onSelectSection(path);
+                    onAddSection(path);
+                  }}
+                  title="항목 추가"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              )}
+              {onDeleteSection && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onSelectSection(path);
+                    onDeleteSection(path);
+                  }}
+                  title="삭제"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 하위 섹션 (depth 1까지만) */}

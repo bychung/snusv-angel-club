@@ -117,22 +117,28 @@ export function TemplateTextEditor({
           <div className="text-xs font-medium text-gray-500 mb-2">기존</div>
           <div className="p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[60px]">
             <div className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
-              {parseTemplateText(originalText).map(segment => {
-                if (segment.type === 'variable') {
+              {originalText ? (
+                parseTemplateText(originalText).map(segment => {
+                  if (segment.type === 'variable') {
+                    return (
+                      <TemplateVariableBadge
+                        key={segment.index}
+                        variable={segment.content}
+                        readOnly
+                      />
+                    );
+                  }
                   return (
-                    <TemplateVariableBadge
-                      key={segment.index}
-                      variable={segment.content}
-                      readOnly
-                    />
+                    <span key={segment.index}>
+                      {highlightText(segment.content)}
+                    </span>
                   );
-                }
-                return (
-                  <span key={segment.index}>
-                    {highlightText(segment.content)}
-                  </span>
-                );
-              })}
+                })
+              ) : (
+                <span className="text-orange-600 font-medium italic">
+                  {'<<신규 조항>>'}
+                </span>
+              )}
             </div>
           </div>
         </div>
