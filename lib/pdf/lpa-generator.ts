@@ -14,6 +14,7 @@ import type {
   ProcessedLPAContent,
   TemplateSection,
 } from './types';
+import { getFontPath } from './utils';
 
 // 상수 정의
 const INDENT_SIZE = 10; // 들여쓰기 크기 (depth 2부터 적용)
@@ -1404,20 +1405,7 @@ export async function generateLPAPDF(
   context: LPAContext,
   template?: LPATemplate
 ): Promise<Buffer> {
-  // PDFKit는 기본 폰트가 지정되지 않으면 Helvetica를 로드하려고 하므로,
-  // 생성 시점에 번들된 TTF 폰트를 기본 폰트로 지정한다.
-  const fontsDir = path.join(process.cwd(), 'lib', 'pdf', 'fonts');
-  const defaultFontCandidates = [
-    path.join(fontsDir, 'NanumGothic.ttf'),
-    path.join(fontsDir, 'malgun.ttf'),
-  ];
-  const defaultFontPath = defaultFontCandidates.find(p => fs.existsSync(p));
-
-  if (!defaultFontPath) {
-    throw new Error(
-      '기본 폰트를 찾을 수 없습니다. lib/pdf/fonts에 TTF 파일을 배치하세요.'
-    );
-  }
+  const defaultFontPath = getFontPath();
 
   const doc = new PDFDocument({
     size: 'A4',

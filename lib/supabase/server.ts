@@ -33,16 +33,19 @@ export async function createClient() {
 
 // Storage 전용 클라이언트 (Service Role Key로 RLS 우회)
 export function createStorageClient() {
-  return createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceKey) {
+    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+  }
+
+  return createSupabaseClient(url, serviceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 // 서버용 브랜드 인식 쿼리 래퍼
@@ -97,6 +100,15 @@ export async function createBrandServerClient() {
     ),
     angelInquiries: createTableOperations(supabase, 'angel_inquiries', brand),
     signupInquiries: createTableOperations(supabase, 'signup_inquiries', brand),
+
+    // 조합원 총회 관련 테이블
+    assemblies: createTableOperations(supabase, 'assemblies', brand),
+
+    // 브랜드 필터 없는 테이블들 (전체 공통 또는 FK를 통해 브랜드 확인)
+    get assemblyDocuments() {
+      return supabase.from('assembly_documents');
+    },
+    assemblyEmails: createTableOperations(supabase, 'assembly_emails', brand),
 
     // 브랜드 필터 없는 테이블들 (전체 공통 또는 FK를 통해 브랜드 확인)
     get documentTemplates() {

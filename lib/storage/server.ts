@@ -1,40 +1,10 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { createStorageClient } from '../supabase/server';
 
 export interface UploadResult {
   success: boolean;
   file_url?: string;
   file_path?: string;
   error?: string;
-}
-
-/**
- * Storage 전용 클라이언트 (Service Role Key로 RLS 우회)
- */
-function createStorageClient() {
-  console.log('Storage 클라이언트 생성 중 (Service Role Key 사용)...');
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  console.log('Supabase URL:', url ? 'OK' : 'Missing');
-  console.log(
-    'Service Role Key:',
-    serviceKey ? `OK (${serviceKey.substring(0, 10)}...)` : 'Missing'
-  );
-
-  if (!url || !serviceKey) {
-    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
-  }
-
-  const client = createSupabaseClient(url, serviceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  console.log('Storage 클라이언트 생성 완료');
-  return client;
 }
 
 /**

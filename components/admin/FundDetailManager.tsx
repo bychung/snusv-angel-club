@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import BirthDateInput from '../survey/inputs/BirthDateInput';
+import AssemblyManagement from './AssemblyManagement';
 import DocumentGenerationSection from './DocumentGenerationSection';
 import DocumentHistory from './DocumentHistory';
 import DocumentUpload from './DocumentUpload';
@@ -293,7 +294,7 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
         onValueChange={setActiveTab}
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="info" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             기본 정보
@@ -312,6 +313,10 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
           >
             <FileCode2 className="h-4 w-4" />
             문서 생성
+          </TabsTrigger>
+          <TabsTrigger value="assembly" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            조합원 총회
           </TabsTrigger>
         </TabsList>
 
@@ -912,6 +917,11 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               description="펀드 결성을 위한 계획서"
             /> */}
           </div>
+        </TabsContent>
+
+        {/* 조합원 총회 탭 */}
+        <TabsContent value="assembly" className="space-y-6">
+          <AssemblyManagement fundId={fundId} />
         </TabsContent>
       </Tabs>
     </div>
