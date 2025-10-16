@@ -133,7 +133,7 @@ export async function generateMemberList(
     });
 
     // Storage에 업로드
-    const fileName = `assembly/${fundId}/member_list_${Date.now()}.pdf`;
+    const fileName = `${fundId}/assembly/member_list_${Date.now()}.pdf`;
     const storagePath = await uploadFileToStorage({
       bucket: 'generated-documents',
       path: fileName,
@@ -179,7 +179,7 @@ export async function generateFormationAgenda(
     });
 
     // Storage에 업로드
-    const fileName = `assembly/${fundId}/formation_agenda_${Date.now()}.pdf`;
+    const fileName = `${fundId}/assembly/formation_agenda_${Date.now()}.pdf`;
     const storagePath = await uploadFileToStorage({
       bucket: 'generated-documents',
       path: fileName,

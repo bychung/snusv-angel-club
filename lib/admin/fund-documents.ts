@@ -132,6 +132,7 @@ export async function saveFundDocument(params: {
   generationContext?: any;
   pdfStoragePath?: string;
   generatedBy?: string;
+  nextVersion?: number;
 }): Promise<FundDocument> {
   const supabase = await createBrandServerClient();
 
@@ -144,20 +145,24 @@ export async function saveFundDocument(params: {
     generationContext,
     pdfStoragePath,
     generatedBy,
+    nextVersion,
   } = params;
 
   // 1. 기존 문서들의 최대 버전 번호 조회
-  const { data: existingDocs } = await supabase.fundDocuments
-    .select('version_number')
-    .eq('fund_id', fundId)
-    .eq('type', type)
-    .order('version_number', { ascending: false })
-    .limit(1);
+  let nextVersionNumber = nextVersion;
+  if (!nextVersionNumber) {
+    const { data: existingDocs } = await supabase.fundDocuments
+      .select('version_number')
+      .eq('fund_id', fundId)
+      .eq('type', type)
+      .order('version_number', { ascending: false })
+      .limit(1);
 
-  const nextVersion =
-    existingDocs && existingDocs.length > 0
-      ? existingDocs[0].version_number + 1
-      : 1;
+    nextVersionNumber =
+      existingDocs && existingDocs.length > 0
+        ? existingDocs[0].version_number + 1
+        : 1;
+  }
 
   // 2. 기존 활성 문서들 비활성화
   await supabase.fundDocuments

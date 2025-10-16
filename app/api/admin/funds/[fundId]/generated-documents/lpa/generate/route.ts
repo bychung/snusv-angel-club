@@ -9,8 +9,11 @@ import {
   loadLPATemplateForDocument,
 } from '@/lib/admin/lpa-context';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
+import { getCurrentBrand } from '@/lib/branding';
 import { generateLPAPDF } from '@/lib/pdf/lpa-generator';
 import { processLPATemplate } from '@/lib/pdf/template-processor';
+import { uploadFileToStorage } from '@/lib/storage/upload';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -102,7 +105,41 @@ export async function POST(
 
     console.log(`LPA PDF 생성 완료: ${pdfBuffer.length} bytes`);
 
-    // 7. DB에 문서 기록 저장
+    // 7. 다음 버전 번호 계산 (Storage 업로드용)
+    const supabase = await createBrandServerClient();
+    const { data: existingDocs } = await supabase.fundDocuments
+      .select('version_number')
+      .eq('fund_id', fundId)
+      .eq('type', 'lpa')
+      .order('version_number', { ascending: false })
+      .limit(1);
+
+    const nextVersion =
+      existingDocs && existingDocs.length > 0
+        ? existingDocs[0].version_number + 1
+        : 1;
+
+    // 8. Storage에 업로드
+    let pdfStoragePath: string | undefined;
+    try {
+      const brand = getCurrentBrand();
+      const timestamp = Date.now();
+      const fileName = `${fundId}/lpa/v${nextVersion}_${timestamp}.pdf`;
+
+      pdfStoragePath = await uploadFileToStorage({
+        bucket: 'generated-documents',
+        path: fileName,
+        file: pdfBuffer,
+        contentType: 'application/pdf',
+        brand,
+      });
+      console.log(`LPA PDF Storage 업로드 완료: ${pdfStoragePath}`);
+    } catch (error) {
+      console.error('LPA PDF Storage 업로드 실패:', error);
+      // Storage 업로드 실패해도 계속 진행 (다운로드 시 재생성 가능)
+    }
+
+    // 9. DB에 문서 기록 저장
     try {
       await saveFundDocument({
         fundId,
@@ -111,7 +148,9 @@ export async function POST(
         templateVersion,
         processedContent,
         generationContext,
+        pdfStoragePath,
         generatedBy: profile?.id, // profile.id 사용 (없으면 undefined)
+        nextVersion,
       });
       console.log('문서 생성 기록 저장 완료');
     } catch (error) {
@@ -119,17 +158,17 @@ export async function POST(
       // PDF 생성은 성공했으므로 계속 진행
     }
 
-    // 8. 파일명 생성
+    // 10. 파일명 생성
     const today = new Date();
     const dateString = today.toISOString().split('T')[0];
-    const fileName = `${context.fund.name}_규약(안)_${dateString}.pdf`;
+    const downloadFileName = `${context.fund.name}_규약(안)_${dateString}.pdf`;
 
-    // 9. PDF 반환 (Buffer는 BodyInit 타입으로 사용 가능)
+    // 11. PDF 반환 (Buffer는 BodyInit 타입으로 사용 가능)
     return new Response(pdfBuffer as unknown as BodyInit, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${encodeURIComponent(
-          fileName
+          downloadFileName
         )}"`,
         'Content-Length': pdfBuffer.length.toString(),
       },
