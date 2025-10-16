@@ -23,7 +23,7 @@ async function main() {
   console.log('🚀 기존 펀드 템플릿 초기화 시작\n');
 
   // Supabase 클라이언트 생성 (Service Role Key 사용)
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  const supabase = createClient(supabaseUrl!, supabaseServiceKey!, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
