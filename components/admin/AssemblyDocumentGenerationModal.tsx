@@ -624,335 +624,345 @@ export default function AssemblyDocumentGenerationModal({
       <DialogContent
         className={`${
           previewBlobUrl ? 'w-[95vw] max-w-[1600px] sm:max-w-7xl' : 'max-w-2xl'
-        } max-h-[95vh] overflow-y-auto`}
+        } h-[90vh] flex flex-col p-0 overflow-hidden`}
       >
-        <DialogHeader>
+        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle>
             {step === 'document-generation' && '결성총회 문서 생성'}
             {step === 'completion' && '결성총회 문서 생성 완료'}
           </DialogTitle>
         </DialogHeader>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        <div className="px-6 overflow-y-auto flex-1 min-h-0">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {/* Step 1: 문서 생성 */}
-        {step === 'document-generation' && currentDocument && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-md font-medium">
-                📄{' '}
-                {
-                  DOCUMENT_TYPE_NAMES[
-                    currentDocument.document_type as AssemblyDocumentType
-                  ]
-                }{' '}
-                <span className="text-xs text-gray-600 ml-2">
-                  {currentDocumentIndex + 1} / {documentTypeOrder.length}
-                </span>
-                {viewMode === 'preview' && !hasEditedContent && (
-                  <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                    저장됨
+          {/* Step 1: 문서 생성 */}
+          {step === 'document-generation' && currentDocument && (
+            <div
+              className={`flex flex-col pb-6 ${
+                viewMode === 'preview' ? 'h-full' : 'space-y-4'
+              }`}
+            >
+              <div className="bg-blue-50 p-3 rounded-lg flex-shrink-0">
+                <p className="text-md font-medium">
+                  📄{' '}
+                  {
+                    DOCUMENT_TYPE_NAMES[
+                      currentDocument.document_type as AssemblyDocumentType
+                    ]
+                  }{' '}
+                  <span className="text-xs text-gray-600 ml-2">
+                    {currentDocumentIndex + 1} / {documentTypeOrder.length}
                   </span>
-                )}
-                {viewMode === 'edit' && !isEditingExisting && (
-                  <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                    새로 작성
-                  </span>
-                )}
-              </p>
-            </div>
+                  {viewMode === 'preview' && !hasEditedContent && (
+                    <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                      저장됨
+                    </span>
+                  )}
+                  {viewMode === 'edit' && !isEditingExisting && (
+                    <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                      새로 작성
+                    </span>
+                  )}
+                </p>
+              </div>
 
-            {viewMode === 'edit' ? (
-              // 편집 모드
-              <>
-                {/* 조합원 명부 (자동 생성) */}
-                {currentDocument.document_type === 'formation_member_list' && (
-                  <div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      이 문서는 현재 펀드의 조합원 정보를 바탕으로 자동으로
-                      생성됩니다.
-                    </p>
-                  </div>
-                )}
-
-                {/* 결성총회 의안 (편집 가능) */}
-                {currentDocument.document_type === 'formation_agenda' && (
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      의안 내용을 검토하고 필요시 수정하세요.
-                    </p>
-
+              {viewMode === 'edit' ? (
+                // 편집 모드
+                <div className="space-y-4 mt-4">
+                  {/* 조합원 명부 (자동 생성) */}
+                  {currentDocument.document_type ===
+                    'formation_member_list' && (
                     <div>
-                      <Label htmlFor="chairman">의장 *</Label>
-                      <Input
-                        id="chairman"
-                        value={agendaContent.chairman}
-                        onChange={e =>
-                          setAgendaContent({
-                            ...agendaContent,
-                            chairman: e.target.value,
-                          })
-                        }
-                        placeholder="예: 업무집행조합원 프로펠벤처스 대표이사 곽준영"
-                        className="mt-1"
-                      />
+                      <p className="text-sm text-gray-600 mb-2">
+                        이 문서는 현재 펀드의 조합원 정보를 바탕으로 자동으로
+                        생성됩니다.
+                      </p>
                     </div>
+                  )}
 
-                    <div>
-                      <Label>부의안건</Label>
-                      <div className="mt-2 space-y-4">
-                        {agendaContent.agendas.map((agenda, index) => (
-                          <div key={index} className="border p-4 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <Label>제{agenda.index}호 의안</Label>
-                              {agendaContent.agendas.length > 1 && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleRemoveAgenda(index)}
-                                >
-                                  <Minus className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                            <Input
-                              value={agenda.title}
-                              onChange={e =>
-                                handleAgendaChange(
-                                  index,
-                                  'title',
-                                  e.target.value
-                                )
-                              }
-                              placeholder="의안 제목"
-                              className="mb-2"
-                            />
-                            <Textarea
-                              value={agenda.content}
-                              onChange={e =>
-                                handleAgendaChange(
-                                  index,
-                                  'content',
-                                  e.target.value
-                                )
-                              }
-                              placeholder="의안 내용"
-                              rows={4}
-                            />
-                          </div>
-                        ))}
+                  {/* 결성총회 의안 (편집 가능) */}
+                  {currentDocument.document_type === 'formation_agenda' && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600">
+                        의안 내용을 검토하고 필요시 수정하세요.
+                      </p>
+
+                      <div>
+                        <Label htmlFor="chairman">의장 *</Label>
+                        <Input
+                          id="chairman"
+                          value={agendaContent.chairman}
+                          onChange={e =>
+                            setAgendaContent({
+                              ...agendaContent,
+                              chairman: e.target.value,
+                            })
+                          }
+                          placeholder="예: 업무집행조합원 프로펠벤처스 대표이사 곽준영"
+                          className="mt-1"
+                        />
                       </div>
+
+                      <div>
+                        <Label>부의안건</Label>
+                        <div className="mt-2 space-y-4">
+                          {agendaContent.agendas.map((agenda, index) => (
+                            <div key={index} className="border p-4 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <Label>제{agenda.index}호 의안</Label>
+                                {agendaContent.agendas.length > 1 && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleRemoveAgenda(index)}
+                                  >
+                                    <Minus className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                              <Input
+                                value={agenda.title}
+                                onChange={e =>
+                                  handleAgendaChange(
+                                    index,
+                                    'title',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="의안 제목"
+                                className="mb-2"
+                              />
+                              <Textarea
+                                value={agenda.content}
+                                onChange={e =>
+                                  handleAgendaChange(
+                                    index,
+                                    'content',
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="의안 내용"
+                                rows={4}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAddAgenda}
+                          className="mt-2"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          의안 추가
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2">
+                    {currentDocumentIndex > 0 && !readOnly && (
                       <Button
                         variant="outline"
-                        size="sm"
-                        onClick={handleAddAgenda}
-                        className="mt-2"
+                        onClick={handleNavigateToPrevious}
+                        disabled={isLoading}
                       >
-                        <Plus className="w-4 h-4 mr-1" />
-                        의안 추가
+                        이전
                       </Button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2">
-                  {currentDocumentIndex > 0 && !readOnly && (
+                    )}
                     <Button
                       variant="outline"
-                      onClick={handleNavigateToPrevious}
+                      onClick={readOnly ? handleClose : handleCancelEdit}
                       disabled={isLoading}
                     >
-                      이전
+                      취소
                     </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={readOnly ? handleClose : handleCancelEdit}
-                    disabled={isLoading}
-                  >
-                    취소
-                  </Button>
-                  {!readOnly && (
-                    <Button
-                      onClick={handleGenerateDocument}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          미리보기 생성 중...
-                        </>
-                      ) : (
-                        '미리보기'
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </>
-            ) : (
-              // 미리보기 모드
-              <div className="space-y-4">
-                {/* 안내 메시지 */}
-                {!hasEditedContent && !readOnly && (
-                  <div className="bg-blue-50 p-3 rounded-lg mb-3">
-                    <p className="text-sm text-blue-800">
-                      ℹ️ 이미 생성된 문서입니다. 수정이 필요한 경우
-                      &quot;편집하기&quot;를 클릭하세요.
-                    </p>
-                  </div>
-                )}
-                {readOnly && (
-                  <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                    <p className="text-sm text-gray-700">
-                      ℹ️ 읽기 전용 모드입니다. 이미 발송된 문서는 수정할 수
-                      없습니다.
-                    </p>
-                  </div>
-                )}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="bg-gray-100 px-4 py-2 border-b">
-                    <p className="text-sm font-medium">문서 미리보기</p>
-                  </div>
-                  <div className="h-[75vh]">
-                    {previewBlobUrl && (
-                      <iframe
-                        src={previewBlobUrl}
-                        className="w-full h-full"
-                        title="문서 미리보기"
-                      />
+                    {!readOnly && (
+                      <Button
+                        onClick={handleGenerateDocument}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            미리보기 생성 중...
+                          </>
+                        ) : (
+                          '미리보기'
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
+              ) : (
+                // 미리보기 모드
+                <div className="flex flex-col flex-1 min-h-0 mt-4">
+                  {/* 안내 메시지 */}
+                  {!hasEditedContent && !readOnly && (
+                    <div className="bg-blue-50 p-3 rounded-lg mb-3 flex-shrink-0">
+                      <p className="text-sm text-blue-800">
+                        ℹ️ 이미 생성된 문서입니다. 수정이 필요한 경우
+                        &quot;편집하기&quot;를 클릭하세요.
+                      </p>
+                    </div>
+                  )}
+                  {readOnly && (
+                    <div className="bg-gray-50 p-3 rounded-lg mb-3 flex-shrink-0">
+                      <p className="text-sm text-gray-700">
+                        ℹ️ 읽기 전용 모드입니다. 이미 발송된 문서는 수정할 수
+                        없습니다.
+                      </p>
+                    </div>
+                  )}
+                  <div className="border rounded-lg overflow-hidden flex-1 flex flex-col min-h-0">
+                    <div className="bg-gray-100 px-4 py-2 border-b flex-shrink-0">
+                      <p className="text-sm font-medium">문서 미리보기</p>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      {previewBlobUrl && (
+                        <iframe
+                          src={previewBlobUrl}
+                          className="w-full h-full"
+                          title="문서 미리보기"
+                        />
+                      )}
+                    </div>
+                  </div>
 
-                <div className="flex justify-end gap-2">
-                  {currentDocumentIndex > 0 && (
+                  <div className="flex justify-end gap-2 mt-4 flex-shrink-0">
+                    {currentDocumentIndex > 0 && (
+                      <Button
+                        variant="outline"
+                        onClick={
+                          readOnly
+                            ? handleNavigateToPreviousReadOnly
+                            : handleNavigateToPrevious
+                        }
+                        disabled={isLoading}
+                      >
+                        이전
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
-                      onClick={
-                        readOnly
-                          ? handleNavigateToPreviousReadOnly
-                          : handleNavigateToPrevious
-                      }
+                      onClick={handleClose}
                       disabled={isLoading}
                     >
-                      이전
+                      취소
                     </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    onClick={handleClose}
-                    disabled={isLoading}
-                  >
-                    취소
-                  </Button>
-                  {readOnly ? (
-                    // 읽기 전용 모드: [이전] [취소] [다음/닫기]
-                    <>
-                      {currentDocumentIndex < documentTypeOrder.length - 1 ? (
+                    {readOnly ? (
+                      // 읽기 전용 모드: [이전] [취소] [다음/닫기]
+                      <>
+                        {currentDocumentIndex < documentTypeOrder.length - 1 ? (
+                          <Button
+                            onClick={handleNextFromPreview}
+                            disabled={isLoading}
+                          >
+                            다음
+                          </Button>
+                        ) : (
+                          <Button onClick={handleFinish}>닫기</Button>
+                        )}
+                      </>
+                    ) : hasEditedContent ? (
+                      // 편집 후 미리보기: [취소] [다시 편집] [문서 저장]
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={handleEditAgain}
+                          disabled={isLoading}
+                        >
+                          다시 편집
+                        </Button>
+                        <Button
+                          onClick={handleSaveDocument}
+                          disabled={isLoading}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              처리 중...
+                            </>
+                          ) : (
+                            '문서 저장'
+                          )}
+                        </Button>
+                      </>
+                    ) : (
+                      // 기존 문서 미리보기: [취소] [편집하기] [다음]
+                      <>
+                        <Button
+                          variant="outline"
+                          onClick={handleStartEdit}
+                          disabled={isLoading}
+                        >
+                          편집하기
+                        </Button>
                         <Button
                           onClick={handleNextFromPreview}
                           disabled={isLoading}
                         >
                           다음
                         </Button>
-                      ) : (
-                        <Button onClick={handleFinish}>닫기</Button>
-                      )}
-                    </>
-                  ) : hasEditedContent ? (
-                    // 편집 후 미리보기: [취소] [다시 편집] [문서 저장]
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={handleEditAgain}
-                        disabled={isLoading}
-                      >
-                        다시 편집
-                      </Button>
-                      <Button onClick={handleSaveDocument} disabled={isLoading}>
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            처리 중...
-                          </>
-                        ) : (
-                          '문서 저장'
-                        )}
-                      </Button>
-                    </>
-                  ) : (
-                    // 기존 문서 미리보기: [취소] [편집하기] [다음]
-                    <>
-                      <Button
-                        variant="outline"
-                        onClick={handleStartEdit}
-                        disabled={isLoading}
-                      >
-                        편집하기
-                      </Button>
-                      <Button
-                        onClick={handleNextFromPreview}
-                        disabled={isLoading}
-                      >
-                        다음
-                      </Button>
-                    </>
-                  )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: 완료 */}
+          {step === 'completion' && (
+            <div className="space-y-4 pb-6">
+              <div className="text-center py-6">
+                <div className="text-5xl mb-4">✅</div>
+                <h3 className="text-lg font-semibold mb-2">
+                  모든 문서가 생성되었습니다!
+                </h3>
+
+                <div className="mt-4 text-left bg-gray-50 p-4 rounded-lg">
+                  <p className="font-medium mb-2">생성된 문서:</p>
+                  <ul className="space-y-1">
+                    {documentTypeOrder.map(docType => (
+                      <li key={docType} className="text-sm flex items-center">
+                        <span className="mr-2">•</span>
+                        {DOCUMENT_TYPE_NAMES[docType as AssemblyDocumentType]}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="mt-4 text-left bg-blue-50 p-4 rounded-lg">
+                  <p className="font-medium mb-2">다음 단계:</p>
+                  <ul className="space-y-1 text-sm">
+                    <li>• 총회 목록에서 문서를 확인할 수 있습니다</li>
+                    <li>• 조합원들에게 이메일로 발송할 수 있습니다</li>
+                  </ul>
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* Step 2: 완료 */}
-        {step === 'completion' && (
-          <div className="space-y-4">
-            <div className="text-center py-6">
-              <div className="text-5xl mb-4">✅</div>
-              <h3 className="text-lg font-semibold mb-2">
-                모든 문서가 생성되었습니다!
-              </h3>
-
-              <div className="mt-4 text-left bg-gray-50 p-4 rounded-lg">
-                <p className="font-medium mb-2">생성된 문서:</p>
-                <ul className="space-y-1">
-                  {documentTypeOrder.map(docType => (
-                    <li key={docType} className="text-sm flex items-center">
-                      <span className="mr-2">•</span>
-                      {DOCUMENT_TYPE_NAMES[docType as AssemblyDocumentType]}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-4 text-left bg-blue-50 p-4 rounded-lg">
-                <p className="font-medium mb-2">다음 단계:</p>
-                <ul className="space-y-1 text-sm">
-                  <li>• 총회 목록에서 문서를 확인할 수 있습니다</li>
-                  <li>• 조합원들에게 이메일로 발송할 수 있습니다</li>
-                </ul>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleGoBackFromCompletion}
+                  disabled={isLoading}
+                >
+                  이전
+                </Button>
+                <Button variant="outline" onClick={handleClose}>
+                  취소
+                </Button>
+                <Button onClick={handleFinish}>확인</Button>
               </div>
             </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={handleGoBackFromCompletion}
-                disabled={isLoading}
-              >
-                이전
-              </Button>
-              <Button variant="outline" onClick={handleClose}>
-                취소
-              </Button>
-              <Button onClick={handleFinish}>확인</Button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
