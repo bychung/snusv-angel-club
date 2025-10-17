@@ -1,16 +1,12 @@
-// 문서 생성 API
+// 문서 생성 API (PDF Buffer만 반환, Storage/DB 저장 안 함)
 
-import { updateAssemblyStatus } from '@/lib/admin/assemblies';
-import {
-  generateAssemblyDocument,
-  getNextDocumentInfo,
-} from '@/lib/admin/assembly-documents';
+import { generateAssemblyDocumentBuffer } from '@/lib/admin/assembly-documents';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * POST /api/admin/funds/{fundId}/assemblies/{assemblyId}/documents/generate
- * 문서 생성
+ * 문서 PDF 생성 (Buffer만 반환, Storage/DB 저장하지 않음)
  */
 export async function POST(
   request: NextRequest,
@@ -20,14 +16,7 @@ export async function POST(
     const { assemblyId } = await params;
 
     // 인증 및 관리자 권한 확인
-    const { user, profile } = await validateAdminAuth(request);
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: '프로필 정보를 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
+    await validateAdminAuth(request);
 
     // 요청 본문 파싱
     const body = await request.json();
@@ -40,29 +29,22 @@ export async function POST(
       );
     }
 
-    // 문서 생성
-    const result = await generateAssemblyDocument({
+    // 문서 PDF 생성 (Buffer만, Storage/DB 저장 안 함)
+    const result = await generateAssemblyDocumentBuffer({
       assemblyId,
       documentType: type,
       content,
-      generatedBy: profile.id,
-      brand: profile.brand,
     });
 
-    // 모든 문서 생성 완료 여부 확인
-    const nextDocument = await getNextDocumentInfo(assemblyId);
-    if (!nextDocument) {
-      // 모든 문서가 생성되었으면 상태를 'completed'로 변경
-      await updateAssemblyStatus(assemblyId, 'completed');
-    }
+    // PDF Buffer를 Base64로 인코딩하여 반환
+    const pdfBase64 = result.pdfBuffer.toString('base64');
 
     return NextResponse.json(
       {
-        document_id: result.documentId,
-        pdf_url: result.pdfUrl,
-        all_documents_completed: !nextDocument,
+        pdf_base64: pdfBase64,
+        content: result.content,
       },
-      { status: 201 }
+      { status: 200 }
     );
   } catch (error) {
     console.error('문서 생성 실패:', error);

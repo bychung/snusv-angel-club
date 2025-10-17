@@ -88,13 +88,12 @@ async function getFundMemberData(fundId: string) {
 }
 
 /**
- * 조합원 명부 PDF 생성
+ * 조합원 명부 PDF 생성 (Buffer만 반환, Storage 업로드 안 함)
  */
-export async function generateMemberList(
+export async function generateMemberListBuffer(
   fundId: string,
-  assemblyDate: string,
-  brand: string
-): Promise<{ pdfBuffer: Buffer; storagePath: string }> {
+  assemblyDate: string
+): Promise<Buffer> {
   try {
     const { fund, gps, members } = await getFundMemberData(fundId);
 
@@ -132,17 +131,7 @@ export async function generateMemberList(
       members: memberInfos,
     });
 
-    // Storage에 업로드
-    const fileName = `${fundId}/assembly/member_list_${Date.now()}.pdf`;
-    const storagePath = await uploadFileToStorage({
-      bucket: 'generated-documents',
-      path: fileName,
-      file: pdfBuffer,
-      contentType: 'application/pdf',
-      brand,
-    });
-
-    return { pdfBuffer, storagePath };
+    return pdfBuffer;
   } catch (error) {
     console.error('조합원 명부 생성 실패:', error);
     throw new Error('조합원 명부 생성에 실패했습니다.');
@@ -150,14 +139,13 @@ export async function generateMemberList(
 }
 
 /**
- * 결성총회 의안 PDF 생성
+ * 결성총회 의안 PDF 생성 (Buffer만 반환, Storage 업로드 안 함)
  */
-export async function generateFormationAgenda(
+export async function generateFormationAgendaBuffer(
   fundId: string,
   assemblyDate: string,
-  content: FormationAgendaContent,
-  brand: string
-): Promise<{ pdfBuffer: Buffer; storagePath: string }> {
+  content: FormationAgendaContent
+): Promise<Buffer> {
   try {
     const brandClient = await createBrandServerClient();
 
@@ -178,17 +166,7 @@ export async function generateFormationAgenda(
       content,
     });
 
-    // Storage에 업로드
-    const fileName = `${fundId}/assembly/formation_agenda_${Date.now()}.pdf`;
-    const storagePath = await uploadFileToStorage({
-      bucket: 'generated-documents',
-      path: fileName,
-      file: pdfBuffer,
-      contentType: 'application/pdf',
-      brand,
-    });
-
-    return { pdfBuffer, storagePath };
+    return pdfBuffer;
   } catch (error) {
     console.error('결성총회 의안 생성 실패:', error);
     throw new Error('결성총회 의안 생성에 실패했습니다.');
@@ -269,15 +247,13 @@ export async function getNextDocumentInfo(
 }
 
 /**
- * 문서 생성 (통합)
+ * 문서 PDF 생성 (Buffer만 반환, Storage 업로드 안 함)
  */
-export async function generateAssemblyDocument(params: {
+export async function generateAssemblyDocumentBuffer(params: {
   assemblyId: string;
   documentType: AssemblyDocumentType;
   content?: any;
-  generatedBy: string;
-  brand: string;
-}): Promise<{ documentId: string; pdfUrl: string }> {
+}): Promise<{ pdfBuffer: Buffer; content: any }> {
   const brandClient = await createBrandServerClient();
 
   // 총회 정보 조회
@@ -292,33 +268,26 @@ export async function generateAssemblyDocument(params: {
   }
 
   let pdfBuffer: Buffer;
-  let storagePath: string;
   let documentContent: any = null;
 
   // 문서 타입에 따라 생성
   switch (params.documentType) {
     case 'formation_member_list':
-      const memberListResult = await generateMemberList(
+      pdfBuffer = await generateMemberListBuffer(
         assembly.fund_id,
-        assembly.assembly_date,
-        params.brand
+        assembly.assembly_date
       );
-      pdfBuffer = memberListResult.pdfBuffer;
-      storagePath = memberListResult.storagePath;
       break;
 
     case 'formation_agenda':
       if (!params.content?.formation_agenda) {
         throw new Error('의안 내용이 필요합니다.');
       }
-      const agendaResult = await generateFormationAgenda(
+      pdfBuffer = await generateFormationAgendaBuffer(
         assembly.fund_id,
         assembly.assembly_date,
-        params.content.formation_agenda,
-        params.brand
+        params.content.formation_agenda
       );
-      pdfBuffer = agendaResult.pdfBuffer;
-      storagePath = agendaResult.storagePath;
       documentContent = params.content;
       break;
 
@@ -326,13 +295,79 @@ export async function generateAssemblyDocument(params: {
       throw new Error('지원되지 않는 문서 타입입니다.');
   }
 
+  return {
+    pdfBuffer,
+    content: documentContent,
+  };
+}
+
+/**
+ * 문서 생성 및 저장 (PDF 재생성 → Storage 업로드 → DB 저장)
+ */
+export async function saveAssemblyDocument(params: {
+  assemblyId: string;
+  documentType: AssemblyDocumentType;
+  content?: any;
+  generatedBy: string;
+  brand: string;
+}): Promise<{ documentId: string }> {
+  const brandClient = await createBrandServerClient();
+
+  // 총회 정보 조회
+  const { data: assembly, error: assemblyError } = await brandClient.raw
+    .from('assemblies')
+    .select('fund_id, assembly_date')
+    .eq('id', params.assemblyId)
+    .single();
+
+  if (assemblyError || !assembly) {
+    throw new Error('총회 정보를 가져오는데 실패했습니다.');
+  }
+
+  // 기존 문서가 있는지 확인하고 있으면 삭제
+  const { data: existingDoc } = await brandClient.assemblyDocuments
+    .select('id, pdf_storage_path')
+    .eq('assembly_id', params.assemblyId)
+    .eq('type', params.documentType)
+    .single();
+
+  if (existingDoc) {
+    // 기존 Storage 파일 삭제 (선택사항)
+    if (existingDoc.pdf_storage_path) {
+      await brandClient.raw.storage
+        .from('generated-documents')
+        .remove([existingDoc.pdf_storage_path]);
+    }
+    // DB 레코드 삭제
+    await brandClient.assemblyDocuments.delete().eq('id', existingDoc.id);
+  }
+
+  // PDF 재생성
+  const { pdfBuffer } = await generateAssemblyDocumentBuffer({
+    assemblyId: params.assemblyId,
+    documentType: params.documentType,
+    content: params.content,
+  });
+
+  // Storage에 업로드
+  const fileName = `${assembly.fund_id}/assembly/${
+    params.documentType
+  }_${Date.now()}.pdf`;
+  const storagePath = await uploadFileToStorage({
+    bucket: 'generated-documents',
+    path: fileName,
+    file: pdfBuffer,
+    contentType: 'application/pdf',
+    brand: params.brand,
+  });
+
   // DB에 문서 정보 저장
   const { data: document, error: docError } =
     await brandClient.assemblyDocuments
       .insert({
         assembly_id: params.assemblyId,
         type: params.documentType,
-        content: documentContent,
+        content: params.content,
         pdf_storage_path: storagePath,
         generated_by: params.generatedBy,
       })
@@ -344,13 +379,45 @@ export async function generateAssemblyDocument(params: {
     throw new Error('문서 정보 저장에 실패했습니다.');
   }
 
-  // 공개 URL 생성 (임시)
-  const { data: urlData } = brandClient.raw.storage
-    .from('generated-documents')
-    .getPublicUrl(storagePath);
-
   return {
     documentId: document.id,
+  };
+}
+
+/**
+ * 문서 생성 (통합) - 하위 호환성을 위해 유지
+ * @deprecated generateAssemblyDocumentBuffer와 saveAssemblyDocument를 사용하세요
+ */
+export async function generateAssemblyDocument(params: {
+  assemblyId: string;
+  documentType: AssemblyDocumentType;
+  content?: any;
+  generatedBy: string;
+  brand: string;
+}): Promise<{ documentId: string; pdfUrl: string }> {
+  const brandClient = await createBrandServerClient();
+
+  // DB 저장 (내부에서 PDF 재생성 및 업로드)
+  const saveResult = await saveAssemblyDocument({
+    assemblyId: params.assemblyId,
+    documentType: params.documentType,
+    content: params.content,
+    generatedBy: params.generatedBy,
+    brand: params.brand,
+  });
+
+  // 저장된 문서 조회하여 URL 반환
+  const { data: document } = await brandClient.assemblyDocuments
+    .select('pdf_storage_path')
+    .eq('id', saveResult.documentId)
+    .single();
+
+  const { data: urlData } = brandClient.raw.storage
+    .from('generated-documents')
+    .getPublicUrl(document?.pdf_storage_path || '');
+
+  return {
+    documentId: saveResult.documentId,
     pdfUrl: urlData.publicUrl,
   };
 }

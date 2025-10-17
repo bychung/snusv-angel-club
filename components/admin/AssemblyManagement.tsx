@@ -6,6 +6,7 @@ import type { AssemblyWithCounts } from '@/types/assemblies';
 import { Loader2, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import AssemblyCreationModal from './AssemblyCreationModal';
+import AssemblyDocumentGenerationModal from './AssemblyDocumentGenerationModal';
 import AssemblyEmailModal from './AssemblyEmailModal';
 import AssemblyList from './AssemblyList';
 
@@ -20,7 +21,16 @@ export default function AssemblyManagement({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 총회 생성 모달
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
+
+  // 문서 생성 모달
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [documentGenerationAssemblyId, setDocumentGenerationAssemblyId] =
+    useState<string | null>(null);
+  const [isDocumentModalReadOnly, setIsDocumentModalReadOnly] = useState(false);
+
+  // 이메일 발송 모달
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [selectedAssemblyId, setSelectedAssemblyId] = useState<string | null>(
     null
@@ -57,36 +67,23 @@ export default function AssemblyManagement({
     setIsCreationModalOpen(true);
   };
 
-  const handleContinue = (assemblyId: string) => {
-    // 계속 작성 - 생성 모달 재사용 (TODO: 개선 필요)
-    alert('계속 작성 기능은 추후 구현 예정입니다.');
+  const handleAssemblyCreated = (assemblyId: string) => {
+    setIsCreationModalOpen(false);
+    // 즉시 문서 생성 모달 오픈
+    setDocumentGenerationAssemblyId(assemblyId);
+    setIsDocumentModalReadOnly(false);
+    setIsDocumentModalOpen(true);
   };
 
-  const handleViewDocuments = async (assemblyId: string) => {
-    try {
-      const response = await fetch(
-        `/api/admin/funds/${fundId}/assemblies/${assemblyId}`
-      );
+  const handleContinue = (assemblyId: string) => {
+    // 총회 상태 확인하여 읽기 전용 모드 결정
+    const assembly = assemblies.find(a => a.id === assemblyId);
+    const isReadOnly = assembly?.status === 'sent';
 
-      if (!response.ok) {
-        throw new Error('총회 정보 조회에 실패했습니다.');
-      }
-
-      const data = await response.json();
-      const assembly = data.assembly;
-
-      if (!assembly.documents || assembly.documents.length === 0) {
-        alert('생성된 문서가 없습니다.');
-        return;
-      }
-
-      // 첫 번째 문서 미리보기
-      const firstDoc = assembly.documents[0];
-      const previewUrl = `/api/admin/funds/${fundId}/assemblies/${assemblyId}/documents/${firstDoc.id}/preview`;
-      window.open(previewUrl, '_blank');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : '문서 조회에 실패했습니다.');
-    }
+    // 문서 생성 모달 오픈
+    setDocumentGenerationAssemblyId(assemblyId);
+    setIsDocumentModalReadOnly(isReadOnly);
+    setIsDocumentModalOpen(true);
   };
 
   const handleSendEmail = (assemblyId: string) => {
@@ -139,7 +136,6 @@ export default function AssemblyManagement({
         <AssemblyList
           assemblies={assemblies}
           onContinue={handleContinue}
-          onViewDocuments={handleViewDocuments}
           onSendEmail={handleSendEmail}
           onDelete={handleDelete}
         />
@@ -150,11 +146,29 @@ export default function AssemblyManagement({
         fundId={fundId}
         isOpen={isCreationModalOpen}
         onClose={() => setIsCreationModalOpen(false)}
-        onSuccess={() => {
-          setIsCreationModalOpen(false);
-          loadAssemblies();
-        }}
+        onSuccess={handleAssemblyCreated} // assemblyId 받음
       />
+
+      {/* 문서 생성 모달 */}
+      {documentGenerationAssemblyId && (
+        <AssemblyDocumentGenerationModal
+          fundId={fundId}
+          assemblyId={documentGenerationAssemblyId}
+          isOpen={isDocumentModalOpen}
+          onClose={() => {
+            setIsDocumentModalOpen(false);
+            setDocumentGenerationAssemblyId(null);
+            setIsDocumentModalReadOnly(false);
+          }}
+          onSuccess={() => {
+            setIsDocumentModalOpen(false);
+            setDocumentGenerationAssemblyId(null);
+            setIsDocumentModalReadOnly(false);
+            loadAssemblies(); // 목록 새로고침
+          }}
+          readOnly={isDocumentModalReadOnly}
+        />
+      )}
 
       {/* 이메일 발송 모달 */}
       {selectedAssemblyId && (

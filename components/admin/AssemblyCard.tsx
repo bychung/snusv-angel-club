@@ -12,13 +12,12 @@ import {
   ASSEMBLY_TYPE_NAMES,
   DOCUMENT_TYPE_NAMES,
 } from '@/types/assemblies';
-import { FileText, Mail, Trash2 } from 'lucide-react';
+import { FileText, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface AssemblyCardProps {
   assembly: AssemblyWithCounts;
   onContinue: (assemblyId: string) => void;
-  onViewDocuments: (assemblyId: string) => void;
   onSendEmail: (assemblyId: string) => void;
   onDelete: (assemblyId: string) => void;
 }
@@ -26,7 +25,6 @@ interface AssemblyCardProps {
 export default function AssemblyCard({
   assembly,
   onContinue,
-  onViewDocuments,
   onSendEmail,
   onDelete,
 }: AssemblyCardProps) {
@@ -106,24 +104,25 @@ export default function AssemblyCard({
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
-            {assembly.status === 'draft' && (
+            {(assembly.status === 'draft' ||
+              assembly.status === 'completed' ||
+              assembly.status === 'sent') && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onContinue(assembly.id)}
               >
-                계속 작성
-              </Button>
-            )}
-
-            {assembly.document_count > 0 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onViewDocuments(assembly.id)}
-              >
-                <FileText className="w-4 h-4 mr-1" />
-                문서 보기
+                {assembly.status === 'draft' ? (
+                  <>
+                    <Pencil className="w-4 h-4 mr-1" />
+                    계속 작성
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-4 h-4 mr-1" />
+                    문서 보기
+                  </>
+                )}
               </Button>
             )}
 

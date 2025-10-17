@@ -75,21 +75,17 @@ export async function generateFormationAgendaPDF(
       doc.moveDown(3);
 
       // 일시
-      doc.font('맑은고딕').fontSize(11);
-      doc.text(`일시: ${formatDate(data.assembly_date)}`, { align: 'left' });
-      doc.moveDown(1);
+      doc.font('맑은고딕').fontSize(14);
+      doc.text(`* 일시: ${formatDate(data.assembly_date)}`, { align: 'left' });
+      doc.moveDown(0.5);
 
       // 의장
-      if (data.content.chairman) {
-        doc.text(`의장: ${data.content.chairman}`, { align: 'left' });
-        doc.moveDown(2);
-      } else {
-        doc.moveDown(1);
-      }
+      doc.text(`* 의장: ${data.content.chairman}`, { align: 'left' });
+      doc.moveDown(2);
 
       // 부의안건
       doc.font('맑은고딕-Bold').fontSize(12);
-      doc.text('부의안건', { align: 'left' });
+      doc.text('* 부의안건', { align: 'left' });
       doc.moveDown(1.5);
 
       // 의안 목록
@@ -105,7 +101,7 @@ export async function generateFormationAgendaPDF(
         doc
           .font('맑은고딕-Bold')
           .fontSize(11)
-          .text(`제${agenda.index}호 의안: ${agenda.title}`, {
+          .text(`(제${agenda.index}호 의안) ${agenda.title}`, {
             align: 'left',
             underline: false,
           });
@@ -129,16 +125,15 @@ export async function generateFormationAgendaPDF(
 
         // 의안 사이 간격
         if (index < data.content.agendas.length - 1) {
-          doc.moveDown(2);
+          doc.moveDown(2.5);
         }
       });
 
       // 하단 정보
       doc.moveDown(4);
-      doc.font('맑은고딕').fontSize(10);
-      doc.text(formatDate(data.assembly_date), { align: 'right' });
+      doc.font('맑은고딕').fontSize(12);
       doc.moveDown(0.5);
-      doc.text(data.fund_name, { align: 'right' });
+      doc.text('위 의안에 대하여 조합원 여러분들의 승인을 부탁드립니다.');
 
       doc.end();
     } catch (error) {

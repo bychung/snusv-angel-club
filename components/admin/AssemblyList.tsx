@@ -6,7 +6,6 @@ import AssemblyCard from './AssemblyCard';
 interface AssemblyListProps {
   assemblies: AssemblyWithCounts[];
   onContinue: (assemblyId: string) => void;
-  onViewDocuments: (assemblyId: string) => void;
   onSendEmail: (assemblyId: string) => void;
   onDelete: (assemblyId: string) => void;
 }
@@ -14,7 +13,6 @@ interface AssemblyListProps {
 export default function AssemblyList({
   assemblies,
   onContinue,
-  onViewDocuments,
   onSendEmail,
   onDelete,
 }: AssemblyListProps) {
@@ -37,7 +35,6 @@ export default function AssemblyList({
           key={assembly.id}
           assembly={assembly}
           onContinue={onContinue}
-          onViewDocuments={onViewDocuments}
           onSendEmail={onSendEmail}
           onDelete={onDelete}
         />
