@@ -44,6 +44,12 @@ export default function AssemblyCreationModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 미리보기 관련 상태
+  const [generatedDocumentId, setGeneratedDocumentId] = useState<string | null>(
+    null
+  );
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   // 결성총회 의안 내용
   const [agendaContent, setAgendaContent] = useState<FormationAgendaContent>({
     chairman: '',
@@ -178,15 +184,57 @@ export default function AssemblyCreationModal({
 
       const data = await response.json();
 
+      // 생성된 문서 ID 저장 및 미리보기 URL 설정
+      setGeneratedDocumentId(data.document_id);
+      setPreviewUrl(
+        `/api/admin/funds/${fundId}/assemblies/${assemblyId}/documents/${data.document_id}/preview`
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.'
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNextAfterPreview = async () => {
+    if (!assemblyId || !currentDocument) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
       // 생성된 문서 목록에 추가
       setGeneratedDocuments(prev => [...prev, currentDocument.document_type]);
 
-      if (data.all_documents_completed) {
+      // 미리보기 상태 초기화
+      setGeneratedDocumentId(null);
+      setPreviewUrl(null);
+
+      // 다음 문서가 있는지 확인
+      const response = await fetch(
+        `/api/admin/funds/${fundId}/assemblies/${assemblyId}/next-document`
+      );
+
+      if (!response.ok) {
+        throw new Error('다음 문서 정보 조회에 실패했습니다.');
+      }
+
+      const data = await response.json();
+
+      if (data.next_document === null || !data.document_type) {
         // 모든 문서 생성 완료
+        setCurrentDocument(null);
         setStep('completion');
       } else {
         // 다음 문서로 이동
-        await loadNextDocument(assemblyId);
+        setCurrentDocument(data);
+
+        // 기본 컨텐츠가 있으면 설정
+        if (data.default_content?.formation_agenda) {
+          setAgendaContent(data.default_content.formation_agenda);
+        }
       }
     } catch (err) {
       setError(
@@ -248,6 +296,8 @@ export default function AssemblyCreationModal({
     setCurrentDocument(null);
     setGeneratedDocuments([]);
     setError(null);
+    setGeneratedDocumentId(null);
+    setPreviewUrl(null);
     onClose();
   };
 
@@ -258,7 +308,11 @@ export default function AssemblyCreationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className={`${
+          previewUrl ? 'w-[95vw] max-w-[1600px] sm:max-w-7xl' : 'max-w-2xl'
+        } max-h-[95vh] overflow-y-auto`}
+      >
         <DialogHeader>
           <DialogTitle>
             {step === 'type-selection' && '총회 생성'}
@@ -363,120 +417,172 @@ export default function AssemblyCreationModal({
         {step === 'document-generation' && currentDocument && (
           <div className="space-y-4">
             <div className="bg-blue-50 p-3 rounded-lg">
-              <p className="text-sm font-medium">
+              <p className="text-md font-medium">
                 📄{' '}
                 {
                   DOCUMENT_TYPE_NAMES[
                     currentDocument.document_type as AssemblyDocumentType
                   ]
-                }
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                {generatedDocuments.length + 1} / 2
+                }{' '}
+                <span className="text-xs text-gray-600 ml-2">
+                  {generatedDocuments.length + 1} / 2
+                </span>
               </p>
             </div>
 
-            {/* 조합원 명부 (자동 생성) */}
-            {currentDocument.document_type === 'formation_member_list' && (
-              <div>
-                <p className="text-sm text-gray-600 mb-2">
-                  이 문서는 현재 펀드의 조합원 정보를 바탕으로 자동으로
-                  생성됩니다.
-                </p>
-              </div>
-            )}
-
-            {/* 결성총회 의안 (편집 가능) */}
-            {currentDocument.document_type === 'formation_agenda' && (
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600">
-                  의안 내용을 검토하고 필요시 수정하세요.
-                </p>
-
-                <div>
-                  <Label htmlFor="chairman">의장 *</Label>
-                  <Input
-                    id="chairman"
-                    value={agendaContent.chairman}
-                    onChange={e =>
-                      setAgendaContent({
-                        ...agendaContent,
-                        chairman: e.target.value,
-                      })
-                    }
-                    placeholder="예: 업무집행조합원 프로펠벤처스 대표이사 곽준영"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label>부의안건</Label>
-                  <div className="mt-2 space-y-4">
-                    {agendaContent.agendas.map((agenda, index) => (
-                      <div key={index} className="border p-4 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <Label>제{agenda.index}호 의안</Label>
-                          {agendaContent.agendas.length > 1 && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleRemoveAgenda(index)}
-                            >
-                              <Minus className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                        <Input
-                          value={agenda.title}
-                          onChange={e =>
-                            handleAgendaChange(index, 'title', e.target.value)
-                          }
-                          placeholder="의안 제목"
-                          className="mb-2"
-                        />
-                        <Textarea
-                          value={agenda.content}
-                          onChange={e =>
-                            handleAgendaChange(index, 'content', e.target.value)
-                          }
-                          placeholder="의안 내용"
-                          rows={4}
-                        />
-                      </div>
-                    ))}
+            {!previewUrl ? (
+              // 미리보기가 없을 때: 편집 영역만 표시
+              <>
+                {/* 조합원 명부 (자동 생성) */}
+                {currentDocument.document_type === 'formation_member_list' && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">
+                      이 문서는 현재 펀드의 조합원 정보를 바탕으로 자동으로
+                      생성됩니다.
+                    </p>
                   </div>
+                )}
+
+                {/* 결성총회 의안 (편집 가능) */}
+                {currentDocument.document_type === 'formation_agenda' && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      의안 내용을 검토하고 필요시 수정하세요.
+                    </p>
+
+                    <div>
+                      <Label htmlFor="chairman">의장 *</Label>
+                      <Input
+                        id="chairman"
+                        value={agendaContent.chairman}
+                        onChange={e =>
+                          setAgendaContent({
+                            ...agendaContent,
+                            chairman: e.target.value,
+                          })
+                        }
+                        placeholder="예: 업무집행조합원 프로펠벤처스 대표이사 곽준영"
+                        className="mt-1"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>부의안건</Label>
+                      <div className="mt-2 space-y-4">
+                        {agendaContent.agendas.map((agenda, index) => (
+                          <div key={index} className="border p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <Label>제{agenda.index}호 의안</Label>
+                              {agendaContent.agendas.length > 1 && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleRemoveAgenda(index)}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <Input
+                              value={agenda.title}
+                              onChange={e =>
+                                handleAgendaChange(
+                                  index,
+                                  'title',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="의안 제목"
+                              className="mb-2"
+                            />
+                            <Textarea
+                              value={agenda.content}
+                              onChange={e =>
+                                handleAgendaChange(
+                                  index,
+                                  'content',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="의안 내용"
+                              rows={4}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddAgenda}
+                        className="mt-2"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        의안 추가
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
-                    size="sm"
-                    onClick={handleAddAgenda}
-                    className="mt-2"
+                    onClick={() => setStep('type-selection')}
+                    disabled={isLoading}
                   >
-                    <Plus className="w-4 h-4 mr-1" />
-                    의안 추가
+                    이전
+                  </Button>
+                  <Button onClick={handleGenerateDocument} disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        생성 중...
+                      </>
+                    ) : (
+                      '생성'
+                    )}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              // 미리보기가 있을 때: 미리보기와 다음 버튼 표시
+              <div className="space-y-4">
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-2 border-b">
+                    <p className="text-sm font-medium">문서 미리보기</p>
+                  </div>
+                  <div className="h-[75vh]">
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full"
+                      title="문서 미리보기"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPreviewUrl(null);
+                      setGeneratedDocumentId(null);
+                    }}
+                    disabled={isLoading}
+                  >
+                    다시 편집
+                  </Button>
+                  <Button onClick={handleNextAfterPreview} disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        처리 중...
+                      </>
+                    ) : (
+                      '다음'
+                    )}
                   </Button>
                 </div>
               </div>
             )}
-
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setStep('type-selection')}
-                disabled={isLoading}
-              >
-                이전
-              </Button>
-              <Button onClick={handleGenerateDocument} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    생성 중...
-                  </>
-                ) : (
-                  '저장 후 다음'
-                )}
-              </Button>
-            </div>
           </div>
         )}
 

@@ -2,7 +2,7 @@
 
 import { getAssemblyDocument } from '@/lib/admin/assemblies';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
-import { createBrandServerClient } from '@/lib/supabase/server';
+import { createStorageClient } from '@/lib/supabase/server';
 import { DOCUMENT_TYPE_NAMES } from '@/types/assemblies';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -35,11 +35,10 @@ export async function GET(
     }
 
     // Storage에서 PDF 다운로드
-    const brandClient = await createBrandServerClient();
-    const { data: fileData, error: downloadError } =
-      await brandClient.raw.storage
-        .from('generated-documents')
-        .download(document.pdf_storage_path);
+    const storageClient = createStorageClient();
+    const { data: fileData, error: downloadError } = await storageClient.storage
+      .from('generated-documents')
+      .download(document.pdf_storage_path);
 
     if (downloadError || !fileData) {
       console.error('PDF 다운로드 실패:', downloadError);

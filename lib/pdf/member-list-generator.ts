@@ -111,7 +111,6 @@ export async function generateMemberListPDF(
       });
 
       // 테이블 그리기
-      const tableTop = doc.y;
       const tableLeft = 50;
       const tableWidth = 495; // A4 width - margins
 
@@ -119,62 +118,96 @@ export async function generateMemberListPDF(
       const colWidths = {
         no: 30,
         name: 80,
-        identifier: 90, // 생년월일/사업자번호
-        address: 150,
-        phone: 80,
-        units: 65,
+        identifier: 85, // 생년월일/사업자번호
+        address: 165,
+        phone: 75,
+        units: 60,
       };
 
       const rowHeight = 30;
-      let currentY = tableTop;
+      let currentY = doc.y;
+      let pageTableTop = currentY; // 현재 페이지의 테이블 시작 위치
 
-      // 헤더 그리기
-      doc.font('맑은고딕-Bold').fontSize(9);
+      // 헤더 그리기 함수
+      const drawHeader = () => {
+        doc.font('맑은고딕-Bold').fontSize(9);
 
-      let currentX = tableLeft;
+        // 헤더 배경
+        doc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#f0f0f0');
 
-      // 헤더 배경
-      doc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#f0f0f0');
+        // 헤더 텍스트
+        doc.fillColor('#000000');
+        let headerX = tableLeft;
 
-      // 헤더 텍스트
-      doc.fillColor('#000000');
-      doc.text('번호', currentX, currentY + 10, {
-        width: colWidths.no,
-        align: 'center',
-      });
-      currentX += colWidths.no;
+        doc.text('번호', headerX, currentY + 10, {
+          width: colWidths.no,
+          align: 'center',
+        });
+        headerX += colWidths.no;
 
-      doc.text('조합원명', currentX, currentY + 10, {
-        width: colWidths.name,
-        align: 'center',
-      });
-      currentX += colWidths.name;
+        doc.text('조합원명', headerX, currentY + 10, {
+          width: colWidths.name,
+          align: 'center',
+        });
+        headerX += colWidths.name;
 
-      doc.text('생년월일\n(사업자등록번호)', currentX, currentY + 5, {
-        width: colWidths.identifier,
-        align: 'center',
-        lineGap: -2,
-      });
-      currentX += colWidths.identifier;
+        doc.text('생년월일\n(사업자등록번호)', headerX, currentY + 5, {
+          width: colWidths.identifier,
+          align: 'center',
+          lineGap: -2,
+        });
+        headerX += colWidths.identifier;
 
-      doc.text('주소', currentX, currentY + 10, {
-        width: colWidths.address,
-        align: 'center',
-      });
-      currentX += colWidths.address;
+        doc.text('주소', headerX, currentY + 10, {
+          width: colWidths.address,
+          align: 'center',
+        });
+        headerX += colWidths.address;
 
-      doc.text('연락처', currentX, currentY + 10, {
-        width: colWidths.phone,
-        align: 'center',
-      });
-      currentX += colWidths.phone;
+        doc.text('연락처', headerX, currentY + 10, {
+          width: colWidths.phone,
+          align: 'center',
+        });
+        headerX += colWidths.phone;
 
-      doc.text('출자좌수', currentX, currentY + 10, {
-        width: colWidths.units,
-        align: 'center',
-      });
+        doc.text('출자좌수', headerX, currentY + 10, {
+          width: colWidths.units,
+          align: 'center',
+        });
 
-      currentY += rowHeight;
+        currentY += rowHeight;
+      };
+
+      // 테이블 테두리 그리기 함수
+      const drawTableBorders = (startY: number, endY: number) => {
+        doc.strokeColor('#cccccc').lineWidth(0.5);
+
+        // 외곽선
+        doc.rect(tableLeft, startY, tableWidth, endY - startY).stroke();
+
+        // 수직선
+        let lineX = tableLeft + colWidths.no;
+        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+        lineX += colWidths.name;
+        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+        lineX += colWidths.identifier;
+        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+        lineX += colWidths.address;
+        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+        lineX += colWidths.phone;
+        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+
+        // 수평선
+        for (let y = startY; y <= endY; y += rowHeight) {
+          doc
+            .moveTo(tableLeft, y)
+            .lineTo(tableLeft + tableWidth, y)
+            .stroke();
+        }
+      };
+
+      // 첫 페이지 헤더 그리기
+      drawHeader();
 
       // 데이터 행 그리기
       doc.font('맑은고딕').fontSize(8);
@@ -182,47 +215,16 @@ export async function generateMemberListPDF(
       sortedMembers.forEach((member, index) => {
         // 페이지 넘김 체크
         if (currentY > 700) {
+          // 현재 페이지의 테이블 테두리 그리기
+          drawTableBorders(pageTableTop, currentY);
+
+          // 새 페이지 추가
           doc.addPage();
           currentY = 50;
+          pageTableTop = currentY;
 
-          // 헤더 다시 그리기
-          doc.font('맑은고딕-Bold').fontSize(9);
-          doc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#f0f0f0');
-          doc.fillColor('#000000');
-
-          let headerX = tableLeft;
-          doc.text('번호', headerX, currentY + 10, {
-            width: colWidths.no,
-            align: 'center',
-          });
-          headerX += colWidths.no;
-          doc.text('조합원명', headerX, currentY + 10, {
-            width: colWidths.name,
-            align: 'center',
-          });
-          headerX += colWidths.name;
-          doc.text('생년월일\n(사업자등록번호)', headerX, currentY + 5, {
-            width: colWidths.identifier,
-            align: 'center',
-            lineGap: -2,
-          });
-          headerX += colWidths.identifier;
-          doc.text('주소', headerX, currentY + 10, {
-            width: colWidths.address,
-            align: 'center',
-          });
-          headerX += colWidths.address;
-          doc.text('연락처', headerX, currentY + 10, {
-            width: colWidths.phone,
-            align: 'center',
-          });
-          headerX += colWidths.phone;
-          doc.text('출자좌수', headerX, currentY + 10, {
-            width: colWidths.units,
-            align: 'center',
-          });
-
-          currentY += rowHeight;
+          // 새 페이지 헤더 그리기
+          drawHeader();
           doc.font('맑은고딕').fontSize(8);
         }
 
@@ -232,7 +234,7 @@ export async function generateMemberListPDF(
           doc.fillColor('#000000');
         }
 
-        currentX = tableLeft;
+        let currentX = tableLeft;
         const textY = currentY + 10;
 
         // 번호
@@ -242,32 +244,37 @@ export async function generateMemberListPDF(
         });
         currentX += colWidths.no;
 
-        // 조합원명
-        doc.text(member.name, currentX + 5, textY, {
-          width: colWidths.name - 10,
-          align: 'left',
+        // 조합원명 (가운데 정렬)
+        doc.text(member.name, currentX, textY, {
+          width: colWidths.name,
+          align: 'center',
         });
         currentX += colWidths.name;
 
-        // 생년월일/사업자번호
-        doc.text(formatIdentifier(member), currentX + 5, textY, {
-          width: colWidths.identifier - 10,
-          align: 'left',
+        // 생년월일/사업자번호 (가운데 정렬)
+        doc.text(formatIdentifier(member), currentX, textY, {
+          width: colWidths.identifier,
+          align: 'center',
         });
         currentX += colWidths.identifier;
 
-        // 주소
-        doc.text(member.address, currentX + 5, textY, {
+        // 주소 (다중 라인 대응 - 수직 가운데 정렬)
+        const addressHeight = doc.heightOfString(member.address, {
+          width: colWidths.address - 10,
+          lineGap: -1,
+        });
+        const addressY = currentY + (rowHeight - addressHeight) / 2;
+        doc.text(member.address, currentX + 5, addressY, {
           width: colWidths.address - 10,
           align: 'left',
           lineGap: -1,
         });
         currentX += colWidths.address;
 
-        // 연락처
-        doc.text(member.phone, currentX + 5, textY, {
-          width: colWidths.phone - 10,
-          align: 'left',
+        // 연락처 (가운데 정렬)
+        doc.text(member.phone, currentX, textY, {
+          width: colWidths.phone,
+          align: 'center',
         });
         currentX += colWidths.phone;
 
@@ -280,60 +287,60 @@ export async function generateMemberListPDF(
         currentY += rowHeight;
       });
 
-      // 테이블 테두리 그리기
-      doc.strokeColor('#cccccc').lineWidth(0.5);
-
-      // 외곽선
-      const tableHeight = currentY - tableTop;
-      doc.rect(tableLeft, tableTop, tableWidth, tableHeight).stroke();
-
-      // 수직선
-      currentX = tableLeft + colWidths.no;
-      doc.moveTo(currentX, tableTop).lineTo(currentX, currentY).stroke();
-      currentX += colWidths.name;
-      doc.moveTo(currentX, tableTop).lineTo(currentX, currentY).stroke();
-      currentX += colWidths.identifier;
-      doc.moveTo(currentX, tableTop).lineTo(currentX, currentY).stroke();
-      currentX += colWidths.address;
-      doc.moveTo(currentX, tableTop).lineTo(currentX, currentY).stroke();
-      currentX += colWidths.phone;
-      doc.moveTo(currentX, tableTop).lineTo(currentX, currentY).stroke();
-
-      // 수평선
-      for (let y = tableTop; y <= currentY; y += rowHeight) {
-        doc
-          .moveTo(tableLeft, y)
-          .lineTo(tableLeft + tableWidth, y)
-          .stroke();
-      }
+      // 마지막 페이지의 테이블 테두리 그리기
+      drawTableBorders(pageTableTop, currentY);
 
       // 하단 정보
       doc.moveDown(3);
-      doc.font('맑은고딕').fontSize(10);
+      doc.font('맑은고딕').fontSize(12);
       doc.fillColor('#000000');
 
       const bottomY = doc.y;
 
-      doc.text(formatDate(data.assembly_date), tableLeft, bottomY, {
-        align: 'right',
+      // 날짜 (가운데 정렬)
+      doc.text(formatDate(data.assembly_date), 0, bottomY, {
+        width: doc.page.width,
+        align: 'center',
+      });
+      doc.moveDown(2);
+
+      // 조합명 (크게, 가운데 정렬)
+      doc.fontSize(16).font('맑은고딕-Bold');
+      doc.text(data.fund_name, 0, doc.y, {
+        width: doc.page.width,
+        align: 'center',
       });
       doc.moveDown(1);
-      doc.text(data.fund_name, tableLeft, doc.y, { align: 'right' });
-      doc.moveDown(1);
 
-      // 업무집행조합원 명단
-      doc.text('업무집행조합원:', tableLeft, doc.y, { align: 'right' });
-      data.gps.forEach(gp => {
-        doc.moveDown(0.5);
-        const gpText =
-          gp.entity_type === 'corporate' && gp.representative
+      // 업무집행조합원 (한 줄, 가운데 정렬)
+      doc.fontSize(12).font('맑은고딕');
+      const gpNames = data.gps
+        .map(gp => {
+          return gp.entity_type === 'corporate' && gp.representative
             ? `${gp.name} 대표 ${gp.representative}`
             : gp.name;
-        doc.text(gpText, tableLeft, doc.y, { align: 'right' });
+        })
+        .join(', ');
+
+      // 업무집행조합원 텍스트를 가운데 정렬하기 위해 전체 텍스트 너비 계산
+      const gpMainText = `업무집행조합원 ${gpNames} `;
+      const gpSealText = '(조합인감)';
+      const pageWidth = doc.page.width;
+      const totalTextWidth =
+        doc.widthOfString(gpMainText) + doc.widthOfString(gpSealText);
+      const startX = (pageWidth - totalTextWidth) / 2;
+
+      const gpY = doc.y;
+
+      // 일반 텍스트
+      doc.fillColor('#000000');
+      doc.text(gpMainText, startX, gpY, {
+        continued: true,
       });
 
-      doc.moveDown(2);
-      doc.text('(서명)', tableLeft, doc.y, { align: 'right' });
+      // 흐린 텍스트
+      doc.fillColor('#999999');
+      doc.text(gpSealText);
 
       doc.end();
     } catch (error) {
