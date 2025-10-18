@@ -8,23 +8,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import type {
-  AgendaItem,
   AssemblyDocument,
   AssemblyDocumentType,
   AssemblyType,
-  FormationAgendaContent,
   NextDocumentInfo,
 } from '@/types/assemblies';
 import {
   ASSEMBLY_DOCUMENT_TYPES,
   DOCUMENT_TYPE_NAMES,
 } from '@/types/assemblies';
-import { Loader2, Minus, Plus } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { getEditorConfig } from './assembly-documents';
+import DocumentEditorActions from './assembly-documents/DocumentEditorActions';
 
 /**
  * Base64 문자열을 Blob으로 변환하는 헬퍼 함수
@@ -85,23 +82,10 @@ export default function AssemblyDocumentGenerationModal({
     AssemblyDocument[]
   >([]);
 
-  // 결성총회 의안 내용
-  const [agendaContent, setAgendaContent] = useState<FormationAgendaContent>({
-    chairman: '',
-    agendas: [
-      {
-        index: 1,
-        title: '규약(안) 승인의 건',
-        content: '첨부한 규약 참조 부탁드립니다.',
-      },
-      {
-        index: 2,
-        title: '사업계획 승인의 건',
-        content:
-          '당 조합은 유망한 중소벤처기업에 투자하여 투자수익을 실현하고, 벤처생태계 활성화에 기여하고자 합니다.\n\n주요 투자 분야: IT, 바이오, 제조, 서비스 등 성장 가능성이 높은 중소벤처기업\n투자 방식: 직접 투자 및 간접 투자 병행',
-      },
-    ],
-  });
+  // 문서별 content 관리 (범용적으로 변경)
+  const [documentContents, setDocumentContents] = useState<Record<string, any>>(
+    {}
+  );
 
   // 생성된 문서 목록
   const [generatedDocuments, setGeneratedDocuments] = useState<string[]>([]);
@@ -177,11 +161,17 @@ export default function AssemblyDocumentGenerationModal({
       (d: AssemblyDocument) => d.type === documentType
     );
 
+    // 에디터 설정 가져오기
+    const editorConfig = getEditorConfig(documentType);
+
     // 기존 문서가 있으면 미리보기 모드로 시작
     if (existingDoc && existingDoc.pdf_storage_path) {
       // content가 있으면 로드 (나중에 편집 모드로 전환할 때 사용)
-      if (existingDoc.content?.formation_agenda) {
-        setAgendaContent(existingDoc.content.formation_agenda);
+      if (existingDoc.content && existingDoc.content.formation_agenda) {
+        setDocumentContents(prev => ({
+          ...prev,
+          [documentType]: existingDoc.content!.formation_agenda,
+        }));
       }
       await loadExistingDocumentPreview(existingDoc, documentType);
       setViewMode('preview');
@@ -203,9 +193,20 @@ export default function AssemblyDocumentGenerationModal({
     setIsEditingExisting(false);
     setHasEditedContent(false);
 
+    // 기본 content 초기화
+    if (editorConfig && !documentContents[documentType]) {
+      setDocumentContents(prev => ({
+        ...prev,
+        [documentType]: editorConfig.getDefaultContent(),
+      }));
+    }
+
     // 편집 모드: 기존 문서가 있으면 content 로드
-    if (existingDoc?.content?.formation_agenda) {
-      setAgendaContent(existingDoc.content.formation_agenda);
+    if (existingDoc?.content && existingDoc.content.formation_agenda) {
+      setDocumentContents(prev => ({
+        ...prev,
+        [documentType]: existingDoc.content!.formation_agenda,
+      }));
     }
 
     // next-document API 호출하여 기본 정보 가져오기
@@ -229,7 +230,7 @@ export default function AssemblyDocumentGenerationModal({
     // API 호출 실패 시 기본 정보 생성
     setCurrentDocument({
       document_type: documentType,
-      requires_input: documentType === 'formation_agenda',
+      requires_input: editorConfig?.requiresInput || false,
       next_document: index < docTypes.length - 1 ? docTypes[index + 1] : null,
     } as NextDocumentInfo);
     setStep('document-generation');
@@ -282,26 +283,37 @@ export default function AssemblyDocumentGenerationModal({
   const handleGenerateDocument = async () => {
     if (!currentDocument) return;
 
+    const editorConfig = getEditorConfig(currentDocument.document_type);
+    if (!editorConfig) return;
+
+    // 현재 문서의 content 가져오기
+    const currentContent =
+      documentContents[currentDocument.document_type] ||
+      editorConfig.getDefaultContent();
+
     setIsLoading(true);
     setError(null);
 
     try {
+      // 유효성 검사
+      if (editorConfig.validate) {
+        const validationError = editorConfig.validate(currentContent);
+        if (validationError) {
+          setError(validationError);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       let requestBody: any = {
         type: currentDocument.document_type,
       };
 
       // 편집 가능한 문서의 경우 content 추가
-      if (currentDocument.requires_input) {
+      if (editorConfig.requiresInput) {
         if (currentDocument.document_type === 'formation_agenda') {
-          // 의장 필수 체크
-          if (!agendaContent.chairman.trim()) {
-            setError('의장을 입력해주세요.');
-            setIsLoading(false);
-            return;
-          }
-
           requestBody.content = {
-            formation_agenda: agendaContent,
+            formation_agenda: currentContent,
           };
         }
       }
@@ -481,49 +493,6 @@ export default function AssemblyDocumentGenerationModal({
     }
   };
 
-  const handleAddAgenda = () => {
-    const newIndex = agendaContent.agendas.length + 1;
-    setAgendaContent({
-      ...agendaContent,
-      agendas: [
-        ...agendaContent.agendas,
-        { index: newIndex, title: '', content: '' },
-      ],
-    });
-  };
-
-  const handleRemoveAgenda = (index: number) => {
-    if (agendaContent.agendas.length <= 1) return;
-
-    const newAgendas = agendaContent.agendas.filter((_, i) => i !== index);
-    // 인덱스 재정렬
-    const reindexedAgendas = newAgendas.map((agenda, i) => ({
-      ...agenda,
-      index: i + 1,
-    }));
-
-    setAgendaContent({
-      ...agendaContent,
-      agendas: reindexedAgendas,
-    });
-  };
-
-  const handleAgendaChange = (
-    index: number,
-    field: keyof AgendaItem,
-    value: string
-  ) => {
-    const newAgendas = [...agendaContent.agendas];
-    newAgendas[index] = {
-      ...newAgendas[index],
-      [field]: value,
-    };
-    setAgendaContent({
-      ...agendaContent,
-      agendas: newAgendas,
-    });
-  };
-
   const handleClose = () => {
     // Blob URL 정리
     if (previewBlobUrl) {
@@ -542,31 +511,17 @@ export default function AssemblyDocumentGenerationModal({
     setViewMode('edit');
     setIsEditingExisting(false);
     setHasEditedContent(false);
-
-    // 의안 내용도 초기화
-    setAgendaContent({
-      chairman: '',
-      agendas: [
-        {
-          index: 1,
-          title: '규약(안) 승인의 건',
-          content: '첨부한 규약 참조 부탁드립니다.',
-        },
-        {
-          index: 2,
-          title: '사업계획 승인의 건',
-          content:
-            '당 조합은 유망한 중소벤처기업에 투자하여 투자수익을 실현하고, 벤처생태계 활성화에 기여하고자 합니다.\n\n주요 투자 분야: IT, 바이오, 제조, 서비스 등 성장 가능성이 높은 중소벤처기업\n투자 방식: 직접 투자 및 간접 투자 병행',
-        },
-      ],
-    });
+    setDocumentContents({});
 
     onClose();
   };
 
   const handleFinish = () => {
     handleClose();
-    onSuccess();
+    // 읽기 전용 모드에서는 새로고침 불필요 (아무것도 수정하지 않음)
+    if (!readOnly) {
+      onSuccess();
+    }
   };
 
   const handleGoBackFromCompletion = () => {
@@ -623,8 +578,10 @@ export default function AssemblyDocumentGenerationModal({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
         className={`${
-          previewBlobUrl ? 'w-[95vw] max-w-[1600px] sm:max-w-7xl' : 'max-w-2xl'
-        } h-[90vh] flex flex-col p-0 overflow-hidden`}
+          previewBlobUrl
+            ? 'w-[95vw] max-w-[1600px] sm:max-w-7xl h-[90vh]'
+            : 'max-w-2xl sm:max-w-2xl max-h-[90vh]'
+        } flex flex-col p-0 overflow-hidden`}
       >
         <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
           <DialogTitle>
@@ -672,132 +629,59 @@ export default function AssemblyDocumentGenerationModal({
               </div>
 
               {viewMode === 'edit' ? (
-                // 편집 모드
+                // 편집 모드 - 동적 렌더링
                 <div className="space-y-4 mt-4">
-                  {/* 조합원 명부 (자동 생성) */}
-                  {currentDocument.document_type ===
-                    'formation_member_list' && (
-                    <div>
-                      <p className="text-sm text-gray-600 mb-2">
-                        이 문서는 현재 펀드의 조합원 정보를 바탕으로 자동으로
-                        생성됩니다.
-                      </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const editorConfig = getEditorConfig(
+                      currentDocument.document_type
+                    );
+                    if (!editorConfig) return null;
 
-                  {/* 결성총회 의안 (편집 가능) */}
-                  {currentDocument.document_type === 'formation_agenda' && (
-                    <div className="space-y-4">
-                      <p className="text-sm text-gray-600">
-                        의안 내용을 검토하고 필요시 수정하세요.
-                      </p>
+                    const currentContent =
+                      documentContents[currentDocument.document_type] ||
+                      editorConfig.getDefaultContent();
 
-                      <div>
-                        <Label htmlFor="chairman">의장 *</Label>
-                        <Input
-                          id="chairman"
-                          value={agendaContent.chairman}
-                          onChange={e =>
-                            setAgendaContent({
-                              ...agendaContent,
-                              chairman: e.target.value,
-                            })
-                          }
-                          placeholder="예: 업무집행조합원 프로펠벤처스 대표이사 곽준영"
-                          className="mt-1"
-                        />
-                      </div>
+                    const EditorComponent = editorConfig.EditorComponent;
 
-                      <div>
-                        <Label>부의안건</Label>
-                        <div className="mt-2 space-y-4">
-                          {agendaContent.agendas.map((agenda, index) => (
-                            <div key={index} className="border p-4 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <Label>제{agenda.index}호 의안</Label>
-                                {agendaContent.agendas.length > 1 && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleRemoveAgenda(index)}
-                                  >
-                                    <Minus className="w-4 h-4" />
-                                  </Button>
-                                )}
-                              </div>
-                              <Input
-                                value={agenda.title}
-                                onChange={e =>
-                                  handleAgendaChange(
-                                    index,
-                                    'title',
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="의안 제목"
-                                className="mb-2"
-                              />
-                              <Textarea
-                                value={agenda.content}
-                                onChange={e =>
-                                  handleAgendaChange(
-                                    index,
-                                    'content',
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="의안 내용"
-                                rows={4}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAddAgenda}
-                          className="mt-2"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          의안 추가
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-end gap-2">
-                    {currentDocumentIndex > 0 && !readOnly && (
-                      <Button
-                        variant="outline"
-                        onClick={handleNavigateToPrevious}
-                        disabled={isLoading}
-                      >
-                        이전
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={readOnly ? handleClose : handleCancelEdit}
-                      disabled={isLoading}
-                    >
-                      취소
-                    </Button>
-                    {!readOnly && (
-                      <Button
-                        onClick={handleGenerateDocument}
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            미리보기 생성 중...
-                          </>
-                        ) : (
-                          '미리보기'
+                    return (
+                      <>
+                        {/* 안내 메시지 */}
+                        {editorConfig.description && (
+                          <p className="text-sm text-gray-600">
+                            {editorConfig.description}
+                          </p>
                         )}
-                      </Button>
-                    )}
-                  </div>
+
+                        {/* 동적 에디터 렌더링 */}
+                        <EditorComponent
+                          content={currentContent}
+                          onContentChange={newContent => {
+                            setDocumentContents(prev => ({
+                              ...prev,
+                              [currentDocument.document_type]: newContent,
+                            }));
+                          }}
+                          isLoading={isLoading}
+                          error={error}
+                          readOnly={readOnly}
+                          fundId={fundId}
+                          assemblyId={assemblyId}
+                          documentType={currentDocument.document_type}
+                        />
+
+                        {/* 공통 버튼 영역 */}
+                        <DocumentEditorActions
+                          onPreview={handleGenerateDocument}
+                          onCancel={readOnly ? handleClose : handleCancelEdit}
+                          onPrevious={handleNavigateToPrevious}
+                          showPrevious={currentDocumentIndex > 0 && !readOnly}
+                          showPreview={!readOnly}
+                          isLoading={isLoading}
+                          readOnly={readOnly}
+                        />
+                      </>
+                    );
+                  })()}
                 </div>
               ) : (
                 // 미리보기 모드
@@ -823,10 +707,10 @@ export default function AssemblyDocumentGenerationModal({
                     <div className="bg-gray-100 px-4 py-2 border-b flex-shrink-0">
                       <p className="text-sm font-medium">문서 미리보기</p>
                     </div>
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 h-full">
                       {previewBlobUrl && (
                         <iframe
-                          src={previewBlobUrl}
+                          src={`${previewBlobUrl}#zoom=125`}
                           className="w-full h-full"
                           title="문서 미리보기"
                         />
@@ -848,13 +732,18 @@ export default function AssemblyDocumentGenerationModal({
                         이전
                       </Button>
                     )}
-                    <Button
-                      variant="outline"
-                      onClick={handleClose}
-                      disabled={isLoading}
-                    >
-                      취소
-                    </Button>
+                    {!(
+                      readOnly &&
+                      currentDocumentIndex === documentTypeOrder.length - 1
+                    ) && (
+                      <Button
+                        variant="outline"
+                        onClick={handleClose}
+                        disabled={isLoading}
+                      >
+                        취소
+                      </Button>
+                    )}
                     {readOnly ? (
                       // 읽기 전용 모드: [이전] [취소] [다음/닫기]
                       <>
@@ -877,7 +766,7 @@ export default function AssemblyDocumentGenerationModal({
                           onClick={handleEditAgain}
                           disabled={isLoading}
                         >
-                          다시 편집
+                          {'다시 편집'}
                         </Button>
                         <Button
                           onClick={handleSaveDocument}

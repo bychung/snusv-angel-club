@@ -16,6 +16,9 @@ export interface FundMemberInfo {
   email: string;
   role: 'ADMIN' | 'USER';
   entity_type: 'individual' | 'corporate';
+  total_units?: number; // 총 출자좌수
+  phone?: string;
+  address?: string;
 }
 
 export interface DocumentStatus {
@@ -236,12 +239,14 @@ export async function getFundMembers(
   const { data, error } = await brandClient.fundMembers
     .select(
       `
+      total_units,
       profile:profiles (
-        id, name, email, role, entity_type
+        id, name, email, role, entity_type, phone, address
       )
     `
     )
-    .eq('fund_id', fundId);
+    .eq('fund_id', fundId)
+    .is('deleted_at', null); // soft delete된 조합원 제외
 
   if (error) {
     console.error('펀드 조합원 조회 실패:', error);
@@ -258,6 +263,9 @@ export async function getFundMembers(
       email: item.profile.email,
       role: item.profile.role as 'ADMIN' | 'USER',
       entity_type: item.profile.entity_type as 'individual' | 'corporate',
+      total_units: item.total_units,
+      phone: item.profile.phone,
+      address: item.profile.address,
     }));
 }
 
