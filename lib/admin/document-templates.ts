@@ -153,6 +153,7 @@ export async function createTemplate(params: {
   content: any;
   appendix?: any;
   description?: string;
+  editable?: boolean;
   isActive?: boolean;
   fundId?: string | null;
   createdBy?: string;
@@ -165,6 +166,7 @@ export async function createTemplate(params: {
     content,
     appendix,
     description,
+    editable = true,
     isActive = false,
     fundId = null,
     createdBy,
@@ -213,6 +215,7 @@ export async function createTemplate(params: {
       content,
       appendix,
       description,
+      editable,
       is_active: isActive,
       fund_id: fundId,
       created_by: createdBy,

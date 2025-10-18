@@ -19,7 +19,7 @@ import {
   DOCUMENT_TYPE_NAMES,
 } from '@/types/assemblies';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getEditorConfig } from './assembly-documents';
 import DocumentEditorActions from './assembly-documents/DocumentEditorActions';
 
@@ -89,6 +89,9 @@ export default function AssemblyDocumentGenerationModal({
 
   // 생성된 문서 목록
   const [generatedDocuments, setGeneratedDocuments] = useState<string[]>([]);
+
+  // 스크롤 컨테이너 ref
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // 모달 오픈 시 총회 정보 및 문서 순서 로드
   useEffect(() => {
@@ -301,6 +304,10 @@ export default function AssemblyDocumentGenerationModal({
         if (validationError) {
           setError(validationError);
           setIsLoading(false);
+          // 스크롤을 맨 위로 올려서 에러 메시지를 볼 수 있게 함
+          if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+          }
           return;
         }
       }
@@ -590,7 +597,10 @@ export default function AssemblyDocumentGenerationModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 overflow-y-auto flex-1 min-h-0">
+        <div
+          ref={scrollContainerRef}
+          className="px-6 overflow-y-auto flex-1 min-h-0"
+        >
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>

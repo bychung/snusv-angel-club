@@ -72,9 +72,10 @@ export interface AssemblyEmail {
 // 문서 내용 타입
 export interface AssemblyDocumentContent {
   // 조합원 명부는 자동 생성되므로 content 불필요
+  formation_member_list?: any; // 템플릿 전체 구조 (자동 생성)
 
   // 결성총회 의안 내용
-  formation_agenda?: FormationAgendaContent;
+  formation_agenda?: FormationAgendaContent | any; // FormationAgendaContent 또는 템플릿 전체 구조
 
   // 추후 다른 문서 타입 추가
 }
@@ -159,8 +160,15 @@ export interface SendEmailResponse {
 export interface NextDocumentInfo {
   document_type: AssemblyDocumentType;
   requires_input: boolean; // 사용자 입력이 필요한지 여부
+  editable?: boolean; // 템플릿 편집 가능 여부
+  template?: {
+    // 템플릿 정보
+    id: string;
+    version: string;
+    description: string;
+  };
   preview_data?: any; // 미리보기 데이터 (자동 생성 문서용)
-  default_content?: AssemblyDocumentContent; // 기본 내용 (편집 가능 문서용)
+  default_content?: any; // 기본 내용 (편집 가능 문서용, 템플릿 전체 구조 포함)
   input_schema?: any; // 필요한 입력 필드 스키마
 }
 

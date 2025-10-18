@@ -1,0 +1,48 @@
+{
+  "title": "조합원 명부",
+  "table_config": {
+    "columns": [
+      {
+        "key": "no",
+        "label": "번호",
+        "width": 30,
+        "align": "center"
+      },
+      {
+        "key": "name",
+        "label": "조합원명",
+        "width": 80,
+        "align": "center"
+      },
+      {
+        "key": "identifier",
+        "label": "생년월일\n(사업자등록번호)",
+        "width": 85,
+        "align": "center",
+        "line_gap": -2
+      },
+      {
+        "key": "address",
+        "label": "주소",
+        "width": 165,
+        "align": "center"
+      },
+      {
+        "key": "phone",
+        "label": "연락처",
+        "width": 75,
+        "align": "center"
+      },
+      {
+        "key": "units",
+        "label": "출자좌수",
+        "width": 60,
+        "align": "center"
+      }
+    ]
+  },
+  "footer_labels": {
+    "gp_prefix": "업무집행조합원",
+    "seal_text": "(조합인감)"
+  }
+}

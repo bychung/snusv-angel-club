@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument from 'pdfkit';
 import { getNameForSorting } from '../format-utils';
+import { MEMBER_LIST_CONFIG } from './member-list-config';
 import { getFontPath } from './utils';
 
 interface GPInfo {
@@ -28,6 +29,7 @@ interface MemberListData {
   assembly_date: string; // YYYY-MM-DD
   gps: GPInfo[];
   members: MemberInfo[];
+  template?: any; // 템플릿 (선택사항, 없으면 기본값 사용)
 }
 
 /**
@@ -72,6 +74,36 @@ function formatIdentifier(member: MemberInfo): string {
 }
 
 /**
+ * 조합원 명부 기본 템플릿 설정
+ */
+export function getDefaultMemberListTemplate() {
+  console.log('getDefaultMemberListTemplate');
+  return {
+    title: '조합원 명부',
+    table_config: {
+      columns: [
+        { key: 'no', label: '번호', width: 30, align: 'center' },
+        { key: 'name', label: '조합원명', width: 80, align: 'center' },
+        {
+          key: 'identifier',
+          label: '생년월일\n(사업자등록번호)',
+          width: 85,
+          align: 'center',
+          line_gap: -2,
+        },
+        { key: 'address', label: '주소', width: 165, align: 'center' },
+        { key: 'phone', label: '연락처', width: 75, align: 'center' },
+        { key: 'units', label: '출자좌수', width: 60, align: 'center' },
+      ],
+    },
+    footer_labels: {
+      gp_prefix: '업무집행조합원',
+      seal_text: '(조합인감)',
+    },
+  };
+}
+
+/**
  * 조합원 명부 PDF 생성
  */
 export async function generateMemberListPDF(
@@ -96,12 +128,23 @@ export async function generateMemberListPDF(
       // 한글 폰트 등록
       registerKoreanFonts(doc);
 
+      // 템플릿에서 설정 가져오기 (없으면 기본값)
+      const config = MEMBER_LIST_CONFIG;
+      const templateContent = data.template?.content || {};
+      const defaultTemplate = getDefaultMemberListTemplate();
+
+      const title = templateContent.title || defaultTemplate.title;
+      const tableConfig =
+        templateContent.table_config || defaultTemplate.table_config;
+      const footerLabels =
+        templateContent.footer_labels || defaultTemplate.footer_labels;
+
       // 제목
       doc
-        .font('맑은고딕-Bold')
-        .fontSize(18)
-        .text('조합원 명부', { align: 'center' });
-      doc.moveDown(2);
+        .font(config.fonts.title.family)
+        .fontSize(config.fonts.title.size)
+        .text(title, { align: 'center' });
+      doc.moveDown(config.spacing.title_bottom);
 
       // 조합원 정렬 (가나다순)
       const sortedMembers = [...data.members].sort((a, b) => {
@@ -111,68 +154,46 @@ export async function generateMemberListPDF(
       });
 
       // 테이블 그리기
-      const tableLeft = 50;
-      const tableWidth = 495; // A4 width - margins
+      const tableLeft = config.page.table_left;
+      const tableWidth = config.page.table_width;
 
-      // 컬럼 너비 정의
-      const colWidths = {
-        no: 30,
-        name: 80,
-        identifier: 85, // 생년월일/사업자번호
-        address: 165,
-        phone: 75,
-        units: 60,
-      };
+      // 컬럼 너비 정의 (템플릿에서 가져오기)
+      const colWidths: Record<string, number> = {};
+      tableConfig.columns.forEach((col: any) => {
+        colWidths[col.key] = col.width;
+      });
 
-      const rowHeight = 30;
+      const rowHeight = config.table_style.row_height;
       let currentY = doc.y;
       let pageTableTop = currentY; // 현재 페이지의 테이블 시작 위치
 
       // 헤더 그리기 함수
       const drawHeader = () => {
-        doc.font('맑은고딕-Bold').fontSize(9);
+        doc
+          .font(config.fonts.table_header.family)
+          .fontSize(config.fonts.table_header.size);
 
         // 헤더 배경
-        doc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#f0f0f0');
+        doc
+          .rect(tableLeft, currentY, tableWidth, rowHeight)
+          .fill(config.table_style.header_background);
 
         // 헤더 텍스트
         doc.fillColor('#000000');
         let headerX = tableLeft;
 
-        doc.text('번호', headerX, currentY + 10, {
-          width: colWidths.no,
-          align: 'center',
-        });
-        headerX += colWidths.no;
+        tableConfig.columns.forEach((col: any) => {
+          const yOffset = col.line_gap ? currentY + 5 : currentY + 10;
+          const options: any = {
+            width: col.width,
+            align: col.align || 'center',
+          };
+          if (col.line_gap) {
+            options.lineGap = col.line_gap;
+          }
 
-        doc.text('조합원명', headerX, currentY + 10, {
-          width: colWidths.name,
-          align: 'center',
-        });
-        headerX += colWidths.name;
-
-        doc.text('생년월일\n(사업자등록번호)', headerX, currentY + 5, {
-          width: colWidths.identifier,
-          align: 'center',
-          lineGap: -2,
-        });
-        headerX += colWidths.identifier;
-
-        doc.text('주소', headerX, currentY + 10, {
-          width: colWidths.address,
-          align: 'center',
-        });
-        headerX += colWidths.address;
-
-        doc.text('연락처', headerX, currentY + 10, {
-          width: colWidths.phone,
-          align: 'center',
-        });
-        headerX += colWidths.phone;
-
-        doc.text('출자좌수', headerX, currentY + 10, {
-          width: colWidths.units,
-          align: 'center',
+          doc.text(col.label, headerX, yOffset, options);
+          headerX += col.width;
         });
 
         currentY += rowHeight;
@@ -180,22 +201,21 @@ export async function generateMemberListPDF(
 
       // 테이블 테두리 그리기 함수
       const drawTableBorders = (startY: number, endY: number) => {
-        doc.strokeColor('#cccccc').lineWidth(0.5);
+        doc
+          .strokeColor(config.table_style.border_color)
+          .lineWidth(config.table_style.border_width);
 
         // 외곽선
         doc.rect(tableLeft, startY, tableWidth, endY - startY).stroke();
 
         // 수직선
-        let lineX = tableLeft + colWidths.no;
-        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
-        lineX += colWidths.name;
-        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
-        lineX += colWidths.identifier;
-        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
-        lineX += colWidths.address;
-        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
-        lineX += colWidths.phone;
-        doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+        let lineX = tableLeft;
+        tableConfig.columns.forEach((col: any, index: number) => {
+          if (index > 0) {
+            doc.moveTo(lineX, startY).lineTo(lineX, endY).stroke();
+          }
+          lineX += col.width;
+        });
 
         // 수평선
         for (let y = startY; y <= endY; y += rowHeight) {
@@ -210,11 +230,13 @@ export async function generateMemberListPDF(
       drawHeader();
 
       // 데이터 행 그리기
-      doc.font('맑은고딕').fontSize(8);
+      doc
+        .font(config.fonts.table_body.family)
+        .fontSize(config.fonts.table_body.size);
 
       sortedMembers.forEach((member, index) => {
         // 페이지 넘김 체크
-        if (currentY > 700) {
+        if (currentY > config.page.maxY) {
           // 현재 페이지의 테이블 테두리 그리기
           drawTableBorders(pageTableTop, currentY);
 
@@ -225,63 +247,68 @@ export async function generateMemberListPDF(
 
           // 새 페이지 헤더 그리기
           drawHeader();
-          doc.font('맑은고딕').fontSize(8);
+          doc
+            .font(config.fonts.table_body.family)
+            .fontSize(config.fonts.table_body.size);
         }
 
         // 행 배경 (zebra striping)
-        if (index % 2 === 0) {
-          doc.rect(tableLeft, currentY, tableWidth, rowHeight).fill('#fafafa');
-          doc.fillColor('#000000');
+        if (config.table_style.zebra_striping) {
+          const bgColor =
+            index % 2 === 0
+              ? config.table_style.zebra_colors.even
+              : config.table_style.zebra_colors.odd;
+          if (bgColor !== '#ffffff') {
+            doc.rect(tableLeft, currentY, tableWidth, rowHeight).fill(bgColor);
+            doc.fillColor('#000000');
+          }
         }
 
         let currentX = tableLeft;
         const textY = currentY + 10;
 
-        // 번호
-        doc.text(`${index + 1}`, currentX, textY, {
-          width: colWidths.no,
-          align: 'center',
-        });
-        currentX += colWidths.no;
+        // 각 컬럼 데이터 렌더링
+        tableConfig.columns.forEach((col: any) => {
+          let value = '';
+          let align = col.align || 'center';
 
-        // 조합원명 (가운데 정렬)
-        doc.text(member.name, currentX, textY, {
-          width: colWidths.name,
-          align: 'center',
-        });
-        currentX += colWidths.name;
+          switch (col.key) {
+            case 'no':
+              value = `${index + 1}`;
+              break;
+            case 'name':
+              value = member.name;
+              break;
+            case 'identifier':
+              value = formatIdentifier(member);
+              break;
+            case 'address':
+              // 주소는 특별 처리 (다중 라인 대응)
+              const addressHeight = doc.heightOfString(member.address, {
+                width: col.width - 10,
+                lineGap: -1,
+              });
+              const addressY = currentY + (rowHeight - addressHeight) / 2;
+              doc.text(member.address, currentX + 5, addressY, {
+                width: col.width - 10,
+                align: align,
+                lineGap: -1,
+              });
+              currentX += col.width;
+              return; // 다음 컬럼으로
+            case 'phone':
+              value = member.phone;
+              break;
+            case 'units':
+              value = member.units.toLocaleString();
+              break;
+          }
 
-        // 생년월일/사업자번호 (가운데 정렬)
-        doc.text(formatIdentifier(member), currentX, textY, {
-          width: colWidths.identifier,
-          align: 'center',
-        });
-        currentX += colWidths.identifier;
-
-        // 주소 (다중 라인 대응 - 수직 가운데 정렬)
-        const addressHeight = doc.heightOfString(member.address, {
-          width: colWidths.address - 10,
-          lineGap: -1,
-        });
-        const addressY = currentY + (rowHeight - addressHeight) / 2;
-        doc.text(member.address, currentX + 5, addressY, {
-          width: colWidths.address - 10,
-          align: 'left',
-          lineGap: -1,
-        });
-        currentX += colWidths.address;
-
-        // 연락처 (가운데 정렬)
-        doc.text(member.phone, currentX, textY, {
-          width: colWidths.phone,
-          align: 'center',
-        });
-        currentX += colWidths.phone;
-
-        // 출자좌수
-        doc.text(member.units.toLocaleString(), currentX, textY, {
-          width: colWidths.units,
-          align: 'center',
+          doc.text(value, currentX, textY, {
+            width: col.width,
+            align: align,
+          });
+          currentX += col.width;
         });
 
         currentY += rowHeight;
@@ -291,8 +318,8 @@ export async function generateMemberListPDF(
       drawTableBorders(pageTableTop, currentY);
 
       // 하단 정보
-      doc.moveDown(3);
-      doc.font('맑은고딕').fontSize(12);
+      doc.moveDown(config.spacing.table_bottom);
+      doc.font(config.fonts.date.family).fontSize(config.fonts.date.size);
       doc.fillColor('#000000');
 
       const bottomY = doc.y;
@@ -305,15 +332,17 @@ export async function generateMemberListPDF(
       doc.moveDown(2);
 
       // 조합명 (크게, 가운데 정렬)
-      doc.fontSize(16).font('맑은고딕-Bold');
+      doc
+        .fontSize(config.fonts.fund_name.size)
+        .font(config.fonts.fund_name.family);
       doc.text(data.fund_name, 0, doc.y, {
         width: doc.page.width,
         align: 'center',
       });
-      doc.moveDown(1);
+      doc.moveDown(config.spacing.gp_spacing);
 
       // 업무집행조합원 (한 줄, 가운데 정렬)
-      doc.fontSize(12).font('맑은고딕');
+      doc.fontSize(config.fonts.gp.size).font(config.fonts.gp.family);
       const gpNames = data.gps
         .map(gp => {
           return gp.entity_type === 'corporate' && gp.representative
@@ -323,8 +352,8 @@ export async function generateMemberListPDF(
         .join(', ');
 
       // 업무집행조합원 텍스트를 가운데 정렬하기 위해 전체 텍스트 너비 계산
-      const gpMainText = `업무집행조합원 ${gpNames} `;
-      const gpSealText = '(조합인감)';
+      const gpMainText = `${footerLabels.gp_prefix} ${gpNames} `;
+      const gpSealText = footerLabels.seal_text;
       const pageWidth = doc.page.width;
       const totalTextWidth =
         doc.widthOfString(gpMainText) + doc.widthOfString(gpSealText);

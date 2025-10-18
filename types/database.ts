@@ -110,6 +110,7 @@ export interface DocumentTemplate {
   version: string; // '1.0.0', '1.1.0'
   content: any; // JSONB - 템플릿 전체 구조
   appendix?: any | null; // JSONB - 별지 정보 (조합원서명단, 조합원동의서 등)
+  editable?: boolean; // 사용자가 문서 생성 시 편집 가능 여부 (조합원 총회 템플릿용)
   is_active: boolean;
   description?: string | null;
   fund_id?: string | null; // NULL이면 글로벌 템플릿, 값이 있으면 펀드별 템플릿
