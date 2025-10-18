@@ -380,16 +380,16 @@ export default function AssemblyDocumentGenerationModal({
   // 다음 버튼 (미리보기에서)
   const handleNextFromPreview = () => {
     const nextIndex = currentDocumentIndex + 1;
+    // 미리보기 Blob URL 정리
+    if (previewBlobUrl) {
+      URL.revokeObjectURL(previewBlobUrl);
+    }
+    setPreviewBlobUrl(null);
+    setCurrentDocumentContent(null);
+
     if (nextIndex >= documentTypeOrder.length) {
       setStep('completion');
     } else {
-      // 미리보기 Blob URL 정리
-      if (previewBlobUrl) {
-        URL.revokeObjectURL(previewBlobUrl);
-      }
-      setPreviewBlobUrl(null);
-      setCurrentDocumentContent(null);
-
       setCurrentDocumentIndex(nextIndex);
       loadDocumentAtIndex(nextIndex, documentTypeOrder, existingDocuments);
     }
@@ -844,9 +844,11 @@ export default function AssemblyDocumentGenerationModal({
                 >
                   이전
                 </Button>
-                <Button variant="outline" onClick={handleClose}>
-                  취소
-                </Button>
+                {readOnly && (
+                  <Button variant="outline" onClick={handleClose}>
+                    취소
+                  </Button>
+                )}
                 <Button onClick={handleFinish}>확인</Button>
               </div>
             </div>

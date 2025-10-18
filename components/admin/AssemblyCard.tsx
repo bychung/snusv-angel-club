@@ -2,16 +2,9 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type {
-  AssemblyDocumentType,
-  AssemblyWithCounts,
-} from '@/types/assemblies';
-import {
-  ASSEMBLY_STATUS_NAMES,
-  ASSEMBLY_TYPE_NAMES,
-  DOCUMENT_TYPE_NAMES,
-} from '@/types/assemblies';
+import { Card, CardContent } from '@/components/ui/card';
+import type { AssemblyWithCounts } from '@/types/assemblies';
+import { ASSEMBLY_STATUS_NAMES, ASSEMBLY_TYPE_NAMES } from '@/types/assemblies';
 import { FileText, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -66,44 +59,31 @@ export default function AssemblyCard({
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">
-              {ASSEMBLY_TYPE_NAMES[assembly.type]}
-            </CardTitle>
-            <p className="text-sm text-gray-500 mt-1">
-              {formatDate(assembly.assembly_date)}
-            </p>
-          </div>
-          <Badge className={getStatusBadgeColor(assembly.status)}>
-            {ASSEMBLY_STATUS_NAMES[assembly.status]}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div>
-            <p className="text-sm font-medium text-gray-700">
+      <CardContent className="py-0">
+        <div className="flex items-center justify-between gap-4">
+          {/* 왼쪽: 총회 정보 */}
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold">
+                {ASSEMBLY_TYPE_NAMES[assembly.type]}
+              </span>
+              <span className="text-sm text-gray-500">
+                ({formatDate(assembly.assembly_date)})
+              </span>
+            </div>
+
+            <div className="text-sm text-gray-700">
               생성된 문서: {assembly.document_count}/
               {assembly.total_document_count}
-            </p>
-            {assembly.documents && assembly.documents.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {assembly.documents.map(doc => (
-                  <li
-                    key={doc.id}
-                    className="text-sm text-gray-600 flex items-center"
-                  >
-                    <span className="mr-2">✓</span>
-                    {DOCUMENT_TYPE_NAMES[doc.type as AssemblyDocumentType]}
-                  </li>
-                ))}
-              </ul>
-            )}
+            </div>
+
+            <Badge className={getStatusBadgeColor(assembly.status)}>
+              {ASSEMBLY_STATUS_NAMES[assembly.status]}
+            </Badge>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-2">
+          {/* 오른쪽: 액션 버튼들 */}
+          <div className="flex items-center gap-2">
             {(assembly.status === 'draft' ||
               assembly.status === 'completed' ||
               assembly.status === 'sent') && (
@@ -111,6 +91,7 @@ export default function AssemblyCard({
                 size="sm"
                 variant="outline"
                 onClick={() => onContinue(assembly.id)}
+                className="transition-all hover:scale-105 hover:shadow-md hover:bg-gray-100/70"
               >
                 {assembly.status === 'draft' ? (
                   <>
@@ -127,7 +108,11 @@ export default function AssemblyCard({
             )}
 
             {assembly.status === 'completed' && (
-              <Button size="sm" onClick={() => onSendEmail(assembly.id)}>
+              <Button
+                size="sm"
+                onClick={() => onSendEmail(assembly.id)}
+                className="transition-all hover:scale-105 hover:shadow-md hover:bg-primary/70"
+              >
                 <Mail className="w-4 h-4 mr-1" />
                 이메일 발송
               </Button>
@@ -138,6 +123,7 @@ export default function AssemblyCard({
                 size="sm"
                 variant="outline"
                 onClick={() => onSendEmail(assembly.id)}
+                className="transition-all hover:scale-105 hover:shadow-md hover:bg-gray-100/70"
               >
                 <Mail className="w-4 h-4 mr-1" />
                 재발송
@@ -149,6 +135,7 @@ export default function AssemblyCard({
               variant="destructive"
               onClick={handleDelete}
               disabled={isDeleting}
+              className="transition-all hover:scale-105 hover:shadow-md hover:bg-destructive/70"
             >
               <Trash2 className="w-4 h-4 mr-1" />
               삭제
