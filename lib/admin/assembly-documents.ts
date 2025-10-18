@@ -182,12 +182,10 @@ export async function getNextDocumentInfo(
   const brandClient = await createBrandServerClient();
 
   // 총회 정보 조회
-  const { data: assembly, error } = await brandClient.raw
-    .from('assemblies')
+  const { data: assembly, error } = await brandClient.assemblies
     .select('*, funds(name)')
     .eq('id', assemblyId)
     .single();
-
   if (error || !assembly) {
     throw new Error('총회 정보를 가져오는데 실패했습니다.');
   }
@@ -257,8 +255,7 @@ export async function generateAssemblyDocumentBuffer(params: {
   const brandClient = await createBrandServerClient();
 
   // 총회 정보 조회
-  const { data: assembly, error } = await brandClient.raw
-    .from('assemblies')
+  const { data: assembly, error } = await brandClient.assemblies
     .select('*, funds(name)')
     .eq('id', params.assemblyId)
     .single();
@@ -314,8 +311,7 @@ export async function saveAssemblyDocument(params: {
   const brandClient = await createBrandServerClient();
 
   // 총회 정보 조회
-  const { data: assembly, error: assemblyError } = await brandClient.raw
-    .from('assemblies')
+  const { data: assembly, error: assemblyError } = await brandClient.assemblies
     .select('fund_id, assembly_date')
     .eq('id', params.assemblyId)
     .single();
