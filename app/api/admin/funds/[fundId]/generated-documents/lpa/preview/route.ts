@@ -23,7 +23,14 @@ export async function GET(
 
     const { fundId } = await params;
 
-    console.log(`LPA PDF 미리보기 요청: fundId=${fundId}, userId=${user.id}`);
+    // 쿼리 파라미터에서 generateAllConsents 읽기
+    const { searchParams } = new URL(request.url);
+    const generateAllConsents =
+      searchParams.get('generateAllConsents') !== 'false';
+
+    console.log(
+      `LPA PDF 미리보기 요청: fundId=${fundId}, userId=${user.id}, generateAllConsents=${generateAllConsents}`
+    );
 
     // 1. 컨텍스트 구성 (미리보기 모드, isPreview=true)
     const context = await buildLPAContext(fundId, user.id, true);
@@ -35,7 +42,12 @@ export async function GET(
     const processedContent = processLPATemplate(template, context);
 
     // 4. PDF 생성 (템플릿도 함께 전달)
-    const pdfBuffer = await generateLPAPDF(processedContent, context, template);
+    const pdfBuffer = await generateLPAPDF(
+      processedContent,
+      context,
+      template,
+      { generateAllConsents }
+    );
 
     console.log(`LPA PDF 미리보기 생성 완료: ${pdfBuffer.length} bytes`);
 

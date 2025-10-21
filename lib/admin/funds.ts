@@ -388,6 +388,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
       profile:profiles (
         id,
         name,
+        email,
         address,
         phone,
         birth_date,
@@ -441,6 +442,7 @@ export async function getFundDataForDocument(fundId: string, userId: string) {
         total_amount,
         initial_amount,
         // 별지용 추가 정보
+        email: member.profile?.email || null,
         address: member.profile?.address || null,
         phone: member.profile?.phone || null,
         birth_date: member.profile?.birth_date || null,

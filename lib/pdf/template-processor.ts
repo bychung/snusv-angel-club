@@ -181,14 +181,18 @@ export function processTemplateVariables(
     processedText = processedText.replace(/\$\{startDate\}/g, '');
   }
 
-  // 사용자 관련 변수
+  // 사용자 관련 변수 (실제 GP 멤버 정보 사용)
+  const gpMembers = context.members.filter(m => m.member_type === 'GP');
+  const lpMembers = context.members.filter(m => m.member_type === 'LP');
+  const firstGP = gpMembers[0];
+
   processedText = processedText.replace(
     /\$\{userName\}/g,
-    markPreview(context.user.name || '', isPreview)
+    markPreview(gpMembers.map(gp => gp.name).join(', ') || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{userEmail\}/g,
-    markPreview(context.user.email || '', isPreview)
+    markPreview(firstGP?.email || '', isPreview)
   );
   processedText = processedText.replace(
     /\$\{userAddress\}/g,
@@ -196,12 +200,10 @@ export function processTemplateVariables(
   );
   processedText = processedText.replace(
     /\$\{userPhone\}/g,
-    markPreview(context.user.phone || '', isPreview)
+    markPreview(firstGP?.phone || '', isPreview)
   );
 
   // 조합원 관련 변수
-  const gpMembers = context.members.filter(m => m.member_type === 'GP');
-  const lpMembers = context.members.filter(m => m.member_type === 'LP');
 
   processedText = processedText.replace(
     /\$\{coGP\}/g,

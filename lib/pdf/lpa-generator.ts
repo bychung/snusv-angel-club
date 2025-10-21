@@ -432,10 +432,13 @@ function addTitlePage(doc: any, context: LPAContext): void {
     width: pageWidth - 100,
   });
 
-  // 발행처
+  // 발행처 (실제 GP 멤버들의 이름 표시)
+  const gpMembers = context.members.filter(m => m.member_type === 'GP');
+  const gpNames = gpMembers.map(gp => gp.name).join(', ');
+
   doc.fontSize(12);
   tryFont(doc, '맑은고딕', 'NanumGothic');
-  doc.text(`업무집행조합원: ${context.user.name}`, 50, pageHeight - 120, {
+  doc.text(`업무집행조합원: ${gpNames}`, 50, pageHeight - 120, {
     align: 'center',
     width: pageWidth - 100,
   });
@@ -1139,6 +1142,34 @@ function renderAppendixTitle(doc: any, title: string): void {
 }
 
 /**
+ * 빈 양식인지 확인 (조합원 정보가 모두 비어있는지)
+ */
+function isEmptyForm(context: LPAContext): boolean {
+  if (!context.currentMember) return false;
+  const member = context.currentMember as any;
+  return (
+    member.name === '' &&
+    member.address === '' &&
+    member.shares === '' &&
+    member.contact === '' &&
+    member.birthDateOrBusinessNumber === ''
+  );
+}
+
+/**
+ * 빈 양식용 텍스트 정리 (PREVIEW 마커 제거, 좌수 값 제거)
+ */
+function cleanEmptyFormText(text: string): string {
+  // PREVIEW 마커 제거
+  let cleaned = text
+    .replace(/<<PREVIEW>>/g, '')
+    .replace(/<<PREVIEW_END>>/g, '');
+  // 좌수 패턴 제거 (숫자가 있든 없든 "좌" 제거)
+  cleaned = cleaned.replace(/[0-9]*\s*좌/g, '');
+  return cleaned;
+}
+
+/**
  * 별지 컨텐츠 요소 렌더링
  */
 async function renderAppendixContentElement(
@@ -1147,13 +1178,17 @@ async function renderAppendixContentElement(
   context: LPAContext
 ): Promise<void> {
   const pageMargin = 50;
+  const isEmpty = isEmptyForm(context);
 
   switch (element.type) {
     case 'paragraph': {
-      const processedText = processTemplateVariables(
-        element.text || '',
-        context
-      );
+      let processedText = processTemplateVariables(element.text || '', context);
+
+      // 빈 양식이면 PREVIEW 마커 제거
+      if (isEmpty) {
+        processedText = cleanEmptyFormText(processedText);
+      }
+
       doc.fontSize(11);
       tryFont(doc, '맑은고딕', 'NanumGothic');
       renderStyledText(
@@ -1180,7 +1215,12 @@ async function renderAppendixContentElement(
       tryFont(doc, '맑은고딕', 'NanumGothic');
 
       for (const field of element.fields || []) {
-        const value = processTemplateVariables(field.variable, context);
+        let value = processTemplateVariables(field.variable, context);
+
+        // 빈 양식이면 PREVIEW 마커와 0 값 제거
+        if (isEmpty) {
+          value = cleanEmptyFormText(value);
+        }
 
         // 법인의 경우 "생년월일" 레이블을 "사업자번호"로 변경
         let displayLabel = field.label;
@@ -1329,17 +1369,29 @@ async function renderRepeatingPageAppendix(
   appendixDef: AppendixDefinition,
   members: any[],
   context: LPAContext,
-  currentPageNumber: { value: number }
+  currentPageNumber: { value: number },
+  options?: LPAGenerationOptions
 ): Promise<void> {
-  for (const member of members) {
+  // generateAllConsents가 false이면 빈 양식으로 한 장만 생성
+  const shouldGenerateAllConsents = options?.generateAllConsents !== false;
+  const membersToRender = shouldGenerateAllConsents ? members : [null]; // null을 넣어서 빈 양식 생성
+
+  for (const member of membersToRender) {
     // 새 페이지 시작
     doc.addPage();
     currentPageNumber.value++;
 
-    // currentMember 설정
+    // currentMember 설정 (member가 null이면 빈 조합원)
     const memberContext: LPAContext = {
       ...context,
-      currentMember: member,
+      currentMember: member || {
+        // 빈 양식용 더미 데이터
+        name: '',
+        address: '',
+        shares: '',
+        contact: '',
+        birthDateOrBusinessNumber: '',
+      },
     };
 
     // 헤더
@@ -1368,7 +1420,8 @@ async function renderAppendix(
   doc: any,
   appendixDef: AppendixDefinition,
   context: LPAContext,
-  currentPageNumber: { value: number }
+  currentPageNumber: { value: number },
+  options?: LPAGenerationOptions
 ): Promise<void> {
   // 필터에 따라 조합원 선택
   const members = filterMembers(appendixDef.filter, context);
@@ -1392,9 +1445,17 @@ async function renderAppendix(
       appendixDef,
       members,
       context,
-      currentPageNumber
+      currentPageNumber,
+      options
     );
   }
+}
+
+/**
+ * LPA PDF 생성 옵션
+ */
+export interface LPAGenerationOptions {
+  generateAllConsents?: boolean; // true이면 appendix2(조합원별 동의서) 포함, false면 제외
 }
 
 /**
@@ -1403,7 +1464,8 @@ async function renderAppendix(
 export async function generateLPAPDF(
   content: ProcessedLPAContent,
   context: LPAContext,
-  template?: LPATemplate
+  template?: LPATemplate,
+  options?: LPAGenerationOptions
 ): Promise<Buffer> {
   const defaultFontPath = getFontPath();
 
@@ -1440,8 +1502,19 @@ export async function generateLPAPDF(
   // 별지 렌더링
   if (template?.appendix && template.appendix.length > 0) {
     console.log(`별지 ${template.appendix.length}개 렌더링 시작`);
+
+    if (options?.generateAllConsents === false) {
+      console.log('조합원별 동의서(appendix2) 빈 양식으로 1장만 생성');
+    }
+
     for (const appendixDef of template.appendix) {
-      await renderAppendix(doc, appendixDef, context, currentPageNumber);
+      await renderAppendix(
+        doc,
+        appendixDef,
+        context,
+        currentPageNumber,
+        options
+      );
     }
   }
 

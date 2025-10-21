@@ -103,6 +103,7 @@ export interface LPAContext {
     total_units: number;
     total_amount: number;
     initial_amount: number;
+    email?: string | null; // 이메일
     address?: string | null; // 주소 (별지용)
     birth_date?: string | null; // 생년월일 (개인)
     business_number?: string | null; // 사업자번호 (법인)
@@ -119,6 +120,7 @@ export interface LPAContext {
     total_units: number;
     total_amount: number;
     initial_amount: number;
+    email?: string | null;
     address?: string | null;
     birth_date?: string | null;
     business_number?: string | null;

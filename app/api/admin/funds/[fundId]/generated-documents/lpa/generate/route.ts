@@ -34,7 +34,12 @@ export async function POST(
 
     // body에서 수정된 내용 확인 (규약 수정 모달에서 호출 시)
     const body = await request.json().catch(() => ({}));
-    const { modifiedContent, modifiedAppendix, changeDescription } = body;
+    const {
+      modifiedContent,
+      modifiedAppendix,
+      changeDescription,
+      generateAllConsents,
+    } = body;
 
     console.log(
       `LPA PDF 생성 요청: fundId=${fundId}, userId=${
@@ -97,11 +102,17 @@ export async function POST(
       }
     }
 
-    // 5. 템플릿 변수 치환
+    // 5. 템플릿 변수 치환 (PDF 생성용)
     const processedContent = processLPATemplate(template, context);
 
     // 6. PDF 생성 (템플릿도 함께 전달)
-    const pdfBuffer = await generateLPAPDF(processedContent, context, template);
+    // generateAllConsents가 false면 appendix2를 제외
+    const pdfBuffer = await generateLPAPDF(
+      processedContent,
+      context,
+      template,
+      { generateAllConsents: generateAllConsents !== false } // 기본값은 true
+    );
 
     console.log(`LPA PDF 생성 완료: ${pdfBuffer.length} bytes`);
 
@@ -140,13 +151,18 @@ export async function POST(
     }
 
     // 9. DB에 문서 기록 저장
+    // processed_content에는 원본 템플릿 저장 (변수 그대로, appendix 포함)
+    // generation_context에 실제 값들 저장
     try {
       await saveFundDocument({
         fundId,
         type: 'lpa',
         templateId,
         templateVersion,
-        processedContent,
+        processedContent: {
+          ...template.content,
+          appendix: template.appendix, // appendix도 함께 저장
+        },
         generationContext,
         pdfStoragePath,
         generatedBy: profile?.id, // profile.id 사용 (없으면 undefined)

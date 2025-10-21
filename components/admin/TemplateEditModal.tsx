@@ -89,6 +89,9 @@ export function TemplateEditModal({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTargetPath, setDeleteTargetPath] = useState<string | null>(null);
 
+  // LPA 전용: 조합원별 동의서 생성 옵션
+  const [generateAllConsents, setGenerateAllConsents] = useState(true);
+
   // 변경사항 분석
   const changes = useMemo(() => {
     return analyzeTemplateChanges(original.content, modified.content);
@@ -464,6 +467,8 @@ export function TemplateEditModal({
             modifiedContent: cleanedContent,
             modifiedAppendix: cleanedAppendix,
             changeDescription,
+            generateAllConsents:
+              template.type === 'lpa' ? generateAllConsents : undefined,
           }),
         }
       );
@@ -1104,6 +1109,9 @@ export function TemplateEditModal({
           onConfirm={handleSaveFundDocument}
           changes={changes}
           fundName={fundName}
+          documentType={template.type}
+          generateAllConsents={generateAllConsents}
+          onGenerateAllConsentsChange={setGenerateAllConsents}
         />
       )}
 

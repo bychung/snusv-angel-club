@@ -2,6 +2,7 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,9 @@ interface FundDocumentConfirmModalProps {
   onConfirm: () => Promise<void>;
   changes: TemplateChange[];
   fundName?: string;
+  documentType?: string; // 문서 타입 (lpa일 때만 체크박스 표시)
+  generateAllConsents?: boolean; // 조합원별 동의서 생성 옵션
+  onGenerateAllConsentsChange?: (value: boolean) => void;
 }
 
 export function FundDocumentConfirmModal({
@@ -27,6 +31,9 @@ export function FundDocumentConfirmModal({
   onConfirm,
   changes,
   fundName,
+  documentType,
+  generateAllConsents = true,
+  onGenerateAllConsentsChange,
 }: FundDocumentConfirmModalProps) {
   const [saving, setSaving] = useState(false);
 
@@ -120,6 +127,27 @@ export function FundDocumentConfirmModal({
             </div>
           </div>
         </ScrollArea>
+
+        {/* LPA 전용: 조합원별 동의서 생성 옵션 */}
+        {documentType === 'lpa' && (
+          <div className="pt-4 border-t">
+            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border">
+              <Checkbox
+                id="generateAllConsents"
+                checked={generateAllConsents}
+                onCheckedChange={checked =>
+                  onGenerateAllConsentsChange?.(checked as boolean)
+                }
+              />
+              <label
+                htmlFor="generateAllConsents"
+                className="text-sm font-medium cursor-pointer select-none"
+              >
+                조합원별 동의서 전체 생성 (별지 2)
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* 버튼 */}
         <div className="flex justify-end gap-2 pt-4 border-t">
