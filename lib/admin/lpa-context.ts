@@ -4,6 +4,7 @@ import { getActiveTemplate } from '@/lib/admin/document-templates';
 import { getActiveFundDocument } from '@/lib/admin/fund-documents';
 import { getFundDataForDocument } from '@/lib/admin/funds';
 import type { LPAContext, LPATemplate } from '@/lib/pdf/types';
+import { createBrandServerClient } from '@/lib/supabase/server';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -61,6 +62,7 @@ export async function loadLPATemplate(fundId?: string): Promise<{
 /**
  * 규약 문서 생성용 템플릿 로드
  * - 최신 fund_documents의 processed_content를 템플릿으로 사용 (이미 저장된 규약이 있는 경우)
+ * - appendix는 항상 document_templates에서 가져옴 (사용자가 수정할 수 없는 데이터)
  * - 없으면 글로벌 템플릿 사용
  *
  * @param fundId - 펀드 ID
@@ -80,6 +82,35 @@ export async function loadLPATemplateForDocument(fundId: string): Promise<{
         `템플릿 로드: fund_documents v${latestDocument.version_number} 기반`
       );
 
+      // appendix는 document_templates에서 가져오기
+      let appendix = null;
+      try {
+        // 2-1. fund_document에 template_id가 있으면 해당 템플릿에서 appendix 가져오기
+        if (latestDocument.template_id) {
+          const supabase = await createBrandServerClient();
+          const { data: linkedTemplate } = await supabase.documentTemplates
+            .select('appendix')
+            .eq('id', latestDocument.template_id)
+            .single();
+
+          if (linkedTemplate) {
+            appendix = linkedTemplate.appendix;
+            console.log('appendix 로드: 연결된 템플릿에서');
+          }
+        }
+
+        // 2-2. template_id가 없거나 조회 실패 시 현재 활성 글로벌 템플릿에서 가져오기
+        if (!appendix) {
+          const globalTemplate = await getActiveTemplate('lpa');
+          if (globalTemplate) {
+            appendix = globalTemplate.appendix;
+            console.log('appendix 로드: 현재 활성 글로벌 템플릿에서');
+          }
+        }
+      } catch (error) {
+        console.warn('appendix 조회 실패:', error);
+      }
+
       // processed_content를 템플릿으로 사용
       return {
         template: {
@@ -87,7 +118,7 @@ export async function loadLPATemplateForDocument(fundId: string): Promise<{
           version: `${latestDocument.version_number}.0.0`,
           description: `v${latestDocument.version_number} 기반 규약`,
           content: latestDocument.processed_content,
-          appendix: latestDocument.processed_content.appendix,
+          appendix: appendix, // document_templates에서 가져온 appendix
         },
         templateVersion: `${latestDocument.version_number}.0.0`,
         isFromFundDocument: true,
@@ -97,7 +128,7 @@ export async function loadLPATemplateForDocument(fundId: string): Promise<{
     console.warn('fund_documents 조회 실패, 글로벌 템플릿 사용:', error);
   }
 
-  // 2. fund_documents에 없으면 글로벌 템플릿 사용
+  // 3. fund_documents에 없으면 글로벌 템플릿 사용
   try {
     const dbTemplate = await getActiveTemplate('lpa');
     if (dbTemplate) {

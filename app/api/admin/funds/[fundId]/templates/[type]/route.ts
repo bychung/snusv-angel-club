@@ -92,19 +92,13 @@ export async function POST(
       );
     }
 
-    // processed_content 구성 (appendix 포함)
-    const processedContent = {
-      ...modifiedContent,
-      appendix: modifiedAppendix,
-    };
-
     // fund_documents에 새 버전으로 저장
     const newDocument = await saveFundDocument({
       fundId,
       type,
       templateId: undefined, // fund_document 기반이므로 templateId 없음
       templateVersion: 'custom', // 커스텀 규약
-      processedContent,
+      processedContent: modifiedContent,
       generationContext: {
         description: changeDescription || '규약 수정',
         modifiedAt: new Date().toISOString(),

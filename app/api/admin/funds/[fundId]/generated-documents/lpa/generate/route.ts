@@ -151,7 +151,7 @@ export async function POST(
     }
 
     // 9. DB에 문서 기록 저장
-    // processed_content에는 원본 템플릿 저장 (변수 그대로, appendix 포함)
+    // processed_content에는 원본 템플릿 저장 (변수 그대로)
     // generation_context에 실제 값들 저장
     try {
       await saveFundDocument({
@@ -159,10 +159,7 @@ export async function POST(
         type: 'lpa',
         templateId,
         templateVersion,
-        processedContent: {
-          ...template.content,
-          appendix: template.appendix, // appendix도 함께 저장
-        },
+        processedContent: template.content,
         generationContext,
         pdfStoragePath,
         generatedBy: profile?.id, // profile.id 사용 (없으면 undefined)
