@@ -4,6 +4,8 @@
 import { generateSampleData } from '@/lib/admin/assembly-templates';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { requireSystemAdmin } from '@/lib/auth/system-admin';
+import { generateFormationAgendaPDF } from '@/lib/pdf/formation-agenda-generator';
+import { generateMemberListPDF } from '@/lib/pdf/member-list-generator';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -35,22 +37,52 @@ export async function POST(request: NextRequest) {
     // 샘플 데이터 생성 (테스트용)
     const sampleData = test_data || generateSampleData(type);
 
-    // TODO: Step 6에서 PDF generator 리팩토링 후 구현
-    // 현재는 기본 응답만 반환
-    return NextResponse.json({
-      message: '미리보기 기능은 Step 6에서 구현됩니다.',
-      type,
-      sample_data: sampleData,
-    });
+    // PDF 생성
+    let pdfBuffer: Buffer;
 
-    // 향후 구현:
-    // const pdfBuffer = await generatePdfFromTemplate(type, content, sampleData);
-    // return new NextResponse(pdfBuffer, {
-    //   headers: {
-    //     'Content-Type': 'application/pdf',
-    //     'Content-Disposition': `inline; filename="preview-${type}.pdf"`,
-    //   },
-    // });
+    switch (type) {
+      case 'formation_agenda':
+        pdfBuffer = await generateFormationAgendaPDF({
+          fund_name: sampleData.fund_name,
+          assembly_date: sampleData.assembly_date,
+          content: {
+            chairman: content.chairman || '',
+            agendas: content.agendas || [],
+          },
+          template: { content }, // 템플릿 content 전달
+          isPreview: true, // 미리보기 모드: 마커 표시
+        });
+        break;
+
+      case 'formation_member_list':
+        pdfBuffer = await generateMemberListPDF({
+          fund_name: sampleData.fund_name,
+          assembly_date: sampleData.assembly_date,
+          gps: sampleData.gps,
+          members: sampleData.members,
+          template: { content }, // 템플릿 content 전달
+          isPreview: true, // 미리보기 모드: 마커 표시
+        });
+        break;
+
+      default:
+        return NextResponse.json(
+          { error: `지원하지 않는 템플릿 타입입니다: ${type}` },
+          { status: 400 }
+        );
+    }
+
+    // PDF 반환
+    return new NextResponse(pdfBuffer as unknown as BodyInit, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="preview-${type}.pdf"`,
+        'Content-Length': pdfBuffer.length.toString(),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    });
   } catch (error) {
     console.error('템플릿 미리보기 오류:', error);
 

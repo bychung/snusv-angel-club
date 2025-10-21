@@ -37,7 +37,7 @@ export async function getAssemblyTemplates(): Promise<DocumentTemplate[]> {
   const supabase = await createBrandServerClient();
 
   const { data, error } = await supabase.documentTemplates
-    .select('*')
+    .select('*, created_by_profile:created_by(id, name, email)')
     .in('type', ASSEMBLY_TEMPLATE_TYPES)
     .is('fund_id', null)
     .eq('is_active', true)
@@ -218,38 +218,42 @@ export function generateSampleData(type: string) {
   switch (type) {
     case 'formation_agenda':
       return {
-        fund_name: '테스트 투자조합',
-        assembly_date: '2024년 12월 31일',
+        // fund_name: '테스트 투자조합',
+        assembly_date: '2024-12-31', // YYYY-MM-DD 형식으로 수정
       };
     case 'formation_member_list':
       return {
         fund_name: '테스트 투자조합',
-        assembly_date: '2024년 12월 31일',
-        gp_info: {
-          name: '테스트벤처스',
-          representative: '홍길동',
-        },
+        assembly_date: '2024-12-31',
+        gps: [
+          {
+            id: 'gp-1',
+            name: '테스트벤처스',
+            representative: '홍길동',
+            entity_type: 'corporate' as const,
+          },
+        ],
         members: [
           {
-            no: 1,
             name: '홍길동',
-            identifier: '1980-01-01',
+            entity_type: 'individual' as const,
+            birth_date: '1980-01-01',
             address: '서울시 강남구 테헤란로 123',
             phone: '010-1234-5678',
             units: 100,
           },
           {
-            no: 2,
             name: '김철수',
-            identifier: '1985-05-15',
+            entity_type: 'individual' as const,
+            birth_date: '1985-05-15',
             address: '서울시 서초구 서초대로 456',
             phone: '010-2345-6789',
             units: 50,
           },
           {
-            no: 3,
             name: '(주)스타트업',
-            identifier: '123-45-67890',
+            entity_type: 'corporate' as const,
+            business_number: '123-45-67890',
             address: '서울시 강남구 역삼동 789',
             phone: '02-1234-5678',
             units: 200,

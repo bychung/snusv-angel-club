@@ -54,7 +54,9 @@ export async function getTemplatesByType(
 ): Promise<DocumentTemplate[]> {
   const supabase = await createBrandServerClient();
 
-  let query = supabase.documentTemplates.select('*').eq('type', type);
+  let query = supabase.documentTemplates
+    .select('*, created_by_profile:created_by(id, name, email)')
+    .eq('type', type);
 
   // fundId 필터링
   if (fundId !== undefined) {
@@ -142,6 +144,21 @@ export async function activateTemplate(
   }
 
   return data;
+}
+
+/**
+ * 템플릿 삭제
+ */
+export async function deleteTemplate(templateId: string): Promise<void> {
+  const supabase = await createBrandServerClient();
+
+  const { error } = await supabase.documentTemplates
+    .delete()
+    .eq('id', templateId);
+
+  if (error) {
+    throw new Error(`템플릿 삭제 실패: ${error.message}`);
+  }
 }
 
 /**

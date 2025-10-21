@@ -130,9 +130,19 @@ export default function ActiveTemplateInfo({
             </p>
             <p className="text-xs text-blue-600 mt-2">
               생성일: {formatDate(template.created_at)}
-              {isSystemAdminUser && template.created_by && (
-                <span> · ID: {template.created_by}</span>
-              )}
+              {isSystemAdminUser &&
+                (() => {
+                  const profile = (template as any).created_by_profile;
+                  if (profile) {
+                    return (
+                      <span>
+                        {' '}
+                        · 생성자: {profile.name} ({profile.email})
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
             </p>
           </div>
         </div>

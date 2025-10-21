@@ -182,11 +182,16 @@ export function TemplateVersionHistoryModal({
                         {new Date(version.created_at).toLocaleString('ko-KR')}
                       </div>
 
-                      {version.created_by && (
-                        <div className="text-xs text-gray-500">
-                          생성자: {version.created_by}
-                        </div>
-                      )}
+                      <div className="text-xs text-gray-500">
+                        생성자:{' '}
+                        {(() => {
+                          const profile = (version as any).created_by_profile;
+                          if (profile) {
+                            return `${profile.name} (${profile.email})`;
+                          }
+                          return '알 수 없음';
+                        })()}
+                      </div>
                     </div>
 
                     {/* 액션 버튼 */}

@@ -121,7 +121,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           name: '🌐 글로벌 템플릿',
           href: '/admin/system/templates',
           icon: FileCode,
-          current: pathname.startsWith('/admin/system/templates'),
+          current: pathname === '/admin/system/templates',
+          systemOnly: true,
+        },
+        {
+          name: '📋 총회 문서 템플릿',
+          href: '/admin/system/assembly-templates',
+          icon: FileCode,
+          current: pathname.startsWith('/admin/system/assembly-templates'),
           systemOnly: true,
         },
       ]

@@ -4,7 +4,10 @@
  * 조합원 총회 문서 템플릿 관리 메인 컴포넌트
  */
 
+import { AssemblyTemplateEditModal } from '@/components/admin/AssemblyTemplateEditModal';
+import { AssemblyTemplateVersionHistoryModal } from '@/components/admin/AssemblyTemplateVersionHistoryModal';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -12,8 +15,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Edit, Eye, History, Loader2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
+
+const PDFPreviewModal = dynamic(
+  () => import('@/components/admin/PDFPreviewModal'),
+  {
+    ssr: false,
+  }
+);
 
 interface Template {
   id: string;
@@ -23,9 +34,10 @@ interface Template {
   editable: boolean;
   is_active: boolean;
   created_at: string;
-  created_by: {
+  created_by_profile?: {
     id: string;
     name: string;
+    email: string;
   } | null;
 }
 
@@ -33,6 +45,15 @@ export default function AssemblyTemplateManagement() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 모달 상태
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [versionHistoryTemplate, setVersionHistoryTemplate] =
+    useState<Template | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [previewingTemplate, setPreviewingTemplate] = useState<Template | null>(
+    null
+  );
 
   useEffect(() => {
     fetchTemplates();
@@ -66,6 +87,70 @@ export default function AssemblyTemplateManagement() {
       formation_minutes: '회의록',
     };
     return names[type] || type;
+  };
+
+  const handleEdit = (template: Template) => {
+    setEditingTemplate(template);
+  };
+
+  const handleVersionHistory = (template: Template) => {
+    setVersionHistoryTemplate(template);
+  };
+
+  const handlePreview = async (template: Template) => {
+    try {
+      setPreviewingTemplate(template);
+
+      // 템플릿 상세 조회
+      const response = await fetch(`/api/admin/templates/${template.id}`);
+      if (!response.ok) {
+        throw new Error('템플릿을 불러올 수 없습니다.');
+      }
+      const data = await response.json();
+
+      // PDF 미리보기 생성
+      const previewResponse = await fetch('/api/admin/templates/preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: template.type,
+          content: data.template.content,
+        }),
+      });
+
+      if (!previewResponse.ok) {
+        throw new Error('미리보기 생성에 실패했습니다.');
+      }
+
+      // PDF를 Blob URL로 변환하여 모달에 표시
+      const blob = await previewResponse.blob();
+      const url = URL.createObjectURL(blob);
+      setPreviewPdfUrl(url);
+    } catch (err) {
+      setPreviewingTemplate(null);
+      alert(
+        err instanceof Error
+          ? err.message
+          : '미리보기 생성 중 오류가 발생했습니다.'
+      );
+    }
+  };
+
+  const handleCloseModals = () => {
+    setEditingTemplate(null);
+    setVersionHistoryTemplate(null);
+    setPreviewingTemplate(null);
+    if (previewPdfUrl) {
+      URL.revokeObjectURL(previewPdfUrl);
+      setPreviewPdfUrl(null);
+    }
+  };
+
+  const handleTemplateSaved = () => {
+    handleCloseModals();
+    fetchTemplates(); // 목록 새로고침
   };
 
   if (loading) {
@@ -148,11 +233,35 @@ export default function AssemblyTemplateManagement() {
                       {new Date(template.created_at).toLocaleDateString(
                         'ko-KR'
                       )}
-                      {template.created_by && ` by ${template.created_by.name}`}
+                      {template.created_by_profile &&
+                        ` by ${template.created_by_profile.name} (${template.created_by_profile.email})`}
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {/* TODO: 버튼 추가 (편집, 버전 히스토리, 미리보기) */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(template)}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      편집
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleVersionHistory(template)}
+                    >
+                      <History className="h-4 w-4 mr-1" />
+                      히스토리
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePreview(template)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      미리보기
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -161,7 +270,38 @@ export default function AssemblyTemplateManagement() {
         )}
       </div>
 
-      {/* TODO: 모달 추가 */}
+      {/* 편집 모달 */}
+      {editingTemplate && (
+        <AssemblyTemplateEditModal
+          isOpen={!!editingTemplate}
+          onClose={handleCloseModals}
+          template={editingTemplate as any}
+          onSave={handleTemplateSaved}
+        />
+      )}
+
+      {/* 버전 히스토리 모달 */}
+      {versionHistoryTemplate && (
+        <AssemblyTemplateVersionHistoryModal
+          isOpen={!!versionHistoryTemplate}
+          onClose={handleCloseModals}
+          templateType={versionHistoryTemplate.type}
+          onRollback={handleTemplateSaved}
+        />
+      )}
+
+      {/* PDF 미리보기 모달 */}
+      {previewingTemplate && previewPdfUrl && (
+        <PDFPreviewModal
+          isOpen={!!previewPdfUrl}
+          onClose={handleCloseModals}
+          previewUrl={previewPdfUrl}
+          title={`${getTemplateDisplayName(
+            previewingTemplate.type
+          )} 템플릿 미리보기`}
+          description="현재 활성화된 템플릿의 샘플 미리보기입니다."
+        />
+      )}
     </div>
   );
 }
