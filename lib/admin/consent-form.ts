@@ -137,7 +137,13 @@ export async function buildLpaConsentFormContext(
   const gpList = gpMembers.map((m: any) => m.profile?.name || '').join(', ');
 
   // 5. LP 조합원 정보 배열 생성
-  const lpMembersData = lpMembers.map((member: any) => {
+  const lpMembersData: Array<{
+    name: string;
+    address: string;
+    birthDateOrBusinessNumber: string;
+    contact: string;
+    shares: number;
+  }> = lpMembers.map((member: any) => {
     const profile = member.profile;
     return {
       name: profile?.name || '',
@@ -151,7 +157,14 @@ export async function buildLpaConsentFormContext(
     };
   });
 
-  // 6. 템플릿 버전 가져오기
+  // 6. LP 조합원 가나다순 정렬
+  lpMembersData.sort((a, b) => {
+    const nameA = getNameForSorting(a.name);
+    const nameB = getNameForSorting(b.name);
+    return nameA.localeCompare(nameB, 'ko-KR');
+  });
+
+  // 7. 템플릿 버전 가져오기
   const { templateVersion } = await getLatestLpaConsentFormTemplate();
 
   return {
