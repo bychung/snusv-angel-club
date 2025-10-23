@@ -77,6 +77,9 @@ export interface AssemblyDocumentContent {
   // 결성총회 의안 내용
   formation_agenda?: FormationAgendaContent | any; // FormationAgendaContent 또는 템플릿 전체 구조
 
+  // 결성총회 의사록 내용
+  formation_minutes?: FormationMinutesContent;
+
   // 추후 다른 문서 타입 추가
 }
 
@@ -89,6 +92,57 @@ export interface AgendaItem {
   index: number; // 의안 번호 (1, 2, 3, ...)
   title: string; // 의안 제목
   content: string; // 의안 내용
+}
+
+// 결성총회 의사록 내용
+export interface FormationMinutesContent {
+  title_template: string;
+  sections: {
+    time: {
+      label: string;
+      value_template: string;
+    };
+    location: {
+      label: string;
+      value: string; // 사용자 편집 가능
+    };
+    attendance: {
+      label: string;
+      template: string;
+      attended_member_ids: string[]; // 사용자 선택 (체크박스)
+    };
+    member_table: {
+      columns: Array<{
+        key: string;
+        label: string;
+        width: number;
+      }>;
+    };
+    opening: {
+      label: string;
+      template: string;
+    };
+    agendas: {
+      label: string;
+      agenda_template: string;
+      items: MinutesAgendaItem[]; // 사용자 편집 가능 (result 필드)
+    };
+    closing: {
+      template: string;
+    };
+    signature: {
+      date_label: string;
+      fund_name_label: string;
+      gp_label: string;
+      seal_text: string;
+    };
+  };
+}
+
+export interface MinutesAgendaItem {
+  index: number; // 의안 번호
+  title: string; // 의안 제목 (의안 문서에서 가져옴)
+  result: string; // 승인 결과 (편집 가능)
 }
 
 // API 요청/응답 타입
@@ -180,9 +234,9 @@ export const ASSEMBLY_DOCUMENT_TYPES: Record<
   formation: [
     'formation_member_list',
     'formation_agenda',
-    // Phase 1에서는 위 2개만 구현
+    'formation_minutes',
+    // Phase 1에서는 위 3개만 구현
     // 'formation_official_letter',
-    // 'formation_minutes',
     // 'fund_registration_application',
     // 'investment_certificate',
     // 'seal_registration',

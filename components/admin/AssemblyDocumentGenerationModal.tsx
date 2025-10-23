@@ -100,6 +100,36 @@ export default function AssemblyDocumentGenerationModal({
     }
   }, [isOpen, assemblyId]);
 
+  // currentDocument의 default_content를 documentContents에 설정 (backup)
+  // loadDocumentAtIndex에서 설정하지만, 혹시 모를 경우를 대비한 fallback
+  useEffect(() => {
+    if (!currentDocument) return;
+
+    const docType = currentDocument.document_type;
+
+    // 이미 documentContents에 해당 문서 타입의 content가 있으면 스킵
+    if (documentContents[docType]) {
+      return;
+    }
+
+    // default_content가 있으면 설정
+    if (
+      currentDocument.default_content &&
+      currentDocument.default_content[docType]
+    ) {
+      const defaultContent = currentDocument.default_content[docType];
+      console.log(
+        `[FormationMinutes] Fallback: Setting default_content for ${docType}:`,
+        defaultContent
+      );
+
+      setDocumentContents(prev => ({
+        ...prev,
+        [docType]: defaultContent,
+      }));
+    }
+  }, [currentDocument]); // documentContents를 의존성에서 제거하여 무한 루프 방지
+
   const loadAssemblyAndDocuments = async () => {
     setIsLoading(true);
     setError(null);
@@ -170,10 +200,10 @@ export default function AssemblyDocumentGenerationModal({
     // 기존 문서가 있으면 미리보기 모드로 시작
     if (existingDoc && existingDoc.pdf_storage_path) {
       // content가 있으면 로드 (나중에 편집 모드로 전환할 때 사용)
-      if (existingDoc.content && existingDoc.content.formation_agenda) {
+      if (existingDoc.content && (existingDoc.content as any)[documentType]) {
         setDocumentContents(prev => ({
           ...prev,
-          [documentType]: existingDoc.content!.formation_agenda,
+          [documentType]: (existingDoc.content as any)[documentType],
         }));
       }
       await loadExistingDocumentPreview(existingDoc, documentType);
@@ -196,19 +226,11 @@ export default function AssemblyDocumentGenerationModal({
     setIsEditingExisting(false);
     setHasEditedContent(false);
 
-    // 기본 content 초기화
-    if (editorConfig && !documentContents[documentType]) {
-      setDocumentContents(prev => ({
-        ...prev,
-        [documentType]: editorConfig.getDefaultContent(),
-      }));
-    }
-
     // 편집 모드: 기존 문서가 있으면 content 로드
-    if (existingDoc?.content && existingDoc.content.formation_agenda) {
+    if (existingDoc?.content && (existingDoc.content as any)[documentType]) {
       setDocumentContents(prev => ({
         ...prev,
-        [documentType]: existingDoc.content!.formation_agenda,
+        [documentType]: (existingDoc.content as any)[documentType],
       }));
     }
 
@@ -222,12 +244,33 @@ export default function AssemblyDocumentGenerationModal({
         const data = await response.json();
         if (data.document_type === documentType) {
           setCurrentDocument(data);
+
+          // default_content가 있으면 documentContents에 설정
+          if (
+            data.default_content &&
+            data.default_content[documentType] &&
+            !documentContents[documentType]
+          ) {
+            setDocumentContents(prev => ({
+              ...prev,
+              [documentType]: data.default_content[documentType],
+            }));
+          }
+
           setStep('document-generation');
           return;
         }
       }
     } catch (err) {
       console.error('next-document API 호출 실패:', err);
+    }
+
+    // API 호출 실패 시 기본 content 초기화
+    if (editorConfig && !documentContents[documentType]) {
+      setDocumentContents(prev => ({
+        ...prev,
+        [documentType]: editorConfig.getDefaultContent(),
+      }));
     }
 
     // API 호출 실패 시 기본 정보 생성
@@ -318,11 +361,9 @@ export default function AssemblyDocumentGenerationModal({
 
       // 편집 가능한 문서의 경우 content 추가
       if (editorConfig.requiresInput) {
-        if (currentDocument.document_type === 'formation_agenda') {
-          requestBody.content = {
-            formation_agenda: currentContent,
-          };
-        }
+        requestBody.content = {
+          [currentDocument.document_type]: currentContent,
+        };
       }
 
       // PDF 생성 (Buffer만 반환, Storage/DB 저장 안 함)
@@ -647,6 +688,8 @@ export default function AssemblyDocumentGenerationModal({
                     );
                     if (!editorConfig) return null;
 
+                    // documentContents에서 현재 content 가져오기
+                    // useEffect에서 default_content를 이미 설정했으므로 여기서는 가져오기만 함
                     const currentContent =
                       documentContents[currentDocument.document_type] ||
                       editorConfig.getDefaultContent();
@@ -677,6 +720,7 @@ export default function AssemblyDocumentGenerationModal({
                           fundId={fundId}
                           assemblyId={assemblyId}
                           documentType={currentDocument.document_type}
+                          allMembers={currentDocument.preview_data?.all_members}
                         />
 
                         {/* 공통 버튼 영역 */}

@@ -5,19 +5,106 @@ import type {
   AssemblyDocumentType,
   AssemblyType,
   FormationAgendaContent,
+  FormationMinutesContent,
   NextDocumentInfo,
 } from '@/types/assemblies';
 import { ASSEMBLY_DOCUMENT_TYPES } from '@/types/assemblies';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   generateFormationAgendaPDF,
   getDefaultFormationAgendaTemplate,
 } from '../pdf/formation-agenda-generator';
+import { generateFormationMinutesPDF } from '../pdf/formation-minutes-generator';
 import {
   generateMemberListPDF,
   getDefaultMemberListTemplate,
 } from '../pdf/member-list-generator';
 import { uploadFileToStorage } from '../storage/upload';
 import { getActiveAssemblyTemplate } from './assembly-templates';
+
+/**
+ * 템플릿 JSON 파일 로드
+ */
+async function loadFormationMinutesTemplate(): Promise<any> {
+  try {
+    const filePath = path.join(
+      process.cwd(),
+      'template/formation-minutes-template.json'
+    );
+    const fileContent = await fs.promises.readFile(filePath, 'utf-8');
+    const template = JSON.parse(fileContent);
+
+    // JSON 파일 구조가 최상위에 title_template, sections가 있는 경우
+    // content 속성으로 감싸서 정규화
+    if (template.title_template && !template.content) {
+      return {
+        type: template.type || 'formation_minutes',
+        version: template.version || '1.0.0',
+        content: {
+          title_template: template.title_template,
+          sections: template.sections,
+        },
+      };
+    }
+
+    return template;
+  } catch (error) {
+    console.error('템플릿 파일 로드 실패:', error);
+    // 기본 fallback 템플릿
+    return {
+      type: 'formation_minutes',
+      version: '1.0.0',
+      content: {
+        title_template: '{fund_name} 결성총회 의사록',
+        sections: {
+          time: {
+            label: '1. 일시:',
+            value_template: '{assembly_date} {assembly_time}',
+          },
+          location: {
+            label: '2. 장소:',
+            default_value: '업무집행조합원 회의실 (서면으로 진행)',
+          },
+          attendance: {
+            label: '3. 출자자 및 출석 현황:',
+            template:
+              '총 조합원 {total_members}명 중 {attended_members}명 출석',
+          },
+          member_table: {
+            columns: [
+              { key: 'type', label: '구분', width: 80 },
+              { key: 'name', label: '조합원명', width: 120 },
+              { key: 'units', label: '총 출자좌수', width: 80 },
+              { key: 'name2', label: '조합원명', width: 120 },
+              { key: 'units2', label: '총 출자좌수', width: 80 },
+            ],
+          },
+          opening: {
+            label: '4. 개회선언:',
+            template:
+              '업무집행조합원인 {gp_names_full}은 본회의가 규약에 의해 적법하게 성립되었음을 확인하고 개회를 선언하다. 의장은 규약에 따라 공동의장으로 각 업무집행조합원 {gp_names_full}이 맡다. 의장은 조합원 출자좌수의 {attendance_rate}%가 출석하였음을 보고하다. 이어 아래와 같이 의안 심의를 진행하다.',
+          },
+          agendas: {
+            label: '5. 의안심의',
+            agenda_template: '제{index}호의안: {title}',
+            default_result: '원안대로 승인하다',
+          },
+          closing: {
+            template:
+              '상기와 같이 상정된 의안과 결과에 대해 이의가 없음을 확인한 후 의장은 상정된 의안들이 승인되었음을 선언하다. 의장은 이상으로 조합원총회의 목적사항에 대한 심의 및 의결을 종료하였으므로 폐회를 선언하다.\n\n위 의사의 경과요령과 결과를 명확히 하기 위하여 이 의사록을 작성하고 업무집행조합원이 아래와 같이 기명 날인하다.',
+          },
+          signature: {
+            date_label: '{assembly_date}',
+            fund_name_label: '{fund_name}',
+            gp_label: '업무집행조합원',
+            seal_text: '(인)',
+          },
+        },
+      },
+    };
+  }
+}
 
 /**
  * 펀드의 조합원 정보 조회
@@ -186,6 +273,123 @@ export async function generateFormationAgendaBuffer(
 }
 
 /**
+ * 결성총회 의사록 PDF 생성 (Buffer만 반환, Storage 업로드 안 함)
+ */
+export async function generateFormationMinutesBuffer(
+  fundId: string,
+  assemblyId: string,
+  content: FormationMinutesContent
+): Promise<{
+  pdfBuffer: Buffer;
+  context: any;
+}> {
+  try {
+    const brandClient = await createBrandServerClient();
+
+    // 펀드 정보 조회
+    const { data: fund, error: fundError } = await brandClient.funds
+      .select('name')
+      .eq('id', fundId)
+      .single();
+
+    if (fundError || !fund) {
+      throw new Error('펀드 정보를 가져오는데 실패했습니다.');
+    }
+
+    // 총회 정보 조회
+    const { data: assembly, error: assemblyError } =
+      await brandClient.assemblies
+        .select('assembly_date')
+        .eq('id', assemblyId)
+        .single();
+
+    if (assemblyError || !assembly) {
+      throw new Error('총회 정보를 가져오는데 실패했습니다.');
+    }
+
+    // 조합원 정보 조회
+    const { gps, members } = await getFundMemberData(fundId);
+
+    // 전체 조합원 목록 생성
+    const allMembers = [
+      ...gps.map((gp: any) => ({
+        id: gp.id,
+        name: gp.name,
+        type: '업무집행조합원' as const,
+        units: members.find((m: any) => m.id === gp.id)?.units || 0,
+        entity_type: gp.entity_type,
+        representative: gp.representative,
+      })),
+      ...members
+        .filter((m: any) => !gps.some((gp: any) => gp.id === m.id))
+        .map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          type: '유한책임조합원' as const,
+          units: m.units,
+          entity_type: m.entity_type,
+        })),
+    ];
+
+    // 출석 조합원 필터링 (content.sections.attendance.attended_member_ids 기반)
+    const attendedMemberIds =
+      content.sections.attendance.attended_member_ids || [];
+    const attendedMembers = allMembers.filter(m =>
+      attendedMemberIds.includes(m.id)
+    );
+
+    // GP 정보 포맷팅
+    const gpList = gps.map((gp: any) => ({
+      name: gp.name,
+      representative: gp.representative || null,
+      is_entity: gp.entity_type === 'corporate',
+    }));
+
+    // GP 이름 조합 (개회선언용)
+    const gpNamesFullParts = gpList.map((gp: any) => {
+      if (gp.is_entity && gp.representative) {
+        return `${gp.name} 대표이사 ${gp.representative}`;
+      }
+      return gp.name;
+    });
+    const gpNamesFull =
+      gpNamesFullParts.length > 1
+        ? gpNamesFullParts.slice(0, -1).join(', ') +
+          ' 및 ' +
+          gpNamesFullParts[gpNamesFullParts.length - 1]
+        : gpNamesFullParts[0] || '';
+
+    // context 생성
+    const context = {
+      fund_name: fund.name,
+      assembly_date: assembly.assembly_date,
+      assembly_date_raw: assembly.assembly_date,
+      assembly_time: '오후 2시', // 템플릿 기본값
+      all_members: allMembers,
+      attended_members_data: attendedMembers,
+      gp_list: gpList,
+      gp_names_full: gpNamesFull,
+      generated_at: new Date().toISOString(),
+    };
+
+    // 템플릿 조회 (선택사항)
+    const template = await getActiveAssemblyTemplate('formation_minutes');
+
+    // PDF 생성
+    const pdfBuffer = await generateFormationMinutesPDF({
+      content,
+      context,
+      template: template || undefined,
+    });
+
+    return { pdfBuffer, context };
+  } catch (error) {
+    console.error('결성총회 의사록 생성 실패:', error);
+    throw new Error('결성총회 의사록 생성에 실패했습니다.');
+  }
+}
+
+/**
  * 다음에 생성할 문서 정보 조회
  */
 export async function getNextDocumentInfo(
@@ -231,6 +435,111 @@ export async function getNextDocumentInfo(
 
   // 템플릿 조회 (템플릿 시스템 통합)
   const template = await getActiveAssemblyTemplate(nextDocType);
+
+  // formation_minutes는 특별 처리 (의안 문서 필요)
+  if (nextDocType === 'formation_minutes') {
+    // 의안 문서가 생성되어 있는지 확인
+    if (!existingTypes.has('formation_agenda')) {
+      throw new Error('결성총회 의안을 먼저 생성해야 합니다.');
+    }
+
+    // 의안 문서 조회
+    const { data: agendaDoc } = await brandClient.assemblyDocuments
+      .select('content')
+      .eq('assembly_id', assemblyId)
+      .eq('type', 'formation_agenda')
+      .single();
+
+    if (!agendaDoc || !agendaDoc.content?.formation_agenda) {
+      throw new Error('의안 문서 정보를 가져올 수 없습니다.');
+    }
+
+    const agendaContent = agendaDoc.content.formation_agenda;
+
+    // 조합원 정보 조회
+    const { gps, members } = await getFundMemberData((assembly as any).fund_id);
+
+    // 전체 조합원 목록 생성
+    const allMembers = [
+      ...gps.map((gp: any) => ({
+        id: gp.id,
+        name: gp.name,
+        type: '업무집행조합원',
+        units: members.find((m: any) => m.id === gp.id)?.units || 0,
+      })),
+      ...members
+        .filter((m: any) => !gps.some((gp: any) => gp.id === m.id))
+        .map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          type: '유한책임조합원',
+          units: m.units,
+        })),
+    ];
+
+    // 템플릿 로드 (JSON 파일 또는 DB)
+    const minutesTemplate = template || (await loadFormationMinutesTemplate());
+
+    // 템플릿 구조 정규화 (DB 템플릿의 경우 content가 이미 있을 수 있음)
+    const templateContent = minutesTemplate.content || {
+      title_template: minutesTemplate.title_template,
+      sections: minutesTemplate.sections,
+    };
+
+    // 템플릿 검증
+    if (!templateContent || !templateContent.sections) {
+      throw new Error('템플릿 구조가 올바르지 않습니다.');
+    }
+
+    // 기본 content 생성 (템플릿 전체 + 기본값)
+    const defaultContent = {
+      ...templateContent,
+      sections: {
+        ...templateContent.sections,
+        location: {
+          ...templateContent.sections.location,
+          value:
+            templateContent.sections.location.default_value ||
+            '업무집행조합원 회의실 (서면으로 진행)',
+        },
+        attendance: {
+          ...templateContent.sections.attendance,
+          attended_member_ids: allMembers.map(m => m.id), // 기본값: 전원 출석
+        },
+        agendas: {
+          ...templateContent.sections.agendas,
+          items: agendaContent.agendas.map((agenda: any) => ({
+            index: agenda.index,
+            title: agenda.title,
+            result:
+              templateContent.sections.agendas.default_result ||
+              '원안대로 승인하다',
+          })),
+        },
+      },
+    };
+
+    return {
+      document_type: nextDocType,
+      requires_input: true,
+      editable: true,
+      template: template
+        ? {
+            id: template.id,
+            version: template.version,
+            description: template.description || '',
+          }
+        : undefined,
+      default_content: {
+        formation_minutes: defaultContent,
+      },
+      preview_data: {
+        fund_name: (assembly.funds as any)?.name || '',
+        assembly_date: assembly.assembly_date,
+        all_members: allMembers,
+      },
+    };
+  }
 
   // 템플릿이 없으면 기존 방식 사용 (하위 호환성)
   if (!template) {
@@ -398,6 +707,25 @@ export async function generateAssemblyDocumentBuffer(params: {
         content: params.content.formation_agenda,
         template: template || undefined,
       });
+      break;
+
+    case 'formation_minutes':
+      if (!params.content?.formation_minutes) {
+        throw new Error('의사록 내용이 필요합니다.');
+      }
+
+      // content 생성: 사용자 편집 데이터
+      documentContent = params.content;
+
+      // Buffer와 context 생성
+      const minutesResult = await generateFormationMinutesBuffer(
+        assembly.fund_id,
+        params.assemblyId,
+        params.content.formation_minutes
+      );
+
+      pdfBuffer = minutesResult.pdfBuffer;
+      documentContext = minutesResult.context;
       break;
 
     default:
@@ -615,6 +943,24 @@ export async function regenerateAssemblyDocument(params: {
         fund_name: context?.fund_name || fundName,
         assembly_date: context?.assembly_date || assemblyDate,
         content: content.formation_agenda,
+        template: template || undefined,
+      });
+      break;
+
+    case 'formation_minutes':
+      // content에서 의사록 정보 복원
+      if (!content || !content.formation_minutes) {
+        throw new Error('의사록 정보를 찾을 수 없습니다.');
+      }
+
+      // context에서 복원
+      if (!context) {
+        throw new Error('의사록 컨텍스트 정보를 찾을 수 없습니다.');
+      }
+
+      pdfBuffer = await generateFormationMinutesPDF({
+        content: content.formation_minutes,
+        context,
         template: template || undefined,
       });
       break;

@@ -1,6 +1,7 @@
 import type { AssemblyDocumentType } from '@/types/assemblies';
 import FormationAgendaEditor from './FormationAgendaEditor';
 import FormationMemberListEditor from './FormationMemberListEditor';
+import FormationMinutesEditor from './FormationMinutesEditor';
 import type { DocumentEditorConfig } from './types';
 
 /**
@@ -57,10 +58,19 @@ export const DOCUMENT_EDITORS: Record<
   },
 
   formation_minutes: {
-    requiresInput: false,
-    getDefaultContent: () => ({}),
-    EditorComponent: FormationMemberListEditor, // TODO: 나중에 교체
-    description: '(준비 중)',
+    requiresInput: true,
+    getDefaultContent: () => ({}), // 서버에서 생성된 default_content 사용
+    validate: content => {
+      if (!content.sections?.location?.value?.trim()) {
+        return '총회 장소를 입력해주세요.';
+      }
+      if (!content.sections?.attendance?.attended_member_ids?.length) {
+        return '출석 조합원을 최소 1명 이상 선택해주세요.';
+      }
+      return null;
+    },
+    EditorComponent: FormationMinutesEditor,
+    description: '의사록 내용을 검토하고 필요시 수정하세요.',
   },
 
   fund_registration_application: {

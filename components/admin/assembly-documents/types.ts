@@ -17,6 +17,9 @@ export interface DocumentEditorProps<T = any> {
   fundId: string;
   assemblyId: string;
   documentType: AssemblyDocumentType;
+
+  // 추가 데이터 (optional)
+  allMembers?: any[]; // 출석 선택 등에 사용
 }
 
 /**

@@ -1,0 +1,47 @@
+{
+  "type": "formation_minutes",
+  "version": "1.0.0",
+  "description": "의사록 내용을 검토하고 필요시 수정하세요.",
+  "title_template": "{fund_name} 결성총회 의사록",
+  "sections": {
+    "time": {
+      "label": "1. 일시:",
+      "value_template": "{assembly_date} {assembly_time}"
+    },
+    "location": {
+      "label": "2. 장소:",
+      "default_value": "업무집행조합원 회의실 (서면으로 진행)"
+    },
+    "attendance": {
+      "label": "3. 출자자 및 출석 현황:",
+      "template": "총 조합원 {total_members}명 중 {attended_members}명 출석"
+    },
+    "member_table": {
+      "columns": [
+        { "key": "type", "label": "구분", "width": 80 },
+        { "key": "name", "label": "조합원명", "width": 120 },
+        { "key": "units", "label": "총 출자좌수", "width": 80 },
+        { "key": "name2", "label": "조합원명", "width": 120 },
+        { "key": "units2", "label": "총 출자좌수", "width": 80 }
+      ]
+    },
+    "opening": {
+      "label": "4. 개회선언:",
+      "template": "업무집행조합원인 {gp_names_full}은 본회의가 규약에 의해 적법하게 성립되었음을 확인하고 개회를 선언하다. 의장은 규약에 따라 공동의장으로 각 업무집행조합원 {gp_names_full}이 맡다. 의장은 조합원 출자좌수의 {attendance_rate}%가 출석하였음을 보고하다. 이어 아래와 같이 의안 심의를 진행하다."
+    },
+    "agendas": {
+      "label": "5. 의안심의",
+      "agenda_template": "제{index}호의안: {title}",
+      "default_result": "원안대로 승인하다"
+    },
+    "closing": {
+      "template": "상기와 같이 상정된 의안과 결과에 대해 이의가 없음을 확인한 후 의장은 상정된 의안들이 승인되었음을 선언하다. 의장은 이상으로 조합원총회의 목적사항에 대한 심의 및 의결을 종료하였으므로 폐회를 선언하다.\n\n위 의사의 경과요령과 결과를 명확히 하기 위하여 이 의사록을 작성하고 업무집행조합원이 아래와 같이 기명 날인하다."
+    },
+    "signature": {
+      "date_label": "{assembly_date}",
+      "fund_name_label": "{fund_name}",
+      "gp_label": "업무집행조합원",
+      "seal_text": "(인)"
+    }
+  }
+}
