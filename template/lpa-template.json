@@ -1,6 +1,6 @@
 {
   "type": "lpa",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "기본 규약 템플릿",
   "content": {
     "type": "lpa",
@@ -1567,6 +1567,15 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "id": "appendix2",
+      "title": "조합원 동의서",
+      "type": "sample",
+      "template": {
+        "ref": "lpa_consent_form",
+        "context": ["fundName", "gpList"]
       }
     }
   ]

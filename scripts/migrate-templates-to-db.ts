@@ -104,8 +104,8 @@ async function main() {
   console.log('='.repeat(60));
 
   const templates = [
-    'template/lpa-template.json',
-    // 'template/plan-template.json',
+    // 'template/lpa-template.json',
+    'template/lpa-consent-form-template.json',
   ];
 
   for (const templatePath of templates) {

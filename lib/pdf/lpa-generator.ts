@@ -2,7 +2,9 @@
 
 import PDFDocument from 'pdfkit';
 import { getNameForSorting } from '../format-utils';
+import { renderRepeatingPageAppendix } from './lpa-consent-form-generator';
 import { getFontPath, registerKoreanFonts, tryFont } from './template-font';
+import { isTemplateReference, loadExternalTemplate } from './template-loader';
 import { processTemplateVariables } from './template-processor';
 import {
   addPageFooter,
@@ -732,6 +734,12 @@ async function renderRepeatingSectionAppendix(
 ): Promise<void> {
   const pageMargin = 50;
 
+  // repeating-section은 항상 인라인 템플릿 사용
+  if (isTemplateReference(appendixDef.template)) {
+    console.error('repeating-section 타입은 인라인 템플릿만 지원합니다');
+    return;
+  }
+
   // 새 페이지 시작
   doc.addPage();
   currentPageNumber.value++;
@@ -808,6 +816,83 @@ async function renderRepeatingSectionAppendix(
 }
 
 /**
+ * 샘플용 더미 조합원 데이터 생성
+ *
+ * @param contextFields - 실제 값으로 채울 필드 목록
+ * @param actualContext - 실제 컨텍스트 데이터
+ */
+function createDummyMember(
+  contextFields: string[],
+  actualContext: LPAContext
+): any {
+  const dummy = {
+    id: 'dummy',
+    name: '',
+    member_type: 'LP' as const,
+    total_units: 0,
+    total_amount: 0,
+    initial_amount: 0,
+    email: '',
+    address: '',
+    birth_date: '',
+    business_number: null,
+    phone: '',
+    entity_type: 'individual' as const,
+  };
+
+  // context 필드는 실제 값 사용
+  // fundName, gpList, startDate는 더미 멤버가 아닌 context에서 가져옴
+
+  return dummy;
+}
+
+/**
+ * 샘플 별지 렌더링
+ */
+async function renderSampleAppendix(
+  doc: any,
+  appendixDef: AppendixDefinition,
+  context: LPAContext,
+  currentPageNumber: { value: number }
+): Promise<void> {
+  // 외부 템플릿 로드
+  if (!isTemplateReference(appendixDef.template)) {
+    console.error('sample 타입은 templateRef가 필요합니다');
+    return;
+  }
+
+  // fundId 전달하여 펀드별 템플릿 우선 조회
+  const externalTemplate = await loadExternalTemplate(
+    appendixDef.template.ref,
+    context.fund.id // fundId 전달
+  );
+
+  // 더미 조합원 1명 생성
+  const dummyMember = createDummyMember(appendixDef.template.context, context);
+
+  // context 필드만 실제 값으로 설정한 컨텍스트
+  const sampleContext: LPAContext = {
+    ...context,
+    // fundName, gpList, startDate는 이미 context.fund, context.members에 있음
+  };
+
+  console.log('externalTemplate', externalTemplate);
+  // 기존 renderRepeatingPageAppendix 재사용
+  // 더미 멤버 1개만 전달하여 1페이지만 생성
+  const appendixForRender = {
+    template: externalTemplate, // loadExternalTemplate이 content만 반환
+  } as any;
+
+  await renderRepeatingPageAppendix(
+    doc,
+    appendixForRender,
+    [dummyMember],
+    sampleContext,
+    currentPageNumber
+  );
+}
+
+/**
  * 별지 렌더링 메인 함수
  */
 async function renderAppendix(
@@ -816,8 +901,14 @@ async function renderAppendix(
   context: LPAContext,
   currentPageNumber: { value: number }
 ): Promise<void> {
-  // 필터에 따라 조합원 선택
-  const members = filterMembers(appendixDef.filter, context);
+  // sample 타입 처리
+  if (appendixDef.type === 'sample') {
+    await renderSampleAppendix(doc, appendixDef, context, currentPageNumber);
+    return;
+  }
+
+  // 필터에 따라 조합원 선택 (sample은 제외)
+  const members = filterMembers(appendixDef.filter!, context);
 
   if (members.length === 0) {
     console.log(`별지 ${appendixDef.id}: 렌더링할 조합원이 없습니다.`);
@@ -833,6 +924,8 @@ async function renderAppendix(
       currentPageNumber
     );
   }
+  // repeating-page 타입은 현재 규약 생성에서 사용하지 않음
+  // (동의서 별도 생성에서만 사용)
 }
 
 /**

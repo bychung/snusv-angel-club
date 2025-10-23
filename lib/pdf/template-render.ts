@@ -435,10 +435,11 @@ function isEmptyForm(context: LPAContext): boolean {
   const member = context.currentMember as any;
   return (
     member.name === '' &&
-    member.address === '' &&
-    member.shares === '' &&
-    member.contact === '' &&
-    member.birthDateOrBusinessNumber === ''
+    !member.address &&
+    !member.total_units &&
+    !member.phone &&
+    !member.birth_date &&
+    !member.business_number
   );
 }
 

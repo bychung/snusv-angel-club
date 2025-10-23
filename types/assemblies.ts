@@ -38,7 +38,7 @@ export interface LpaConsentFormTemplate {
     text: string;
   };
   title: string;
-  sections: AppendixContentElement[];
+  content: AppendixContentElement[];
 }
 
 // LPA 규약 동의서 컨텍스트 (조합원 정보)

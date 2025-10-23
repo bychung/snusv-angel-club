@@ -1,5 +1,5 @@
 {
-  "type": "lpa-consent-form",
+  "type": "lpa_consent_form",
   "version": "1.0.0",
   "description": "조합원 동의서 템플릿",
   "content": {
@@ -7,7 +7,7 @@
       "text": "< 별지 2 > 조합원 일괄 서명이 어려운 경우"
     },
     "title": "조 합 원 동 의 서",
-    "sections": [
+    "content": [
       {
         "type": "paragraph",
         "text": "본인은 ${fundName}의 규약과 사업계획의 내용을 충분히 숙지하고 이에 동의하는 바, 본 규약을 수락하고 동의서에 날인합니다.",

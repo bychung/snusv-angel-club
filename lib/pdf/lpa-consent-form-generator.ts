@@ -19,7 +19,7 @@ import {
   renderAppendixHeader,
   renderAppendixTitle,
 } from './template-render';
-import type { AppendixDefinition, LPAContext } from './types';
+import type { AppendixDefinition, AppendixTemplate, LPAContext } from './types';
 
 /**
  * LpaConsentFormContext를 LPAContext 형식으로 변환
@@ -147,7 +147,7 @@ export async function generateLpaConsentFormPDF(
     template: {
       header: template.header,
       title: template.title,
-      content: template.sections,
+      content: template.content,
     },
   } as any; // 타입 호환성을 위해 any 사용
 
@@ -201,17 +201,25 @@ export async function renderRepeatingPageAppendix(
     };
 
     // 헤더
-    if (appendixDef.template.header) {
-      renderAppendixHeader(doc, appendixDef.template.header.text);
+    if ((appendixDef.template as AppendixTemplate).header) {
+      renderAppendixHeader(
+        doc,
+        (appendixDef.template as AppendixTemplate).header!.text
+      );
     }
 
     // 타이틀
-    if (appendixDef.template.title) {
-      renderAppendixTitle(doc, appendixDef.template.title);
+    if ((appendixDef.template as AppendixTemplate).title) {
+      renderAppendixTitle(
+        doc,
+        (appendixDef.template as AppendixTemplate).title!
+      );
     }
 
     // 컨텐츠 요소들 렌더링
-    for (const element of appendixDef.template.content || []) {
+    for (const element of (appendixDef.template as AppendixTemplate).content ||
+      []) {
+      console.log('memberContext', memberContext);
       await renderAppendixContentElement(doc, element, memberContext);
     }
   }

@@ -29,7 +29,7 @@ export type AppendixFilter =
 // 별지 렌더링 타입
 export type AppendixRenderType =
   | 'repeating-section' // 같은 페이지에 섹션 반복
-  | 'repeating-page'; // 각각 새 페이지
+  | 'sample'; // 빈 샘플 1개만 렌더링
 
 // 별지 필드 타입
 export interface AppendixField {
@@ -48,22 +48,31 @@ export interface AppendixContentElement {
   format?: string;
 }
 
+// 외부 템플릿 참조
+export interface AppendixTemplateReference {
+  ref: string; // 템플릿 파일명 (예: 'lpa-consent-form-template')
+  context: string[]; // 실제 값으로 채울 변수 목록
+}
+
+// 인라인 템플릿 - 규약에서만 쓰임
+export interface AppendixTemplate {
+  header?: { text: string };
+  title?: string;
+  sections?: Array<{
+    title?: string;
+    fields: AppendixField[];
+  }>; // 별지 1에서만 쓰임
+  content?: AppendixContentElement[]; // 별지 2에서만 쓰임
+}
+
 // 별지 정의
 export interface AppendixDefinition {
   id: string;
   title: string;
   type: AppendixRenderType;
-  filter: AppendixFilter;
+  filter?: AppendixFilter; // sample 타입에서는 optional
   pageBreak?: 'before' | 'after';
-  template: {
-    header?: { text: string };
-    title?: string;
-    sections?: Array<{
-      title?: string;
-      fields: AppendixField[];
-    }>;
-    content?: AppendixContentElement[];
-  };
+  template: AppendixTemplate | AppendixTemplateReference;
 }
 
 export interface LPATemplate {
