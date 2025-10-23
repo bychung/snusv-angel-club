@@ -20,8 +20,8 @@
         "lines": 3
       },
       {
-        "type": "date-field",
-        "format": "년    월    일",
+        "type": "paragraph",
+        "text": "${startDate}",
         "align": "center"
       },
       {

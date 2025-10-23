@@ -167,12 +167,12 @@ export function processTemplateVariables(
     )
   );
 
-  // 결성일 (closed_at) - 'YYYY년 MM월 DD일' 형식
+  // 결성일 (closed_at) - 'YYYY년 M월 D일' 형식 (앞의 0 없음)
   if (context.fund.closed_at) {
     const closedDate = new Date(context.fund.closed_at);
     const year = closedDate.getFullYear();
-    const month = String(closedDate.getMonth() + 1).padStart(2, '0');
-    const day = String(closedDate.getDate()).padStart(2, '0');
+    const month = closedDate.getMonth() + 1;
+    const day = closedDate.getDate();
     processedText = processedText.replace(
       /\$\{startDate\}/g,
       markPreview(`${year}년 ${month}월 ${day}일`, isPreview)

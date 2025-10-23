@@ -83,7 +83,7 @@ function buildLPAContextFromConsentFormContext(
       initial_cap: 0,
       payment_schedule: 'lump_sum',
       duration: 0,
-      closed_at: null,
+      closed_at: context.fund.closedAt || null,
     },
     user: {
       id: 'temp-user-id',

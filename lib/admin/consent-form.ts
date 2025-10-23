@@ -73,9 +73,9 @@ export async function buildLpaConsentFormContext(
 ): Promise<LpaConsentFormContext> {
   const brandClient = await createBrandServerClient();
 
-  // 1. 펀드 정보 조회 (gp_id 포함)
+  // 1. 펀드 정보 조회 (gp_id, closed_at 포함)
   const { data: fund, error: fundError } = await brandClient.funds
-    .select('id, name, gp_id')
+    .select('id, name, gp_id, closed_at')
     .eq('id', fundId)
     .single();
 
@@ -157,6 +157,7 @@ export async function buildLpaConsentFormContext(
   return {
     fund: {
       name: fund.name,
+      closedAt: fund.closed_at || undefined, // ISO 날짜 문자열 (template-processor에서 포맷팅)
     },
     gpList,
     lpMembers: lpMembersData,

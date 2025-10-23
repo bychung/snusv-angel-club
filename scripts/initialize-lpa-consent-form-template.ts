@@ -31,20 +31,21 @@ async function initializeLpaConsentFormTemplate() {
   console.log('🚀 LPA 규약 동의서 템플릿 초기화 시작...\n');
 
   try {
-    // 1. 기존 LPA template에서 appendix2 찾기
-    console.log('📖 LPA template 파일 읽기...');
-    const lpaTemplatePath = join(process.cwd(), 'template/lpa-template.json');
-    const lpaTemplate = JSON.parse(readFileSync(lpaTemplatePath, 'utf-8'));
-
-    const appendix2 = lpaTemplate.appendix?.find(
-      (a: any) => a.id === 'appendix2'
+    // 1. lpa-consent-form-template.json 파일 읽기
+    console.log('📖 규약 동의서 template 파일 읽기...');
+    const templatePath = join(
+      process.cwd(),
+      'template/lpa-consent-form-template.json'
     );
+    const template = JSON.parse(readFileSync(templatePath, 'utf-8'));
 
-    if (!appendix2) {
-      throw new Error('❌ LPA template에서 appendix2를 찾을 수 없습니다.');
+    if (!template) {
+      throw new Error(
+        '❌ lpa-consent-form-template.json 파일을 찾을 수 없습니다.'
+      );
     }
 
-    console.log('✓ appendix2 발견:', appendix2.title);
+    console.log('✓ 템플릿 발견:', template.title);
 
     // 2. 기존 lpa_consent_form 템플릿 확인
     console.log('\n📋 기존 템플릿 확인...');
@@ -76,17 +77,8 @@ async function initializeLpaConsentFormTemplate() {
         .eq('type', 'lpa_consent_form');
     }
 
-    // 3. 동일한 구조로 템플릿 생성
+    // 3. 템플릿 정보 출력
     console.log('\n✨ 새 템플릿 생성...');
-    const template = {
-      id: appendix2.id,
-      title: appendix2.title,
-      type: appendix2.type,
-      filter: appendix2.filter,
-      pageBreak: appendix2.pageBreak,
-      template: appendix2.template,
-    };
-
     console.log('   템플릿 구조:');
     console.log('   - ID:', template.id);
     console.log('   - 제목:', template.title);
@@ -124,9 +116,9 @@ async function initializeLpaConsentFormTemplate() {
     console.log('   - 활성화:', newTemplate.is_active ? 'Yes' : 'No');
     console.log('   - 생성일:', newTemplate.created_at);
     console.log(
-      '\n💡 이 템플릿은 기존 LPA template의 appendix2와 100% 동일한 구조입니다.'
+      '\n💡 이 템플릿은 lpa-consent-form-template.json 파일의 내용을 사용합니다.'
     );
-    console.log('   변경 사항: 없음 (구조만 독립 문서로 분리)');
+    console.log('   날짜 필드: ${startDate} 변수 사용 (결성 예정일 자동 표시)');
   } catch (error) {
     console.error('\n❌ 오류 발생:', error);
     process.exit(1);

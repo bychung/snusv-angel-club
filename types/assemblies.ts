@@ -53,6 +53,7 @@ export interface LpaConsentFormContext {
   fund: {
     name: string;
     nameEn?: string;
+    closedAt?: string; // 결성 예정일
   };
   gpList: string; // GP 조합원 리스트 (쉼표로 구분)
   lpMembers: Array<{
