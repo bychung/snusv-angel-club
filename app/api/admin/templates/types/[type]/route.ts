@@ -15,7 +15,7 @@ export async function GET(
 
     const { type } = await params;
 
-    const templates = await getTemplatesByType(type);
+    const templates = await getTemplatesByType(type, null);
 
     return NextResponse.json({ templates });
   } catch (error) {
