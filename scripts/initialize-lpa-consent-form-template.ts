@@ -37,15 +37,15 @@ async function initializeLpaConsentFormTemplate() {
       process.cwd(),
       'template/lpa-consent-form-template.json'
     );
-    const template = JSON.parse(readFileSync(templatePath, 'utf-8'));
+    const templateFile = JSON.parse(readFileSync(templatePath, 'utf-8'));
 
-    if (!template) {
+    if (!templateFile) {
       throw new Error(
         '❌ lpa-consent-form-template.json 파일을 찾을 수 없습니다.'
       );
     }
 
-    console.log('✓ 템플릿 발견:', template.title);
+    console.log('✓ 템플릿 발견:', templateFile.content.title);
 
     // 2. 기존 lpa_consent_form 템플릿 확인
     console.log('\n📋 기존 템플릿 확인...');
@@ -80,24 +80,25 @@ async function initializeLpaConsentFormTemplate() {
     // 3. 템플릿 정보 출력
     console.log('\n✨ 새 템플릿 생성...');
     console.log('   템플릿 구조:');
-    console.log('   - ID:', template.id);
-    console.log('   - 제목:', template.title);
-    console.log('   - 타입:', template.type);
-    console.log('   - 필터:', template.filter);
-    console.log('   - 헤더:', template.template.header.text);
-    console.log('   - 콘텐츠 요소 수:', template.template.content.length);
+    console.log('   - 타입:', templateFile.type);
+    console.log('   - 버전:', templateFile.version);
+    console.log('   - 설명:', templateFile.description);
+    console.log('   - 제목:', templateFile.content.title);
+    console.log('   - 헤더:', templateFile.content.header.text);
+    console.log('   - 콘텐츠 요소 수:', templateFile.content.sections.length);
 
     // 4. document_templates에 삽입
     const { data: newTemplate, error } = await supabase
       .from('document_templates')
       .insert({
         type: 'lpa_consent_form',
-        content: template,
-        version: '1.0.0',
+        content: templateFile.content,
+        version: templateFile.version || '1.0.0',
         is_active: true,
         name: '규약 동의서',
         description:
-          'LPA 조합원 동의서 (별지2) - 조합원별 서명용. 기존 appendix2와 100% 동일한 구조.',
+          templateFile.description ||
+          'LPA 조합원 동의서 - 조합원별 서명용 문서',
       })
       .select()
       .single();

@@ -32,20 +32,13 @@ export interface AppendixContentElement {
   rows?: any[];
 }
 
-// LPA 규약 동의서 템플릿 (기존 appendix2 구조와 동일)
+// LPA 규약 동의서 템플릿
 export interface LpaConsentFormTemplate {
-  id: string;
-  title: string;
-  type: 'repeating-page';
-  filter: 'lpMembers';
-  pageBreak?: string;
-  template: {
-    header: {
-      text: string;
-    };
-    title: string;
-    content: AppendixContentElement[];
+  header: {
+    text: string;
   };
+  title: string;
+  sections: AppendixContentElement[];
 }
 
 // LPA 규약 동의서 컨텍스트 (조합원 정보)

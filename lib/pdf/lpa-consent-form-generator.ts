@@ -149,13 +149,13 @@ export async function generateLpaConsentFormPDF(
   // lpaContext.members에는 GP + LP가 모두 포함되어 있어 gpList 변수가 렌더링됨
   const lpMembersOnly = lpaContext.members.filter(m => m.member_type === 'LP');
 
-  // appendix 정의 생성 (기존 구조와 동일)
+  // appendix 정의 생성 (template 구조만 전달)
   const appendixDef = {
-    id: template.id,
-    title: template.title,
-    type: template.type,
-    filter: template.filter,
-    template: template.template,
+    template: {
+      header: template.header,
+      title: template.title,
+      content: template.sections,
+    },
   } as any; // 타입 호환성을 위해 any 사용
 
   // 별지 렌더링 (기존 함수 재사용, generateAllConsents: true로 모든 조합원 생성)

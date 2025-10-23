@@ -48,11 +48,12 @@ export async function getLatestLpaConsentFormTemplate(): Promise<{
 
   try {
     const templateContent = fs.readFileSync(templatePath, 'utf-8');
-    const fileTemplate = JSON.parse(templateContent) as LpaConsentFormTemplate;
+    const fileTemplate = JSON.parse(templateContent);
 
     return {
-      template: fileTemplate,
-      templateVersion: '1.0.0',
+      template: fileTemplate.content as LpaConsentFormTemplate,
+      templateId: undefined,
+      templateVersion: fileTemplate.version || '1.0.0',
     };
   } catch (fileError) {
     throw new Error(
