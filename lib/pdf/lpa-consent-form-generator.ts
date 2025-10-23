@@ -10,11 +10,16 @@ import type {
   LpaConsentFormTemplate,
 } from '@/types/assemblies';
 import PDFDocument from 'pdfkit';
-import { getFontPath } from './utils';
+import { getFontPath } from './template-font';
 
 // 기존 LPA generator에서 필요한 함수들 import
-import { renderRepeatingPageAppendix } from './lpa-generator';
-import type { LPAContext } from './types';
+import { registerKoreanFonts } from './template-font';
+import {
+  renderAppendixContentElement,
+  renderAppendixHeader,
+  renderAppendixTitle,
+} from './template-render';
+import type { AppendixDefinition, LPAContext } from './types';
 
 /**
  * LpaConsentFormContext를 LPAContext 형식으로 변환
@@ -96,18 +101,6 @@ function buildLPAContextFromConsentFormContext(
   } as LPAContext;
 }
 
-// 한글 폰트 등록 함수 (기존 코드에서 복사)
-function registerKoreanFonts(doc: any) {
-  const fontPath = getFontPath();
-
-  doc.registerFont('NanumGothic', fontPath);
-  doc.registerFont('NanumGothicBold', fontPath); // 같은 폰트 사용
-
-  // 맑은고딕 폰트도 동일하게 등록 (호환성)
-  doc.registerFont('맑은고딕', fontPath);
-  doc.registerFont('맑은고딕-Bold', fontPath);
-}
-
 /**
  * LPA 규약 동의서 PDF 생성
  *
@@ -164,8 +157,7 @@ export async function generateLpaConsentFormPDF(
     appendixDef,
     lpMembersOnly,
     lpaContext,
-    currentPageNumber,
-    { generateAllConsents: true }
+    currentPageNumber
   );
 
   doc.end();
@@ -178,4 +170,49 @@ export async function generateLpaConsentFormPDF(
     });
     doc.on('error', reject);
   });
+}
+
+/**
+ * 페이지 반복 렌더링 (별지2 스타일)
+ */
+export async function renderRepeatingPageAppendix(
+  doc: any,
+  appendixDef: AppendixDefinition,
+  members: any[],
+  context: LPAContext,
+  currentPageNumber: { value: number }
+): Promise<void> {
+  for (const member of members) {
+    // 새 페이지 시작
+    doc.addPage();
+    currentPageNumber.value++;
+
+    // currentMember 설정 (member가 null이면 빈 조합원)
+    const memberContext: LPAContext = {
+      ...context,
+      currentMember: member || {
+        // 빈 양식용 더미 데이터
+        name: '',
+        address: '',
+        shares: '',
+        contact: '',
+        birthDateOrBusinessNumber: '',
+      },
+    };
+
+    // 헤더
+    if (appendixDef.template.header) {
+      renderAppendixHeader(doc, appendixDef.template.header.text);
+    }
+
+    // 타이틀
+    if (appendixDef.template.title) {
+      renderAppendixTitle(doc, appendixDef.template.title);
+    }
+
+    // 컨텐츠 요소들 렌더링
+    for (const element of appendixDef.template.content || []) {
+      await renderAppendixContentElement(doc, element, memberContext);
+    }
+  }
 }

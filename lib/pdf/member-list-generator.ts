@@ -10,7 +10,7 @@ import {
   STYLE_MARKERS,
   wrapInputValueForPreview,
 } from './template-utils';
-import { getFontPath } from './utils';
+import { getFontPath } from './template-font';
 
 interface GPInfo {
   id: string;

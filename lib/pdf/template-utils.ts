@@ -1,15 +1,23 @@
 // 템플릿 문자열 처리 유틸리티
 
-/**
- * 스타일 마커 정의
- * - PREVIEW: 파란색, 값이 없어 ${...} 그대로 노출되는 변수
- * - INPUT: 노란색, 미리보기에서 샘플 데이터로 렌더링되는 모든 값
- * - GRAY: 회색, 보조 텍스트
- */
-export const STYLE_MARKERS = {
+// 스타일 마커 정의 (확장 가능)
+export const STYLE_MARKERS: Record<
+  string,
+  {
+    start: string;
+    end: string;
+    color?: string;
+    bold?: boolean;
+    italic?: boolean;
+  }
+> = {
+  // 미리보기 전용 마커 - 이 스타일만 변경하면 모든 미리보기 데이터에 일괄 적용
   PREVIEW: {
     start: '<<PREVIEW>>',
     end: '<<PREVIEW_END>>',
+    color: '#0066CC', // 파란색 (변경 가능)
+    bold: true, // true로 변경하면 미리보기 데이터가 굵게 표시
+    italic: false, // true로 변경하면 미리보기 데이터가 기울임체로 표시
   },
   INPUT: {
     start: '<<INPUT>>',
@@ -18,6 +26,28 @@ export const STYLE_MARKERS = {
   GRAY: {
     start: '<<GRAY>>',
     end: '<<GRAY_END>>',
+  },
+  // 추가 스타일들 (필요시 사용)
+  BOLD: {
+    start: '<<BOLD>>',
+    end: '<<BOLD_END>>',
+    color: '#000000',
+    bold: true,
+    italic: false,
+  },
+  ITALIC: {
+    start: '<<ITALIC>>',
+    end: '<<ITALIC_END>>',
+    color: '#000000',
+    bold: false,
+    italic: true,
+  },
+  RED: {
+    start: '<<RED>>',
+    end: '<<RED_END>>',
+    color: '#CC0000',
+    bold: false,
+    italic: false,
   },
 } as const;
 

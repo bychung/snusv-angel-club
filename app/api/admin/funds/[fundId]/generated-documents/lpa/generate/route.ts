@@ -34,12 +34,7 @@ export async function POST(
 
     // body에서 수정된 내용 확인 (규약 수정 모달에서 호출 시)
     const body = await request.json().catch(() => ({}));
-    const {
-      modifiedContent,
-      modifiedAppendix,
-      changeDescription,
-      generateAllConsents,
-    } = body;
+    const { modifiedContent, modifiedAppendix, changeDescription } = body;
 
     console.log(
       `LPA PDF 생성 요청: fundId=${fundId}, userId=${
@@ -107,12 +102,7 @@ export async function POST(
 
     // 6. PDF 생성 (템플릿도 함께 전달)
     // generateAllConsents가 false면 appendix2를 제외
-    const pdfBuffer = await generateLPAPDF(
-      processedContent,
-      context,
-      template,
-      { generateAllConsents: generateAllConsents !== false } // 기본값은 true
-    );
+    const pdfBuffer = await generateLPAPDF(processedContent, context, template);
 
     console.log(`LPA PDF 생성 완료: ${pdfBuffer.length} bytes`);
 

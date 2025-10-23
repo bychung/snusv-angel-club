@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,9 +44,6 @@ export default function DocumentGenerationActions({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
-
-  // LPA 전용: 조합원별 동의서 생성 옵션
-  const [generateAllConsents, setGenerateAllConsents] = useState(true);
 
   // 템플릿 관련 상태
   const [currentTemplate, setCurrentTemplate] =
@@ -130,10 +126,6 @@ export default function DocumentGenerationActions({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            generateAllConsents:
-              documentType === 'lpa' ? generateAllConsents : undefined,
-          }),
         }
       );
 
@@ -218,11 +210,8 @@ export default function DocumentGenerationActions({
     try {
       setPreviewing(true);
 
-      // 미리보기 URL 생성 (쿼리 파라미터로 옵션 전달)
-      let url = `/api/admin/funds/${fundId}/generated-documents/${documentType}/preview`;
-      if (documentType === 'lpa') {
-        url += `?generateAllConsents=${generateAllConsents}`;
-      }
+      // 미리보기 URL 생성
+      const url = `/api/admin/funds/${fundId}/generated-documents/${documentType}/preview`;
       setPreviewUrl(url);
     } catch (err) {
       console.error('미리보기 오류:', err);
@@ -307,25 +296,6 @@ export default function DocumentGenerationActions({
             </div>
           </div>
         )} */}
-
-        {/* LPA 전용: 조합원별 동의서 생성 옵션 */}
-        {documentType === 'lpa' && (
-          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border">
-            <Checkbox
-              id="generateAllConsents"
-              checked={generateAllConsents}
-              onCheckedChange={checked =>
-                setGenerateAllConsents(checked as boolean)
-              }
-            />
-            <label
-              htmlFor="generateAllConsents"
-              className="text-sm font-medium cursor-pointer select-none"
-            >
-              조합원별 동의서 전체 생성 (별지 2)
-            </label>
-          </div>
-        )}
 
         <div className="flex items-center gap-3">
           <Button

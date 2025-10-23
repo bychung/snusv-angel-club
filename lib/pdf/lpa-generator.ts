@@ -1,12 +1,18 @@
 // LPA PDF 생성기
 
-import * as fs from 'fs';
-import * as path from 'path';
 import PDFDocument from 'pdfkit';
 import { getNameForSorting } from '../format-utils';
+import { getFontPath, registerKoreanFonts, tryFont } from './template-font';
 import { processTemplateVariables } from './template-processor';
+import {
+  addPageFooter,
+  parseStyleMarkers,
+  renderAppendixHeader,
+  renderAppendixTitle,
+  renderStyledText,
+} from './template-render';
+import { STYLE_MARKERS } from './template-utils';
 import type {
-  AppendixContentElement,
   AppendixDefinition,
   AppendixFilter,
   LPAContext,
@@ -14,387 +20,9 @@ import type {
   ProcessedLPAContent,
   TemplateSection,
 } from './types';
-import { getFontPath } from './utils';
 
 // 상수 정의
 const INDENT_SIZE = 10; // 들여쓰기 크기 (depth 2부터 적용)
-
-// 스타일 마커 정의 (확장 가능)
-const STYLE_MARKERS = {
-  // 미리보기 전용 마커 - 이 스타일만 변경하면 모든 미리보기 데이터에 일괄 적용
-  PREVIEW: {
-    start: '<<PREVIEW>>',
-    end: '<<PREVIEW_END>>',
-    color: '#0066CC', // 파란색 (변경 가능)
-    bold: true, // true로 변경하면 미리보기 데이터가 굵게 표시
-    italic: false, // true로 변경하면 미리보기 데이터가 기울임체로 표시
-  },
-  // 추가 스타일들 (필요시 사용)
-  BOLD: {
-    start: '<<BOLD>>',
-    end: '<<BOLD_END>>',
-    color: '#000000',
-    bold: true,
-    italic: false,
-  },
-  ITALIC: {
-    start: '<<ITALIC>>',
-    end: '<<ITALIC_END>>',
-    color: '#000000',
-    bold: false,
-    italic: true,
-  },
-  RED: {
-    start: '<<RED>>',
-    end: '<<RED_END>>',
-    color: '#CC0000',
-    bold: false,
-    italic: false,
-  },
-} as const;
-
-type StyleType = keyof typeof STYLE_MARKERS;
-
-/**
- * 한글 폰트 등록
- */
-function registerKoreanFonts(doc: any): void {
-  try {
-    const fontDir = path.join(process.cwd(), 'lib', 'pdf', 'fonts');
-
-    const regularPath = path.join(fontDir, 'malgun.ttf');
-    const boldPath = path.join(fontDir, 'malgunbd.ttf');
-    const nanumRegularPath = path.join(fontDir, 'NanumGothic.ttf');
-    const nanumBoldPath = path.join(fontDir, 'NanumGothicBold.ttf');
-
-    if (fs.existsSync(regularPath)) {
-      doc.registerFont('맑은고딕', regularPath);
-    }
-
-    if (fs.existsSync(boldPath)) {
-      doc.registerFont('맑은고딕-Bold', boldPath);
-    }
-
-    if (fs.existsSync(nanumRegularPath)) {
-      doc.registerFont('NanumGothic', nanumRegularPath);
-    }
-
-    if (fs.existsSync(nanumBoldPath)) {
-      doc.registerFont('NanumGothicBold', nanumBoldPath);
-    }
-  } catch (error) {
-    console.error('폰트 등록 실패:', error);
-  }
-}
-
-/**
- * 스타일이 적용된 텍스트 세그먼트
- */
-interface StyledSegment {
-  text: string;
-  styles: {
-    color: string;
-    bold: boolean;
-    italic: boolean;
-  };
-}
-
-/**
- * 텍스트에서 스타일 마커를 파싱하여 세그먼트로 분리
- * 여러 스타일을 중첩해서 사용 가능
- */
-function parseStyleMarkers(text: string): StyledSegment[] {
-  const segments: StyledSegment[] = [];
-
-  // 모든 마커의 정규식을 생성
-  const markerPatterns = Object.entries(STYLE_MARKERS).map(
-    ([type, config]) => ({
-      type: type as StyleType,
-      start: config.start.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-      end: config.end.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-      config,
-    })
-  );
-
-  // 마커가 있는지 확인
-  const hasMarker = markerPatterns.some(p => text.includes(p.config.start));
-
-  if (!hasMarker) {
-    // 마커가 없으면 일반 텍스트로 반환
-    return [
-      {
-        text,
-        styles: {
-          color: '#000000',
-          bold: false,
-          italic: false,
-        },
-      },
-    ];
-  }
-
-  // 모든 마커 위치 찾기
-  interface MarkerPosition {
-    index: number;
-    isStart: boolean;
-    type: StyleType;
-    markerLength: number;
-  }
-
-  const markers: MarkerPosition[] = [];
-
-  markerPatterns.forEach(({ type, config }) => {
-    let pos = 0;
-    while ((pos = text.indexOf(config.start, pos)) !== -1) {
-      markers.push({
-        index: pos,
-        isStart: true,
-        type,
-        markerLength: config.start.length,
-      });
-      pos += config.start.length;
-    }
-
-    pos = 0;
-    while ((pos = text.indexOf(config.end, pos)) !== -1) {
-      markers.push({
-        index: pos,
-        isStart: false,
-        type,
-        markerLength: config.end.length,
-      });
-      pos += config.end.length;
-    }
-  });
-
-  // 위치순으로 정렬
-  markers.sort((a, b) => a.index - b.index);
-
-  // 스타일 스택 (중첩 지원)
-  const activeStyles: Set<StyleType> = new Set();
-  let lastIndex = 0;
-
-  markers.forEach(marker => {
-    // 마커 전의 텍스트 추출
-    if (marker.index > lastIndex) {
-      const segmentText = text.substring(lastIndex, marker.index);
-      const currentStyles = computeStyles(activeStyles);
-      segments.push({
-        text: segmentText,
-        styles: currentStyles,
-      });
-    }
-
-    // 스타일 스택 업데이트
-    if (marker.isStart) {
-      activeStyles.add(marker.type);
-    } else {
-      activeStyles.delete(marker.type);
-    }
-
-    lastIndex = marker.index + marker.markerLength;
-  });
-
-  // 남은 텍스트
-  if (lastIndex < text.length) {
-    const segmentText = text.substring(lastIndex);
-    const currentStyles = computeStyles(activeStyles);
-    segments.push({
-      text: segmentText,
-      styles: currentStyles,
-    });
-  }
-
-  return segments;
-}
-
-/**
- * 활성화된 스타일들을 합성하여 최종 스타일 계산
- */
-function computeStyles(activeStyles: Set<StyleType>): {
-  color: string;
-  bold: boolean;
-  italic: boolean;
-} {
-  let color = '#000000';
-  let bold = false;
-  let italic = false;
-
-  // 스타일 우선순위: 나중에 추가된 것이 우선
-  activeStyles.forEach(styleType => {
-    const style = STYLE_MARKERS[styleType];
-    if (style.color !== '#000000') {
-      color = style.color;
-    }
-    if (style.bold) {
-      bold = true;
-    }
-    if (style.italic) {
-      italic = true;
-    }
-  });
-
-  return { color, bold, italic };
-}
-
-/**
- * 스타일 마커를 적용하여 텍스트 렌더링 (줄바꿈, 색상, 볼드, 이탤릭 지원)
- */
-function renderStyledText(
-  doc: any,
-  text: string,
-  x: number,
-  y: number,
-  options: any,
-  baseFont: {
-    regular: string;
-    bold: string;
-    italic?: string;
-    boldItalic?: string;
-  }
-): void {
-  // 스타일 마커가 없으면 일반 렌더링
-  const hasAnyMarker = Object.values(STYLE_MARKERS).some(marker =>
-    text.includes(marker.start)
-  );
-
-  if (!hasAnyMarker) {
-    doc.text(text, x, y, options);
-    return;
-  }
-
-  // 줄바꿈으로 먼저 분리
-  const lines = text.split('\n');
-
-  // 첫 줄만 위치 지정, 나머지는 자동 줄바꿈
-  lines.forEach((line, lineIndex) => {
-    const segments = parseStyleMarkers(line);
-
-    // 이 줄에 스타일이 없으면 일반 렌더링
-    const hasStyle = segments.some(
-      s => s.styles.color !== '#000000' || s.styles.bold || s.styles.italic
-    );
-
-    if (!hasStyle) {
-      if (lineIndex === 0) {
-        doc.text(line, x, y, { ...options });
-      } else {
-        doc.text(line, { ...options });
-      }
-    } else {
-      // 스타일이 섞인 줄 처리
-      const hasAlign =
-        options &&
-        options.width &&
-        (options.align === 'right' || options.align === 'center');
-
-      if (hasAlign) {
-        // 우측/가운데 정렬 시: 세그먼트들을 절대 좌표로 이어붙여 한 줄에 정확히 배치
-        // 1) 세그먼트 폭 측정 (세그먼트별 폰트 적용 상태에서)
-        const widths: number[] = [];
-        segments.forEach(seg => {
-          if (seg.styles.bold && seg.styles.italic && baseFont.boldItalic) {
-            tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
-          } else if (seg.styles.bold) {
-            tryFont(doc, baseFont.bold, 'Helvetica-Bold');
-          } else if (seg.styles.italic && baseFont.italic) {
-            tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
-          } else {
-            tryFont(doc, baseFont.regular, 'Helvetica');
-          }
-          widths.push(doc.widthOfString(seg.text || ''));
-        });
-
-        // 2) 전체 폭과 시작 X 계산
-        const totalWidth = widths.reduce((a, b) => a + b, 0);
-        let startX = x;
-        if (options.align === 'right') {
-          startX = x + (options.width as number) - totalWidth;
-        } else if (options.align === 'center') {
-          startX = x + ((options.width as number) - totalWidth) / 2;
-        }
-
-        // 3) 절대 좌표로 이어붙이기 (align/width 옵션 없이)
-        const baseY = lineIndex === 0 ? y : doc.y;
-        const savedY = doc.y;
-        let cursorX = startX;
-        segments.forEach((seg, i) => {
-          if (!seg.text) return;
-
-          if (seg.styles.bold && seg.styles.italic && baseFont.boldItalic) {
-            tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
-          } else if (seg.styles.bold) {
-            tryFont(doc, baseFont.bold, 'Helvetica-Bold');
-          } else if (seg.styles.italic && baseFont.italic) {
-            tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
-          } else {
-            tryFont(doc, baseFont.regular, 'Helvetica');
-          }
-          doc.fillColor(seg.styles.color);
-
-          // 절대 좌표로 배치; lineBreak: false로 줄바꿈 방지
-          doc.text(seg.text, cursorX, baseY, { lineBreak: false });
-          cursorX += widths[i] || 0;
-        });
-
-        // 다음 줄로 진행되도록 y를 한 줄 내린다
-        doc.y = savedY;
-        doc.moveDown(1);
-
-        // 복원
-        tryFont(doc, baseFont.regular, 'Helvetica');
-        doc.fillColor('#000000');
-      } else {
-        // 정렬 없으면 기존 방식
-        if (lineIndex === 0) {
-          doc.text('', x, y, { ...options, continued: true });
-        } else {
-          doc.text('', { ...options, continued: true });
-        }
-
-        segments.forEach((segment, segmentIndex) => {
-          if (!segment.text) return;
-          if (
-            segment.styles.bold &&
-            segment.styles.italic &&
-            baseFont.boldItalic
-          ) {
-            tryFont(doc, baseFont.boldItalic, 'Helvetica-BoldOblique');
-          } else if (segment.styles.bold) {
-            tryFont(doc, baseFont.bold, 'Helvetica-Bold');
-          } else if (segment.styles.italic && baseFont.italic) {
-            tryFont(doc, baseFont.italic, 'Helvetica-Oblique');
-          } else {
-            tryFont(doc, baseFont.regular, 'Helvetica');
-          }
-          doc.fillColor(segment.styles.color);
-
-          const isLast = segmentIndex === segments.length - 1;
-          doc.text(segment.text, { continued: !isLast });
-        });
-
-        tryFont(doc, baseFont.regular, 'Helvetica');
-        doc.fillColor('#000000');
-      }
-    }
-  });
-}
-
-/**
- * 폰트 안전하게 적용
- */
-function tryFont(doc: any, preferredFont: string, fallbackFont: string): void {
-  try {
-    doc.font(preferredFont);
-  } catch {
-    // 시스템 폰트 대신 번들된 한글 폰트를 사용
-    try {
-      doc.font('NanumGothic');
-    } catch {
-      doc.font(fallbackFont);
-    }
-  }
-}
 
 /**
  * 타이틀 페이지 추가
@@ -446,25 +74,6 @@ function addTitlePage(doc: any, context: LPAContext): void {
   // 새 페이지 추가
   doc.addPage();
   addPageFooter(doc, 2);
-}
-
-/**
- * 페이지 하단에 페이지 번호 추가
- */
-function addPageFooter(doc: any, pageNumber: number): void {
-  if (pageNumber === 1) return; // 첫 페이지는 페이지 번호 없음
-
-  const currentY = doc.y;
-  const footerY = doc.page.height - 50;
-
-  doc.fontSize(10);
-  tryFont(doc, '맑은고딕', 'NanumGothic');
-  doc.text(`- ${pageNumber} -`, 50, footerY, {
-    width: doc.page.width - 100,
-    align: 'center',
-  });
-
-  doc.y = currentY;
 }
 
 /**
@@ -1112,169 +721,6 @@ function filterMembers(filter: AppendixFilter, context: LPAContext) {
 }
 
 /**
- * 별지 헤더 렌더링
- */
-export function renderAppendixHeader(doc: any, headerText: string): void {
-  const pageMargin = 50;
-
-  doc.fontSize(10);
-  tryFont(doc, '맑은고딕', 'NanumGothic');
-  doc.text(headerText, pageMargin, doc.y, {
-    width: doc.page.width - pageMargin * 2,
-    align: 'left',
-  });
-  doc.moveDown(2);
-}
-
-/**
- * 별지 타이틀 렌더링
- */
-export function renderAppendixTitle(doc: any, title: string): void {
-  const pageMargin = 50;
-
-  doc.fontSize(16);
-  tryFont(doc, '맑은고딕-Bold', 'NanumGothicBold');
-  doc.text(title, pageMargin, doc.y, {
-    width: doc.page.width - pageMargin * 2,
-    align: 'center',
-  });
-  doc.moveDown(2);
-}
-
-/**
- * 빈 양식인지 확인 (조합원 정보가 모두 비어있는지)
- */
-function isEmptyForm(context: LPAContext): boolean {
-  if (!context.currentMember) return false;
-  const member = context.currentMember as any;
-  return (
-    member.name === '' &&
-    member.address === '' &&
-    member.shares === '' &&
-    member.contact === '' &&
-    member.birthDateOrBusinessNumber === ''
-  );
-}
-
-/**
- * 빈 양식용 텍스트 정리 (PREVIEW 마커 제거, 좌수 값 제거)
- */
-function cleanEmptyFormText(text: string): string {
-  // PREVIEW 마커 제거
-  let cleaned = text
-    .replace(/<<PREVIEW>>/g, '')
-    .replace(/<<PREVIEW_END>>/g, '');
-  // 좌수 패턴 제거 (숫자가 있든 없든 "좌" 제거)
-  cleaned = cleaned.replace(/[0-9]*\s*좌/g, '');
-  return cleaned;
-}
-
-/**
- * 별지 컨텐츠 요소 렌더링
- */
-export async function renderAppendixContentElement(
-  doc: any,
-  element: AppendixContentElement,
-  context: LPAContext
-): Promise<void> {
-  const pageMargin = 50;
-  const isEmpty = isEmptyForm(context);
-
-  switch (element.type) {
-    case 'paragraph': {
-      let processedText = processTemplateVariables(element.text || '', context);
-
-      // 빈 양식이면 PREVIEW 마커 제거
-      if (isEmpty) {
-        processedText = cleanEmptyFormText(processedText);
-      }
-
-      doc.fontSize(11);
-      tryFont(doc, '맑은고딕', 'NanumGothic');
-      renderStyledText(
-        doc,
-        processedText,
-        pageMargin,
-        doc.y,
-        {
-          width: doc.page.width - pageMargin * 2,
-          align: (element.align || 'left') as any,
-          lineGap: 2,
-        },
-        {
-          regular: '맑은고딕',
-          bold: '맑은고딕-Bold',
-        }
-      );
-      doc.moveDown(1);
-      break;
-    }
-
-    case 'form-fields': {
-      doc.fontSize(11);
-      tryFont(doc, '맑은고딕', 'NanumGothic');
-
-      for (const field of element.fields || []) {
-        let value = processTemplateVariables(field.variable, context);
-
-        // 빈 양식이면 PREVIEW 마커와 0 값 제거
-        if (isEmpty) {
-          value = cleanEmptyFormText(value);
-        }
-
-        // 법인의 경우 "생년월일" 레이블을 "사업자번호"로 변경
-        let displayLabel = field.label;
-        if (field.label === '생년월일' && context.currentMember) {
-          const member = context.currentMember as any;
-          if (member.entity_type === 'corporate') {
-            displayLabel = '사업자번호';
-          }
-        }
-
-        const labelText = field.seal
-          ? `${displayLabel} : ${value}    (인)`
-          : `${displayLabel} : ${value}`;
-
-        // 스타일 마커 처리를 위해 renderStyledText 사용
-        renderStyledText(
-          doc,
-          labelText,
-          pageMargin + 20,
-          doc.y,
-          {
-            width: doc.page.width - pageMargin * 2 - 20,
-            align: 'left' as any,
-            lineGap: 0,
-          },
-          {
-            regular: '맑은고딕',
-            bold: '맑은고딕-Bold',
-          }
-        );
-        doc.moveDown(0.5);
-      }
-      break;
-    }
-
-    case 'spacer': {
-      doc.moveDown(element.lines || 1);
-      break;
-    }
-
-    case 'date-field': {
-      doc.fontSize(11);
-      tryFont(doc, '맑은고딕', 'NanumGothic');
-      doc.text(element.format || '년    월    일', pageMargin, doc.y, {
-        width: doc.page.width - pageMargin * 2,
-        align: 'center',
-      });
-      doc.moveDown(1);
-      break;
-    }
-  }
-}
-
-/**
  * 섹션 반복 렌더링 (별지1 스타일)
  */
 async function renderRepeatingSectionAppendix(
@@ -1362,66 +808,13 @@ async function renderRepeatingSectionAppendix(
 }
 
 /**
- * 페이지 반복 렌더링 (별지2 스타일)
- */
-export async function renderRepeatingPageAppendix(
-  doc: any,
-  appendixDef: AppendixDefinition,
-  members: any[],
-  context: LPAContext,
-  currentPageNumber: { value: number },
-  options?: LPAGenerationOptions
-): Promise<void> {
-  // generateAllConsents가 false이면 빈 양식으로 한 장만 생성
-  const shouldGenerateAllConsents = options?.generateAllConsents !== false;
-  const membersToRender = shouldGenerateAllConsents ? members : [null]; // null을 넣어서 빈 양식 생성
-
-  for (const member of membersToRender) {
-    // 새 페이지 시작
-    doc.addPage();
-    currentPageNumber.value++;
-
-    // currentMember 설정 (member가 null이면 빈 조합원)
-    const memberContext: LPAContext = {
-      ...context,
-      currentMember: member || {
-        // 빈 양식용 더미 데이터
-        name: '',
-        address: '',
-        shares: '',
-        contact: '',
-        birthDateOrBusinessNumber: '',
-      },
-    };
-
-    // 헤더
-    if (appendixDef.template.header) {
-      renderAppendixHeader(doc, appendixDef.template.header.text);
-    }
-
-    // 타이틀
-    if (appendixDef.template.title) {
-      renderAppendixTitle(doc, appendixDef.template.title);
-    }
-
-    // 컨텐츠 요소들 렌더링
-    for (const element of appendixDef.template.content || []) {
-      await renderAppendixContentElement(doc, element, memberContext);
-    }
-
-    addPageFooter(doc, currentPageNumber.value);
-  }
-}
-
-/**
  * 별지 렌더링 메인 함수
  */
 async function renderAppendix(
   doc: any,
   appendixDef: AppendixDefinition,
   context: LPAContext,
-  currentPageNumber: { value: number },
-  options?: LPAGenerationOptions
+  currentPageNumber: { value: number }
 ): Promise<void> {
   // 필터에 따라 조합원 선택
   const members = filterMembers(appendixDef.filter, context);
@@ -1439,23 +832,7 @@ async function renderAppendix(
       context,
       currentPageNumber
     );
-  } else if (appendixDef.type === 'repeating-page') {
-    await renderRepeatingPageAppendix(
-      doc,
-      appendixDef,
-      members,
-      context,
-      currentPageNumber,
-      options
-    );
   }
-}
-
-/**
- * LPA PDF 생성 옵션
- */
-export interface LPAGenerationOptions {
-  generateAllConsents?: boolean; // true이면 appendix2(조합원별 동의서) 포함, false면 제외
 }
 
 /**
@@ -1464,8 +841,7 @@ export interface LPAGenerationOptions {
 export async function generateLPAPDF(
   content: ProcessedLPAContent,
   context: LPAContext,
-  template?: LPATemplate,
-  options?: LPAGenerationOptions
+  template?: LPATemplate
 ): Promise<Buffer> {
   const defaultFontPath = getFontPath();
 
@@ -1503,18 +879,8 @@ export async function generateLPAPDF(
   if (template?.appendix && template.appendix.length > 0) {
     console.log(`별지 ${template.appendix.length}개 렌더링 시작`);
 
-    if (options?.generateAllConsents === false) {
-      console.log('조합원별 동의서(appendix2) 빈 양식으로 1장만 생성');
-    }
-
     for (const appendixDef of template.appendix) {
-      await renderAppendix(
-        doc,
-        appendixDef,
-        context,
-        currentPageNumber,
-        options
-      );
+      await renderAppendix(doc, appendixDef, context, currentPageNumber);
     }
   }
 
