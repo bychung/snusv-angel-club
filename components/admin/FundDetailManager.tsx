@@ -51,6 +51,7 @@ import DocumentGenerationSection from './DocumentGenerationSection';
 import DocumentHistory from './DocumentHistory';
 import DocumentUpload from './DocumentUpload';
 import InvestmentCertificateManager from './InvestmentCertificateManager';
+import LpaConsentFormSection from './lpa-consent-form/LpaConsentFormSection';
 
 interface FundDetailManagerProps {
   fundId: string;
@@ -906,6 +907,12 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               title="조합 규약 (LPA)"
               description="Limited Partnership Agreement - 조합원간의 권리와 의무를 규정하는 법적 문서"
               fundInfoTrigger={documentGenerationTrigger}
+            />
+
+            {/* 규약 동의서 섹션 */}
+            <LpaConsentFormSection
+              fundId={fundId}
+              fundName={fundDetails.fund.name}
             />
 
             {/* 향후 추가될 섹션들 */}

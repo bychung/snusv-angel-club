@@ -1114,7 +1114,7 @@ function filterMembers(filter: AppendixFilter, context: LPAContext) {
 /**
  * 별지 헤더 렌더링
  */
-function renderAppendixHeader(doc: any, headerText: string): void {
+export function renderAppendixHeader(doc: any, headerText: string): void {
   const pageMargin = 50;
 
   doc.fontSize(10);
@@ -1129,7 +1129,7 @@ function renderAppendixHeader(doc: any, headerText: string): void {
 /**
  * 별지 타이틀 렌더링
  */
-function renderAppendixTitle(doc: any, title: string): void {
+export function renderAppendixTitle(doc: any, title: string): void {
   const pageMargin = 50;
 
   doc.fontSize(16);
@@ -1172,7 +1172,7 @@ function cleanEmptyFormText(text: string): string {
 /**
  * 별지 컨텐츠 요소 렌더링
  */
-async function renderAppendixContentElement(
+export async function renderAppendixContentElement(
   doc: any,
   element: AppendixContentElement,
   context: LPAContext
@@ -1364,7 +1364,7 @@ async function renderRepeatingSectionAppendix(
 /**
  * 페이지 반복 렌더링 (별지2 스타일)
  */
-async function renderRepeatingPageAppendix(
+export async function renderRepeatingPageAppendix(
   doc: any,
   appendixDef: AppendixDefinition,
   members: any[],

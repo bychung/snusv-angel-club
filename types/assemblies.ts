@@ -4,6 +4,102 @@ export type AssemblyType = 'formation' | 'special' | 'regular' | 'dissolution';
 export type AssemblyStatus = 'draft' | 'completed' | 'sent';
 export type AssemblyEmailStatus = 'pending' | 'sending' | 'sent' | 'failed';
 
+// === LPA 규약 동의서 타입 (독립 문서) ===
+
+// Appendix Content Element 타입 (기존 PDF 생성 로직 재사용)
+export interface AppendixContentElement {
+  type:
+    | 'paragraph'
+    | 'spacer'
+    | 'date-field'
+    | 'form-fields'
+    | 'table'
+    | 'signature-field';
+  text?: string;
+  align?: 'left' | 'center' | 'right';
+  lines?: number;
+  format?: string;
+  fields?: Array<{
+    label: string;
+    variable: string;
+    seal?: boolean;
+  }>;
+  columns?: Array<{
+    key: string;
+    label: string;
+    width?: number;
+  }>;
+  rows?: any[];
+}
+
+// LPA 규약 동의서 템플릿 (기존 appendix2 구조와 동일)
+export interface LpaConsentFormTemplate {
+  id: string;
+  title: string;
+  type: 'repeating-page';
+  filter: 'lpMembers';
+  pageBreak?: string;
+  template: {
+    header: {
+      text: string;
+    };
+    title: string;
+    content: AppendixContentElement[];
+  };
+}
+
+// LPA 규약 동의서 컨텍스트 (조합원 정보)
+export interface LpaConsentFormContext {
+  fund: {
+    name: string;
+    nameEn?: string;
+  };
+  gpList: string; // GP 조합원 리스트 (쉼표로 구분)
+  lpMembers: Array<{
+    name: string;
+    address: string;
+    birthDateOrBusinessNumber: string;
+    contact: string;
+    shares: number;
+  }>;
+  generatedAt: string;
+  templateVersion: string;
+}
+
+// LPA 규약 동의서 문서 (content/context 구조)
+export interface LpaConsentFormDocument {
+  id: string;
+  fund_id: string;
+  type: 'lpa_consent_form';
+  content: LpaConsentFormTemplate; // 생성 시점의 템플릿 스냅샷
+  context: LpaConsentFormContext; // 생성 시점의 조합원 정보
+  version: string; // 템플릿 버전
+  template_id?: string; // 글로벌 템플릿 참조
+  pdf_url?: string;
+  generated_at: string;
+  generated_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// LPA 규약 동의서 Diff 정보
+export interface LpaConsentFormDiff {
+  hasChanges: boolean;
+  contextChanges?: {
+    lpMembersAdded: string[]; // 추가된 LP 조합원 이름
+    lpMembersRemoved: string[]; // 제거된 LP 조합원 이름
+    lpMembersModified: Array<{
+      name: string;
+      changes: Record<string, { old: string; new: string }>;
+    }>;
+    gpListChanged?: { old: string; new: string };
+  };
+  templateChanges?: {
+    versionChanged: { old: string; new: string };
+    contentModified: boolean;
+  };
+}
+
 // 문서 타입 정의
 export type AssemblyDocumentType =
   // 결성총회
