@@ -904,16 +904,12 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
               fundId={fundId}
               fundName={fundDetails.fund.name}
               documentType="lpa"
-              title="조합 규약 (LPA)"
-              description="Limited Partnership Agreement - 조합원간의 권리와 의무를 규정하는 법적 문서"
+              title="조합 규약"
               fundInfoTrigger={documentGenerationTrigger}
             />
 
             {/* 규약 동의서 섹션 */}
-            <LpaConsentFormSection
-              fundId={fundId}
-              fundName={fundDetails.fund.name}
-            />
+            <LpaConsentFormSection fundId={fundId} />
 
             {/* 향후 추가될 섹션들 */}
             {/* <DocumentGenerationSection

@@ -29,12 +29,10 @@ function base64ToBlob(base64: string, contentType: string): Blob {
 
 interface LpaConsentFormSectionProps {
   fundId: string;
-  fundName: string;
 }
 
 export default function LpaConsentFormSection({
   fundId,
-  fundName,
 }: LpaConsentFormSectionProps) {
   const [latestDocument, setLatestDocument] =
     useState<LpaConsentFormDocument | null>(null);
@@ -276,13 +274,7 @@ export default function LpaConsentFormSection({
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <CardTitle className="text-xl">규약 동의서</CardTitle>
-            <p className="text-sm text-gray-500">
-              조합원 정보가 자동으로 채워지는 문서입니다
-            </p>
           </div>
-          <Badge variant="outline" className="text-sm">
-            LPA_CONSENT_FORM
-          </Badge>
         </div>
       </CardHeader>
 

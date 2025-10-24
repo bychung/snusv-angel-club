@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import DocumentGenerationActions from './DocumentGenerationActions';
@@ -11,7 +10,6 @@ interface DocumentGenerationSectionProps {
   fundName: string;
   documentType: string;
   title: string;
-  description: string;
   fundInfoTrigger?: number;
 }
 
@@ -20,7 +18,6 @@ export default function DocumentGenerationSection({
   fundName,
   documentType,
   title,
-  description,
   fundInfoTrigger = 0,
 }: DocumentGenerationSectionProps) {
   const [templateRefreshTrigger, setTemplateRefreshTrigger] = useState(0);
@@ -52,11 +49,7 @@ export default function DocumentGenerationSection({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-xl">{title}</CardTitle>
-            <p className="text-sm text-gray-500 mt-1">{description}</p>
           </div>
-          <Badge variant="outline" className="text-sm">
-            {documentType.toUpperCase()}
-          </Badge>
         </div>
       </CardHeader>
 
