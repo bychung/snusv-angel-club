@@ -6,7 +6,10 @@ import { GmailService } from './gmail';
 
 interface AssemblyEmailParams {
   brand: string;
-  recipients: string[]; // 수신자 이메일 주소 배열
+  recipients: string[]; // To 수신자 이메일 주소 배열
+  recipientType?: 'to' | 'cc' | 'bcc'; // 단일 유형 사용 시 (하위 호환성)
+  ccRecipients?: string[]; // CC 수신자 이메일 주소 배열
+  bccRecipients?: string[]; // BCC 수신자 이메일 주소 배열
   subject: string;
   body: string;
   attachments?: EmailAttachment[]; // PDF 첨부 파일들
@@ -19,7 +22,16 @@ export async function sendAssemblyEmail(
   params: AssemblyEmailParams
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { brand, recipients, subject, body, attachments } = params;
+    const {
+      brand,
+      recipients,
+      recipientType = 'to',
+      ccRecipients = [],
+      bccRecipients = [],
+      subject,
+      body,
+      attachments,
+    } = params;
 
     const clubName = getBrandingConfig().clubName;
 
@@ -30,16 +42,56 @@ export async function sendAssemblyEmail(
     // HTML 본문 생성
     const htmlBody = convertTextToHtml(body, brand);
 
-    // 이메일 발송
-    const result = await gmailService.sendEmail({
+    // 수신자 유형에 따라 이메일 설정
+    let toEmails: string[] = [];
+    let ccEmails: string[] = [];
+    let bccEmails: string[] = [];
+
+    // 새로운 방식: ccRecipients, bccRecipients가 제공된 경우
+    if (ccRecipients.length > 0 || bccRecipients.length > 0) {
+      toEmails = recipients;
+      ccEmails = ccRecipients;
+      bccEmails = bccRecipients;
+    } else {
+      // 기존 방식: recipientType 사용 (하위 호환성)
+      if (recipientType === 'to') {
+        toEmails = recipients;
+      } else if (recipientType === 'cc') {
+        ccEmails = recipients;
+      } else if (recipientType === 'bcc') {
+        bccEmails = recipients;
+      }
+    }
+
+    const emailConfig: {
+      from: string;
+      to: string[];
+      cc?: string[];
+      bcc?: string[];
+      subject: string;
+      html: string;
+      text: string;
+      replyTo: string;
+      attachments: EmailAttachment[];
+    } = {
       from: `"${clubName}" <${credentials.senderEmail}>`,
-      to: recipients,
+      to: toEmails,
       subject: subject,
       html: htmlBody,
       text: body,
       replyTo: credentials.senderEmail,
       attachments: attachments || [],
-    });
+    };
+
+    if (ccEmails.length > 0) {
+      emailConfig.cc = ccEmails;
+    }
+    if (bccEmails.length > 0) {
+      emailConfig.bcc = bccEmails;
+    }
+
+    // 이메일 발송
+    const result = await gmailService.sendEmail(emailConfig);
 
     if (!result.success) {
       console.error('이메일 발송 실패:', result.error);

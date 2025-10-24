@@ -23,24 +23,35 @@
    - 플레이스홀더: "이메일 제목을 입력하세요"
    - 필수 입력
 
-2. **수신자 선택 영역**
+2. **수신자 유형 선택** ✅ 구현 완료
+
+   - 라디오 버튼으로 수신자 유형 선택
+   - 옵션:
+     - 수신자 (To): 모든 수신자에게 이메일 주소가 공개됨
+     - 참조 (CC): 모든 수신자에게 이메일 주소가 공개됨
+     - 숨은 참조 (BCC): 다른 수신자에게 이메일 주소가 공개되지 않음 (기본값)
+   - 각 옵션에 툴팁으로 설명 제공
+   - 선택한 모든 조합원이 동일한 수신자 유형으로 발송됨
+
+3. **수신자 선택 영역**
 
    - 조합원 목록이 체크박스와 함께 표시
    - 전체 선택/해제 기능
+   - 검색 기능 (이름, 이메일로 검색) ✅
    - 각 조합원 정보 표시:
      - 체크박스
      - 이름
      - 이메일
    - 선택된 수신자 수 표시 (예: "총 30명 중 5명 선택됨")
 
-3. **본문 입력란**
+4. **본문 입력란**
 
    - Textarea 형태
    - 최소 높이: 200px
    - 플레이스홀더: "이메일 본문을 입력하세요"
    - 필수 입력
 
-4. **첨부파일**
+5. **첨부파일**
 
    - 파일 업로드 기능
    - 지원 형식: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG
@@ -48,7 +59,7 @@
    - 최대 첨부파일 수: 5개
    - 첨부된 파일 목록 표시 및 삭제 기능
 
-5. **액션 버튼**
+6. **액션 버튼**
    - "취소" 버튼 (모달 닫기)
    - "발송" 버튼 (이메일 발송)
 
@@ -125,6 +136,7 @@ POST /api/admin/funds/[fundId]/members/email/send
 ```typescript
 {
   recipient_ids: string[];      // 수신자 profile ID 배열
+  recipient_type?: 'to' | 'cc' | 'bcc';  // 수신자 유형 (기본값: 'to')
   subject: string;              // 이메일 제목
   body: string;                 // 이메일 본문 (plain text)
   attachments?: {               // 선택적 첨부파일
@@ -222,6 +234,7 @@ CREATE INDEX idx_fund_member_emails_status ON fund_member_emails(status);
 1. **components/admin/FundMemberEmailModal.tsx**
 
    - 이메일 작성 모달 컴포넌트
+   - 수신자 유형 선택 (To/CC/BCC) ✅
    - 수신자 선택, 검색 기능
    - 제목/본문 입력
    - 발송 확인 및 로딩 상태
@@ -230,6 +243,7 @@ CREATE INDEX idx_fund_member_emails_status ON fund_member_emails(status);
    - 조합원 이메일 발송 API
    - 관리자 권한 확인
    - 조합원 권한 검증
+   - 수신자 유형(To/CC/BCC) 지원 ✅
    - Gmail API를 통한 이메일 발송
 
 ### 수정된 파일
@@ -240,7 +254,20 @@ CREATE INDEX idx_fund_member_emails_status ON fund_member_emails(status);
    - members props 추가
 
 2. **app/admin/funds/[fundId]/page.tsx**
+
    - MemberActionButtons에 members 전달
+
+3. **lib/email/assembly-notifications.ts** ✅
+
+   - AssemblyEmailParams 인터페이스에 recipientType 추가
+   - sendAssemblyEmail 함수에서 수신자 유형(To/CC/BCC)에 따른 분기 처리
+
+4. **components/admin/AssemblyEmailModal.tsx** ✅
+
+   - 조합 총회 이메일 발송 시에도 수신자 유형 선택 기능 추가
+
+5. **app/api/admin/funds/[fundId]/assemblies/[assemblyId]/email/send/route.ts** ✅
+   - 조합 총회 이메일 발송 API에 수신자 유형 지원 추가
 
 ## 8. 고려사항
 
@@ -262,6 +289,8 @@ CREATE INDEX idx_fund_member_emails_status ON fund_member_emails(status);
 - 발송 실패 시 명확한 에러 메시지
 - 발송 전 확인 절차
 - 발송 후 성공 피드백
+- 숨은 참조(BCC)를 기본값으로 설정하여 개인정보 보호 ✅
+- 각 수신자 유형에 대한 툴팁 제공으로 사용자 이해도 향상 ✅
 
 ### 8.4 테스트
 

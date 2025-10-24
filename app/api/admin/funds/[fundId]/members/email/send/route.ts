@@ -28,14 +28,17 @@ export async function POST(
 
     // 요청 본문 파싱
     const body = await request.json();
-    const { recipient_ids, subject, body: emailBody } = body;
+    const {
+      to_ids = [],
+      cc_ids = [],
+      bcc_ids = [],
+      subject,
+      body: emailBody,
+    } = body;
 
     // 유효성 검증
-    if (
-      !recipient_ids ||
-      !Array.isArray(recipient_ids) ||
-      recipient_ids.length === 0
-    ) {
+    const totalRecipients = to_ids.length + cc_ids.length + bcc_ids.length;
+    if (totalRecipients === 0) {
       return NextResponse.json(
         { error: '수신자를 선택해주세요.' },
         { status: 400 }
@@ -70,11 +73,14 @@ export async function POST(
       );
     }
 
+    // 모든 수신자 ID 수집
+    const allRecipientIds = [...to_ids, ...cc_ids, ...bcc_ids];
+
     // 수신자 이메일 주소 조회
     const { data: recipients, error: recipientsError } =
       await brandClient.profiles
         .select('id, email, name')
-        .in('id', recipient_ids);
+        .in('id', allRecipientIds);
 
     if (recipientsError || !recipients || recipients.length === 0) {
       return NextResponse.json(
@@ -88,7 +94,7 @@ export async function POST(
       await brandClient.fundMembers
         .select('profile_id')
         .eq('fund_id', fundId)
-        .in('profile_id', recipient_ids);
+        .in('profile_id', allRecipientIds);
 
     if (fundMembersError || !fundMembers) {
       return NextResponse.json(
@@ -111,12 +117,25 @@ export async function POST(
       );
     }
 
-    // 이메일 주소 추출 (필터링: 이메일이 있는 수신자만)
-    const recipientEmails = validRecipients
-      .filter((r: any) => r.email)
-      .map((r: any) => r.email);
+    // ID로 이메일 매핑 생성
+    const idToEmail = new Map(validRecipients.map((r: any) => [r.id, r.email]));
 
-    if (recipientEmails.length === 0) {
+    // 각 유형별 이메일 주소 추출
+    const toEmails = to_ids
+      .map((id: string) => idToEmail.get(id))
+      .filter(Boolean) as string[];
+    const ccEmails = cc_ids
+      .map((id: string) => idToEmail.get(id))
+      .filter(Boolean) as string[];
+    const bccEmails = bcc_ids
+      .map((id: string) => idToEmail.get(id))
+      .filter(Boolean) as string[];
+
+    if (
+      toEmails.length === 0 &&
+      ccEmails.length === 0 &&
+      bccEmails.length === 0
+    ) {
       return NextResponse.json(
         { error: '유효한 이메일 주소가 없습니다.' },
         { status: 400 }
@@ -126,7 +145,10 @@ export async function POST(
     // 이메일 발송
     const result = await sendAssemblyEmail({
       brand: profile.brand,
-      recipients: recipientEmails,
+      recipients: toEmails,
+      recipientType: 'to',
+      ccRecipients: ccEmails,
+      bccRecipients: bccEmails,
       subject: subject.trim(),
       body: emailBody.trim(),
       attachments: [], // 첨부파일 없음
@@ -141,7 +163,9 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: `${recipientEmails.length}명에게 이메일을 발송했습니다.`,
+      message: `${
+        toEmails.length + ccEmails.length + bccEmails.length
+      }명에게 이메일을 발송했습니다.`,
     });
   } catch (error) {
     console.error('조합원 이메일 발송 실패:', error);

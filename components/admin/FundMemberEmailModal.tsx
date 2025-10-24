@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { MemberWithFund } from '@/lib/admin/members';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface FundMemberEmailModalProps {
@@ -31,8 +31,17 @@ export default function FundMemberEmailModal({
 }: FundMemberEmailModalProps) {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
-  const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(
-    new Set()
+  const [selectedRecipients, setSelectedRecipients] = useState<{
+    to: Set<string>;
+    cc: Set<string>;
+    bcc: Set<string>;
+  }>({
+    to: new Set(),
+    cc: new Set(),
+    bcc: new Set(),
+  });
+  const [recipientType, setRecipientType] = useState<'to' | 'cc' | 'bcc'>(
+    'bcc'
   );
   const [searchTerm, setSearchTerm] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -47,23 +56,57 @@ export default function FundMemberEmailModal({
       member.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 현재 선택된 유형의 수신자 목록
+  const currentRecipients = selectedRecipients[recipientType];
+
+  // 전체 수신자 수 계산
+  const totalSelectedCount =
+    selectedRecipients.to.size +
+    selectedRecipients.cc.size +
+    selectedRecipients.bcc.size;
+
   // 전체 선택/해제
   const handleSelectAll = () => {
-    if (selectedRecipients.size === filteredMembers.length) {
-      setSelectedRecipients(new Set());
+    if (currentRecipients.size === filteredMembers.length) {
+      // 현재 유형 전체 해제
+      setSelectedRecipients(prev => ({
+        ...prev,
+        [recipientType]: new Set(),
+      }));
     } else {
-      setSelectedRecipients(new Set(filteredMembers.map(member => member.id)));
+      // 현재 유형 전체 선택 (다른 유형에서 제거)
+      const newSelected = { ...selectedRecipients };
+      const allIds = new Set(filteredMembers.map(member => member.id));
+
+      // 다른 유형에서 이 조합원들 제거
+      (['to', 'cc', 'bcc'] as const).forEach(type => {
+        if (type !== recipientType) {
+          allIds.forEach(id => newSelected[type].delete(id));
+        }
+      });
+
+      newSelected[recipientType] = allIds;
+      setSelectedRecipients(newSelected);
     }
   };
 
   // 개별 선택/해제
   const handleToggleRecipient = (memberId: string) => {
-    const newSelected = new Set(selectedRecipients);
-    if (newSelected.has(memberId)) {
-      newSelected.delete(memberId);
+    const newSelected = { ...selectedRecipients };
+
+    if (currentRecipients.has(memberId)) {
+      // 현재 유형에서 해제
+      newSelected[recipientType].delete(memberId);
     } else {
-      newSelected.add(memberId);
+      // 다른 유형에서 제거하고 현재 유형에 추가
+      (['to', 'cc', 'bcc'] as const).forEach(type => {
+        if (type !== recipientType) {
+          newSelected[type].delete(memberId);
+        }
+      });
+      newSelected[recipientType].add(memberId);
     }
+
     setSelectedRecipients(newSelected);
   };
 
@@ -71,14 +114,19 @@ export default function FundMemberEmailModal({
   const resetForm = () => {
     setSubject('');
     setBody('');
-    setSelectedRecipients(new Set());
+    setSelectedRecipients({
+      to: new Set(),
+      cc: new Set(),
+      bcc: new Set(),
+    });
+    setRecipientType('bcc');
     setSearchTerm('');
   };
 
   // 발송 핸들러
   const handleSend = async () => {
     // 유효성 검증
-    if (selectedRecipients.size === 0) {
+    if (totalSelectedCount === 0) {
       alert('수신자를 최소 1명 이상 선택해주세요.');
       return;
     }
@@ -94,11 +142,15 @@ export default function FundMemberEmailModal({
     }
 
     // 확인 다이얼로그
-    if (
-      !confirm(
-        `선택한 ${selectedRecipients.size}명에게 이메일을 발송하시겠습니까?`
-      )
-    ) {
+    const details = [];
+    if (selectedRecipients.to.size > 0)
+      details.push(`수신자 ${selectedRecipients.to.size}명`);
+    if (selectedRecipients.cc.size > 0)
+      details.push(`참조 ${selectedRecipients.cc.size}명`);
+    if (selectedRecipients.bcc.size > 0)
+      details.push(`숨은참조 ${selectedRecipients.bcc.size}명`);
+
+    if (!confirm(`${details.join(', ')}에게 이메일을 발송하시겠습니까?`)) {
       return;
     }
 
@@ -113,7 +165,9 @@ export default function FundMemberEmailModal({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            recipient_ids: Array.from(selectedRecipients),
+            to_ids: Array.from(selectedRecipients.to),
+            cc_ids: Array.from(selectedRecipients.cc),
+            bcc_ids: Array.from(selectedRecipients.bcc),
             subject: subject.trim(),
             body: body.trim(),
           }),
@@ -169,19 +223,100 @@ export default function FundMemberEmailModal({
             />
           </div>
 
+          {/* 수신자 유형 선택 */}
+          <div className="space-y-2">
+            <Label>수신자 유형 선택</Label>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="to"
+                  checked={recipientType === 'to'}
+                  onChange={e =>
+                    setRecipientType(e.target.value as 'to' | 'cc' | 'bcc')
+                  }
+                  disabled={isSending}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">
+                  수신자 (To){' '}
+                  {selectedRecipients.to.size > 0 &&
+                    `(${selectedRecipients.to.size}명)`}
+                </span>
+                <span
+                  className="text-xs text-gray-500"
+                  title="모든 수신자에게 이메일 주소가 공개됩니다"
+                >
+                  ℹ️
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="cc"
+                  checked={recipientType === 'cc'}
+                  onChange={e =>
+                    setRecipientType(e.target.value as 'to' | 'cc' | 'bcc')
+                  }
+                  disabled={isSending}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">
+                  참조 (CC){' '}
+                  {selectedRecipients.cc.size > 0 &&
+                    `(${selectedRecipients.cc.size}명)`}
+                </span>
+                <span
+                  className="text-xs text-gray-500"
+                  title="모든 수신자에게 이메일 주소가 공개됩니다"
+                >
+                  ℹ️
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  value="bcc"
+                  checked={recipientType === 'bcc'}
+                  onChange={e =>
+                    setRecipientType(e.target.value as 'to' | 'cc' | 'bcc')
+                  }
+                  disabled={isSending}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm font-medium">
+                  숨은 참조 (BCC){' '}
+                  {selectedRecipients.bcc.size > 0 &&
+                    `(${selectedRecipients.bcc.size}명)`}
+                </span>
+                <span
+                  className="text-xs text-gray-500"
+                  title="다른 수신자에게 이메일 주소가 공개되지 않습니다"
+                >
+                  ℹ️
+                </span>
+              </label>
+            </div>
+            <div className="text-xs text-gray-500">
+              조합원을 선택하여 현재 유형에 추가하세요. 다른 유형에 이미 포함된
+              조합원은 자동으로 이동됩니다.
+            </div>
+          </div>
+
           {/* 수신자 선택 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>
-                수신자 선택 <span className="text-red-500">*</span>
+                조합원 선택 <span className="text-red-500">*</span>
               </Label>
               <div className="text-sm text-gray-600">
-                총 {validMembers.length}명 중 {selectedRecipients.size}명 선택됨
+                현재 유형: {currentRecipients.size}명 | 전체:{' '}
+                {totalSelectedCount}명
               </div>
             </div>
 
             {/* 검색 */}
-            <div className="relative">
+            {/* <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="이름 또는 이메일로 검색"
@@ -190,7 +325,7 @@ export default function FundMemberEmailModal({
                 className="pl-10"
                 disabled={isSending}
               />
-            </div>
+            </div> */}
 
             {/* 수신자 목록 */}
             <div className="border rounded-lg">
@@ -201,13 +336,15 @@ export default function FundMemberEmailModal({
                     type="checkbox"
                     checked={
                       filteredMembers.length > 0 &&
-                      selectedRecipients.size === filteredMembers.length
+                      currentRecipients.size === filteredMembers.length
                     }
                     onChange={handleSelectAll}
                     disabled={isSending || filteredMembers.length === 0}
                     className="w-4 h-4"
                   />
-                  <span className="font-medium text-sm">전체 선택</span>
+                  <span className="font-medium text-sm">
+                    현재 유형에 전체 선택
+                  </span>
                 </label>
               </div>
 
@@ -221,26 +358,49 @@ export default function FundMemberEmailModal({
               ) : (
                 <div className="p-2 max-h-[400px] overflow-y-auto">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1">
-                    {filteredMembers.map(member => (
-                      <label
-                        key={member.id}
-                        className="flex items-center gap-2 py-1 px-1 hover:bg-gray-50 cursor-pointer rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedRecipients.has(member.id)}
-                          onChange={() => handleToggleRecipient(member.id)}
-                          disabled={isSending}
-                          className="w-4 h-4 flex-shrink-0"
-                        />
-                        <div className="flex-1 min-w-0 text-sm truncate">
-                          <span className="font-medium">{member.name}</span>
-                          <span className="text-gray-600 ml-1.5">
-                            ({member.email})
-                          </span>
-                        </div>
-                      </label>
-                    ))}
+                    {filteredMembers.map(member => {
+                      const isInCurrentType = currentRecipients.has(member.id);
+                      const isInOtherType =
+                        selectedRecipients.to.has(member.id) ||
+                        selectedRecipients.cc.has(member.id) ||
+                        selectedRecipients.bcc.has(member.id);
+                      const otherType =
+                        isInOtherType && !isInCurrentType
+                          ? selectedRecipients.to.has(member.id)
+                            ? 'To'
+                            : selectedRecipients.cc.has(member.id)
+                            ? 'CC'
+                            : 'BCC'
+                          : null;
+
+                      return (
+                        <label
+                          key={member.id}
+                          className="flex items-center gap-2 py-1 px-1 hover:bg-gray-50 cursor-pointer rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isInCurrentType || isInOtherType}
+                            onChange={() => handleToggleRecipient(member.id)}
+                            disabled={isSending}
+                            className={`w-4 h-4 flex-shrink-0 ${
+                              otherType ? 'opacity-40' : ''
+                            }`}
+                          />
+                          <div className="flex-1 min-w-0 text-sm truncate">
+                            <span className="font-medium">{member.name}</span>
+                            <span className="text-gray-600 ml-1.5">
+                              ({member.email})
+                            </span>
+                            {otherType && (
+                              <span className="text-xs text-blue-600 ml-1">
+                                [{otherType}]
+                              </span>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               )}

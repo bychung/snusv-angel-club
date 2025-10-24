@@ -40,13 +40,17 @@ export async function POST(
 
     // 요청 본문 파싱
     const body = await request.json();
-    const { recipient_ids, subject, body: emailBody, document_ids } = body;
+    const {
+      to_ids = [],
+      cc_ids = [],
+      bcc_ids = [],
+      subject,
+      body: emailBody,
+      document_ids,
+    } = body;
 
-    if (
-      !recipient_ids ||
-      !Array.isArray(recipient_ids) ||
-      recipient_ids.length === 0
-    ) {
+    const totalRecipients = to_ids.length + cc_ids.length + bcc_ids.length;
+    if (totalRecipients === 0) {
       return NextResponse.json(
         { error: '수신자를 선택해주세요.' },
         { status: 400 }
@@ -71,10 +75,13 @@ export async function POST(
       );
     }
 
+    // 모든 수신자 ID 수집
+    const allRecipientIds = [...to_ids, ...cc_ids, ...bcc_ids];
+
     // 수신자 이메일 주소 조회
     const brandClient = await createBrandServerClient();
     const { data: recipients, error: recipientsError } =
-      await brandClient.profiles.select('id, email').in('id', recipient_ids);
+      await brandClient.profiles.select('id, email').in('id', allRecipientIds);
 
     if (recipientsError || !recipients || recipients.length === 0) {
       return NextResponse.json(
@@ -83,7 +90,21 @@ export async function POST(
       );
     }
 
-    // const recipientEmails = recipients.map((r: { email: string }) => r.email);
+    // ID로 이메일 매핑 생성
+    const idToEmail = new Map(recipients.map((r: any) => [r.id, r.email]));
+
+    // 각 유형별 이메일 주소 추출
+    const toEmails = to_ids
+      .map((id: string) => idToEmail.get(id))
+      .filter(Boolean) as string[];
+    const ccEmails = cc_ids
+      .map((id: string) => idToEmail.get(id))
+      .filter(Boolean) as string[];
+    const bccEmails = bcc_ids
+      .map((id: string) => idToEmail.get(id))
+      .filter(Boolean) as string[];
+
+    // const recipientEmails = toEmails.concat(ccEmails).concat(bccEmails);
     const recipientEmails = ['by@decentier.com']; // 테스트용
 
     // 첨부 파일 준비
@@ -123,7 +144,7 @@ export async function POST(
     // 이메일 발송 기록 생성
     const emailRecord = await createAssemblyEmail({
       assemblyId,
-      recipientIds: recipient_ids,
+      recipientIds: allRecipientIds,
       recipientEmails,
       subject,
       body: emailBody,
@@ -136,7 +157,9 @@ export async function POST(
     sendEmailInBackground(
       emailRecord.id,
       profile.brand,
-      recipientEmails,
+      toEmails,
+      ccEmails,
+      bccEmails,
       subject,
       emailBody,
       attachments,
@@ -173,7 +196,9 @@ export async function POST(
 async function sendEmailInBackground(
   emailId: string,
   brand: string,
-  recipients: string[],
+  toRecipients: string[],
+  ccRecipients: string[],
+  bccRecipients: string[],
   subject: string,
   body: string,
   attachments: EmailAttachment[],
@@ -186,7 +211,9 @@ async function sendEmailInBackground(
     // 이메일 발송
     const result = await sendAssemblyEmail({
       brand,
-      recipients,
+      recipients: toRecipients,
+      ccRecipients: ccRecipients,
+      bccRecipients: bccRecipients,
       subject,
       body,
       attachments,
