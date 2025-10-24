@@ -1,6 +1,7 @@
 // 조합원 총회 이메일 발송 헬퍼 함수
 
 import type { EmailAttachment } from '@/types/email';
+import { getBrandingConfig } from '../branding';
 import { GmailService } from './gmail';
 
 interface AssemblyEmailParams {
@@ -20,6 +21,8 @@ export async function sendAssemblyEmail(
   try {
     const { brand, recipients, subject, body, attachments } = params;
 
+    const clubName = getBrandingConfig().clubName;
+
     // GmailService 초기화
     const credentials = GmailService.getGmailCredentials();
     const gmailService = new GmailService(credentials);
@@ -29,7 +32,7 @@ export async function sendAssemblyEmail(
 
     // 이메일 발송
     const result = await gmailService.sendEmail({
-      from: credentials.senderEmail,
+      from: `"${clubName}" <${credentials.senderEmail}>`,
       to: recipients,
       subject: subject,
       html: htmlBody,
@@ -66,6 +69,7 @@ export async function sendAssemblyEmail(
 function convertTextToHtml(text: string, brandName: string): string {
   // 줄바꿈을 <br>로 변환
   const bodyHtml = text.replace(/\n/g, '<br>');
+  const clubName = getBrandingConfig().clubName;
 
   return `
 <!DOCTYPE html>
@@ -101,13 +105,13 @@ function convertTextToHtml(text: string, brandName: string): string {
 </head>
 <body>
   <div class="header">
-    <h2 style="margin: 0; color: #0066cc;">${brandName}</h2>
+    <h2 style="margin: 0; color: #0066cc;">${clubName}</h2>
   </div>
   <div class="content">
     ${bodyHtml}
   </div>
   <div class="footer">
-    <p>본 메일은 발신 전용입니다. 문의사항이 있으시면 답장을 이용해주세요.</p>
+    <p>본 메일은 수신/발신이 모두 가능하니, 문의사항이 있으시면 회신 부탁드립니다.</p>
   </div>
 </body>
 </html>

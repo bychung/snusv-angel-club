@@ -6,6 +6,7 @@ import {
 import { JWT } from 'google-auth-library';
 import { gmail_v1, google } from 'googleapis';
 import { getBrandingConfig } from '../branding';
+import { extractEmailAddress } from '../utils';
 
 export class GmailService {
   private gmail: gmail_v1.Gmail;
@@ -40,10 +41,11 @@ export class GmailService {
 
   async sendEmail(config: EmailSenderConfig): Promise<EmailResult> {
     try {
-      // 이메일 주소 검증
+      // 이메일 주소 검증 (발신자명 형식 지원)
+      const fromEmail = extractEmailAddress(config.from);
       if (
-        !this.isValidEmail(config.from) ||
-        !config.to.every(email => this.isValidEmail(email))
+        !this.isValidEmail(fromEmail) ||
+        !config.to.every(email => this.isValidEmail(extractEmailAddress(email)))
       ) {
         throw new Error('Invalid email address format');
       }
@@ -90,7 +92,7 @@ export class GmailService {
       : `multipart/alternative; boundary="${boundary}"`;
 
     const messageParts = [
-      `From: ${this.senderEmail}`,
+      `From: ${config.from}`,
       `To: ${config.to.join(', ')}`,
       config.replyTo ? `Reply-To: ${config.replyTo}` : '',
       config.cc?.length ? `Cc: ${config.cc.join(', ')}` : undefined,

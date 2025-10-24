@@ -66,3 +66,13 @@ export function calculateFundTerm(
     return null;
   }
 }
+
+/**
+ * 이메일 주소에서 실제 이메일 부분만 추출
+ * "발신자명" <email@example.com> 형식이면 email@example.com만 추출
+ * email@example.com 형식이면 그대로 반환
+ */
+export function extractEmailAddress(emailString: string): string {
+  const match = emailString.match(/<(.+)>/);
+  return match ? match[1].trim() : emailString.trim();
+}

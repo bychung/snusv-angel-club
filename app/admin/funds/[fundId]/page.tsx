@@ -81,7 +81,11 @@ export default async function FundDetailPage({
         </div>
 
         {/* 조합원 관리 버튼들 */}
-        <MemberActionButtons fundId={fundId} fundName={fund.name} />
+        <MemberActionButtons
+          fundId={fundId}
+          fundName={fund.name}
+          members={members}
+        />
 
         {/* 조합원 관리 */}
         <FundMemberManagement
