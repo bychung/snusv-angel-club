@@ -65,7 +65,7 @@ export async function getAssemblyTemplateVersions(
  */
 export async function getActiveAssemblyTemplate(
   type: string
-): Promise<DocumentTemplate | null> {
+): Promise<DocumentTemplate> {
   // 조합원 총회 템플릿은 글로벌만 존재 (fund_id = null)
   return getActiveTemplate(type, null);
 }

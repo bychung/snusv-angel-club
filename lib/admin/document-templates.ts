@@ -11,7 +11,7 @@ import type { DocumentTemplate } from '@/types/database';
 export async function getActiveTemplate(
   type: string,
   fundId?: string | null
-): Promise<DocumentTemplate | null> {
+): Promise<DocumentTemplate> {
   const supabase = await createBrandServerClient();
 
   // 1. 펀드별 템플릿 조회 (fundId가 있는 경우)

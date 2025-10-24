@@ -52,6 +52,7 @@ import DocumentHistory from './DocumentHistory';
 import DocumentUpload from './DocumentUpload';
 import InvestmentCertificateManager from './InvestmentCertificateManager';
 import LpaConsentFormSection from './lpa-consent-form/LpaConsentFormSection';
+import MemberListSection from './member-list/MemberListSection';
 
 interface FundDetailManagerProps {
   fundId: string;
@@ -910,6 +911,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
             {/* 규약 동의서 섹션 */}
             <LpaConsentFormSection fundId={fundId} />
+
+            {/* 조합원 명부 섹션 */}
+            <MemberListSection fundId={fundId} />
 
             {/* 향후 추가될 섹션들 */}
             {/* <DocumentGenerationSection

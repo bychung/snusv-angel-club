@@ -235,6 +235,71 @@ export async function generateMemberListBuffer(
 }
 
 /**
+ * 조합원 명부 PDF 생성 (Buffer만 반환, Storage 업로드 안 함)
+ */
+export async function generateMemberListBufferWithInfo(
+  fundId: string,
+  assemblyDate: string
+): Promise<{
+  buffer: Buffer;
+  id: string | null;
+  version: string;
+  content: any;
+}> {
+  try {
+    const { fund, gps, members } = await getFundMemberData(fundId);
+
+    // GP 정보 포맷팅
+    const gpInfos = gps.map(
+      (gp: {
+        id: string;
+        name: string;
+        entity_type: string;
+        business_number: string;
+      }) => ({
+        id: gp.id,
+        name: gp.name,
+        representative: null, // TODO: representative 정보가 있다면 추가
+        entity_type: gp.entity_type as 'individual' | 'corporate',
+      })
+    );
+
+    // 조합원 정보 포맷팅
+    const memberInfos = members.map((m: any) => ({
+      name: m.name,
+      entity_type: m.entity_type as 'individual' | 'corporate',
+      birth_date: m.birth_date,
+      business_number: m.business_number,
+      address: m.address,
+      phone: m.phone,
+      units: m.units,
+    }));
+
+    // 템플릿 조회 (선택사항)
+    const template = await getActiveAssemblyTemplate('formation_member_list');
+
+    // PDF 생성
+    const pdfBuffer = await generateMemberListPDF({
+      fund_name: fund.name,
+      assembly_date: assemblyDate,
+      gps: gpInfos,
+      members: memberInfos,
+      template: template || undefined,
+    });
+
+    return {
+      buffer: pdfBuffer,
+      id: template.id || null,
+      version: template.version || 'none',
+      content: template.content,
+    };
+  } catch (error) {
+    console.error('조합원 명부 생성 실패:', error);
+    throw new Error('조합원 명부 생성에 실패했습니다.');
+  }
+}
+
+/**
  * 결성총회 의안 PDF 생성 (Buffer만 반환, Storage 업로드 안 함)
  */
 export async function generateFormationAgendaBuffer(
