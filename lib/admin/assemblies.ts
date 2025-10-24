@@ -1,5 +1,6 @@
 // 조합원 총회 관리 헬퍼 함수
 
+import { deleteFile } from '@/lib/storage/server';
 import { createBrandServerClient } from '@/lib/supabase/server';
 import type {
   Assembly,
@@ -145,12 +146,60 @@ export async function createAssembly(
 export async function deleteAssembly(assemblyId: string): Promise<void> {
   const brandClient = await createBrandServerClient();
 
+  // 1. 총회에 연결된 모든 문서 조회
+  const { data: documents, error: docsError } =
+    await brandClient.assemblyDocuments
+      .select('id, pdf_storage_path')
+      .eq('assembly_id', assemblyId);
+
+  if (docsError) {
+    console.error('총회 문서 조회 실패:', docsError);
+    throw new Error('총회 문서를 조회하는데 실패했습니다.');
+  }
+
+  // 2. Storage에서 문서 파일들 삭제
+  if (documents && documents.length > 0) {
+    console.log(
+      `총회 ID ${assemblyId}의 문서 ${documents.length}개를 삭제합니다.`
+    );
+
+    for (const doc of documents) {
+      if (doc.pdf_storage_path) {
+        try {
+          const deleteResult = await deleteFile(
+            doc.pdf_storage_path,
+            'generated-documents'
+          );
+
+          if (!deleteResult.success) {
+            console.error(
+              `문서 파일 삭제 실패 (${doc.pdf_storage_path}):`,
+              deleteResult.error
+            );
+            // 파일 삭제 실패해도 계속 진행 (파일이 이미 없을 수 있음)
+          } else {
+            console.log(`문서 파일 삭제 성공: ${doc.pdf_storage_path}`);
+          }
+        } catch (error) {
+          console.error(
+            `문서 파일 삭제 중 오류 (${doc.pdf_storage_path}):`,
+            error
+          );
+          // 오류 발생해도 계속 진행
+        }
+      }
+    }
+  }
+
+  // 3. DB에서 총회 삭제 (cascade로 문서들도 삭제됨)
   const { error } = await brandClient.assemblies.delete().eq('id', assemblyId);
 
   if (error) {
     console.error('총회 삭제 실패:', error);
     throw new Error('총회 삭제에 실패했습니다.');
   }
+
+  console.log(`총회 ID ${assemblyId}가 성공적으로 삭제되었습니다.`);
 }
 
 /**
