@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { AssemblyWithCounts } from '@/types/assemblies';
 import { ASSEMBLY_STATUS_NAMES, ASSEMBLY_TYPE_NAMES } from '@/types/assemblies';
-import { FileText, Mail, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Loader2, Mail, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface AssemblyCardProps {
@@ -137,7 +137,11 @@ export default function AssemblyCard({
               disabled={isDeleting}
               className="transition-all hover:scale-105 hover:shadow-md hover:bg-destructive/70"
             >
-              <Trash2 className="w-4 h-4 mr-1" />
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-1" />
+              )}
               삭제
             </Button>
           </div>

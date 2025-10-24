@@ -98,6 +98,7 @@ export interface LpaConsentFormDiff {
 export type AssemblyDocumentType =
   // 결성총회
   | 'formation_agenda' // 결성총회 의안
+  | 'formation_consent_form' // 결성총회 의안 동의서
   | 'formation_official_letter' // 결성총회 공문
   | 'formation_minutes' // 결성총회 의사록
   | 'fund_registration_application' // 개인투자조합등록신청서
@@ -139,6 +140,9 @@ export interface AssemblyDocument {
   generated_at: string;
   created_at: string;
   updated_at: string;
+  is_split_parent?: boolean; // 통합 문서 여부
+  parent_document_id?: string; // 개별 문서의 경우 부모 문서 ID
+  member_id?: string; // 개별 문서의 경우 조합원 ID
 }
 
 export interface AssemblyEmail {
@@ -163,10 +167,40 @@ export interface AssemblyDocumentContent {
   // 결성총회 의안 내용
   formation_agenda?: FormationAgendaContent | any; // FormationAgendaContent 또는 템플릿 전체 구조
 
+  // 결성총회 의안 동의서 템플릿 (content는 템플릿 구조 저장)
+  formation_consent_form?: FormationConsentFormTemplate;
+
   // 결성총회 의사록 내용
   formation_minutes?: FormationMinutesContent;
 
   // 추후 다른 문서 타입 추가
+}
+
+// 결성총회 의안 동의서 템플릿 구조
+export interface FormationConsentFormTemplate {
+  header?: {
+    text: string;
+  };
+  title: string;
+  content: Array<{
+    type: string;
+    text?: string;
+    align?: string;
+    lines?: number;
+    fields?: Array<{
+      label: string;
+      variable: string;
+      seal?: boolean;
+    }>;
+    [key: string]: any;
+  }>;
+}
+
+// 조합원 페이지 정보 (context의 member_pages에 저장)
+export interface MemberPage {
+  member_id: string;
+  member_name: string;
+  page_number: number; // 1-based
 }
 
 export interface FormationAgendaContent {
@@ -317,7 +351,11 @@ export const ASSEMBLY_DOCUMENT_TYPES: Record<
   AssemblyType,
   AssemblyDocumentType[]
 > = {
-  formation: ['formation_agenda', 'formation_minutes'],
+  formation: [
+    'formation_agenda',
+    'formation_consent_form',
+    'formation_minutes',
+  ],
   special: ['special_agenda', 'special_minutes'],
   regular: ['regular_agenda', 'regular_minutes'],
   dissolution: ['dissolution_agenda', 'dissolution_minutes'],
@@ -326,6 +364,7 @@ export const ASSEMBLY_DOCUMENT_TYPES: Record<
 // 문서 타입별 한글 이름
 export const DOCUMENT_TYPE_NAMES: Record<AssemblyDocumentType, string> = {
   formation_agenda: '결성총회 의안',
+  formation_consent_form: '결성총회 의안 동의서',
   formation_official_letter: '결성총회 공문',
   formation_minutes: '결성총회 의사록',
   fund_registration_application: '개인투자조합등록신청서',

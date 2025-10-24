@@ -41,6 +41,13 @@ export const DOCUMENT_EDITORS: Record<
     description: '의안 내용을 검토하고 필요시 수정하세요.',
   },
 
+  formation_consent_form: {
+    requiresInput: false,
+    getDefaultContent: () => ({}),
+    EditorComponent: FormationMemberListEditor, // 미리보기만 제공
+    description: '의안 정보를 기반으로 자동 생성됩니다. (편집 불가)',
+  },
+
   // === 향후 추가될 문서 타입 (placeholder) ===
   formation_official_letter: {
     requiresInput: false,

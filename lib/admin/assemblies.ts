@@ -33,12 +33,13 @@ export async function getAssembliesByFund(
     return [];
   }
 
-  // 각 총회의 문서 개수 조회
+  // 각 총회의 문서 개수 조회 (parent 문서만 카운트, children 제외)
   const assemblyIds = assemblies.map((a: { id: string }) => a.id);
   const { data: documents, error: docsError } =
     await brandClient.assemblyDocuments
-      .select('assembly_id')
-      .in('assembly_id', assemblyIds);
+      .select('assembly_id, parent_document_id')
+      .in('assembly_id', assemblyIds)
+      .is('parent_document_id', null); // parent 문서만 조회
 
   if (docsError) {
     console.error('문서 개수 조회 실패:', docsError);
@@ -99,9 +100,15 @@ export async function getAssemblyDetail(
 
   const { ASSEMBLY_DOCUMENT_TYPES } = await import('@/types/assemblies');
 
+  // parent 문서만 카운트 (children 제외)
+  const parentDocuments =
+    documents?.filter(
+      doc => !doc.parent_document_id || doc.parent_document_id === null
+    ) || [];
+
   return {
     ...assembly,
-    document_count: documents?.length || 0,
+    document_count: parentDocuments.length,
     total_document_count:
       ASSEMBLY_DOCUMENT_TYPES[assembly.type as AssemblyType]?.length || 0,
     documents: documents || [],

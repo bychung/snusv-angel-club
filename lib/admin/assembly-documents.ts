@@ -6,19 +6,34 @@ import type {
   AssemblyType,
   FormationAgendaContent,
   FormationMinutesContent,
+  MemberPage,
   NextDocumentInfo,
 } from '@/types/assemblies';
 import { ASSEMBLY_DOCUMENT_TYPES } from '@/types/assemblies';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getNameForSorting } from '../format-utils';
 import {
   generateFormationAgendaPDF,
   getDefaultFormationAgendaTemplate,
 } from '../pdf/formation-agenda-generator';
+import {
+  generateFormationConsentFormPDF,
+  type FormationConsentFormContext,
+  type FormationConsentFormTemplate,
+} from '../pdf/formation-consent-form-generator';
 import { generateFormationMinutesPDF } from '../pdf/formation-minutes-generator';
 import { generateMemberListPDF } from '../pdf/member-list-generator';
+import { extractPdfPage } from '../pdf/pdf-splitter';
 import { uploadFileToStorage } from '../storage/upload';
 import { getActiveAssemblyTemplate } from './assembly-templates';
+
+// 결성총회 문서 생성 순서
+const FORMATION_DOCUMENT_ORDER: AssemblyDocumentType[] = [
+  'formation_agenda',
+  'formation_consent_form',
+  'formation_minutes',
+];
 
 /**
  * 템플릿 JSON 파일 로드
@@ -486,25 +501,60 @@ export async function getNextDocumentInfo(
   const requiredDocs =
     ASSEMBLY_DOCUMENT_TYPES[assembly.type as AssemblyType] || [];
 
-  // 아직 생성되지 않은 문서 찾기
-  const nextDocType = requiredDocs.find(
-    (type: AssemblyDocumentType) => !existingTypes.has(type)
-  );
+  // 결성총회인 경우 순서를 보장
+  let nextDocType: AssemblyDocumentType | undefined;
+
+  if (assembly.type === 'formation') {
+    // 결성총회는 순서대로 생성
+    nextDocType = FORMATION_DOCUMENT_ORDER.find(
+      type => !existingTypes.has(type)
+    );
+  } else {
+    // 다른 총회는 순서 무관
+    nextDocType = requiredDocs.find(
+      (type: AssemblyDocumentType) => !existingTypes.has(type)
+    );
+  }
 
   if (!nextDocType) {
     return null; // 모든 문서 생성 완료
   }
 
-  // 템플릿 조회 (템플릿 시스템 통합)
-  const template = await getActiveAssemblyTemplate(nextDocType);
-
-  // formation_minutes는 특별 처리 (의안 문서 필요)
-  if (nextDocType === 'formation_minutes') {
-    // 의안 문서가 생성되어 있는지 확인
+  // formation_consent_form 생성 조건 확인
+  if (nextDocType === 'formation_consent_form') {
     if (!existingTypes.has('formation_agenda')) {
       throw new Error('결성총회 의안을 먼저 생성해야 합니다.');
     }
+  }
 
+  // formation_minutes 생성 조건 확인
+  if (nextDocType === 'formation_minutes') {
+    if (!existingTypes.has('formation_consent_form')) {
+      throw new Error('결성총회 의안 동의서를 먼저 생성해야 합니다.');
+    }
+  }
+
+  // 템플릿 조회 (템플릿 시스템 통합)
+  const template = await getActiveAssemblyTemplate(nextDocType);
+
+  // formation_consent_form 자동 생성 문서
+  if (nextDocType === 'formation_consent_form') {
+    return {
+      document_type: nextDocType,
+      requires_input: false,
+      editable: false,
+      template: template
+        ? {
+            id: template.id,
+            version: template.version,
+            description: template.description || '',
+          }
+        : undefined,
+    };
+  }
+
+  // formation_minutes는 특별 처리 (의안 문서 필요)
+  if (nextDocType === 'formation_minutes') {
     // 의안 문서 조회
     const { data: agendaDoc } = await brandClient.assemblyDocuments
       .select('content')
@@ -540,12 +590,13 @@ export async function getNextDocumentInfo(
     ];
 
     // 템플릿 로드 (JSON 파일 또는 DB)
-    const minutesTemplate = template || (await loadFormationMinutesTemplate());
+    const loadedTemplate = await loadFormationMinutesTemplate();
+    const minutesTemplate = template || loadedTemplate;
 
     // 템플릿 구조 정규화 (DB 템플릿의 경우 content가 이미 있을 수 있음)
-    const templateContent = minutesTemplate.content || {
-      title_template: minutesTemplate.title_template,
-      sections: minutesTemplate.sections,
+    const templateContent = (minutesTemplate as any).content || {
+      title_template: (minutesTemplate as any).title_template,
+      sections: (minutesTemplate as any).sections,
     };
 
     // 템플릿 검증
@@ -664,13 +715,24 @@ export async function generateAssemblyDocumentBuffer(params: {
   assemblyId: string;
   documentType: AssemblyDocumentType;
   content?: any;
-}): Promise<{
-  pdfBuffer: Buffer;
-  content: any;
-  context: any;
-  template_id?: string;
-  template_version?: string;
-}> {
+}): Promise<
+  | {
+      pdfBuffer: Buffer;
+      content: any;
+      context: any;
+      template_id?: string;
+      template_version?: string;
+      memberPages?: MemberPage[]; // formation_consent_form용
+    }
+  | {
+      pdfBuffer: Buffer;
+      content: any;
+      context: any;
+      template_id?: string;
+      template_version?: string;
+      memberPages: MemberPage[]; // formation_consent_form용
+    }
+> {
   const brandClient = await createBrandServerClient();
 
   // 총회 정보 조회
@@ -689,6 +751,7 @@ export async function generateAssemblyDocumentBuffer(params: {
   let pdfBuffer: Buffer;
   let documentContent: any = null;
   let documentContext: any = {};
+  let memberPages: MemberPage[] | undefined;
 
   // 문서 타입에 따라 생성
   switch (params.documentType) {
@@ -715,6 +778,125 @@ export async function generateAssemblyDocumentBuffer(params: {
         template: template || undefined,
       });
       break;
+
+    case 'formation_consent_form': {
+      // 의안 문서에서 조합원 정보 및 펀드 정보 조회
+      const { data: agendaDoc } = await brandClient.assemblyDocuments
+        .select('content')
+        .eq('assembly_id', params.assemblyId)
+        .eq('type', 'formation_agenda')
+        .single();
+
+      if (!agendaDoc || !agendaDoc.content?.formation_agenda) {
+        throw new Error('의안 문서를 먼저 생성해야 합니다.');
+      }
+
+      // 펀드 정보 조회
+      const { data: fund } = await brandClient.funds
+        .select('*')
+        .eq('id', assembly.fund_id)
+        .single();
+
+      if (!fund) {
+        throw new Error('펀드 정보를 가져오는데 실패했습니다.');
+      }
+
+      // 조합원 정보 조회
+      const { gps, members } = await getFundMemberData(assembly.fund_id);
+
+      // LP 조합원만 필터링
+      type LpMemberInfo = {
+        id: string;
+        name: string;
+        address: string;
+        birthDateOrBusinessNumber: string;
+        contact: string;
+        shares: number;
+      };
+
+      const lpMembers: LpMemberInfo[] = members
+        .filter((m: any) => !gps.some((gp: any) => gp.id === m.id))
+        .map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          address: m.address || '',
+          birthDateOrBusinessNumber: m.birth_date || m.business_number || '',
+          contact: m.phone || '',
+          shares: m.units || 0,
+        }));
+
+      // LP 조합원 가나다순 정렬
+      lpMembers.sort((a, b) => {
+        const nameA = getNameForSorting(a.name);
+        const nameB = getNameForSorting(b.name);
+        return nameA.localeCompare(nameB, 'ko-KR');
+      });
+
+      // GP 이름 목록 생성
+      const gpList = gps.map((gp: any) => gp.name).join(', ');
+
+      // 템플릿 로드
+      let consentFormTemplate: FormationConsentFormTemplate;
+      if (template && template.content) {
+        consentFormTemplate = template.content as FormationConsentFormTemplate;
+      } else {
+        // 파일에서 로드
+        const templatePath = path.join(
+          process.cwd(),
+          'template/formation-consent-form-template.json'
+        );
+        const templateContent = await fs.promises.readFile(
+          templatePath,
+          'utf-8'
+        );
+        const templateJson = JSON.parse(templateContent);
+        // 템플릿 파일은 { content: { title, content: [] } } 구조
+        consentFormTemplate = templateJson.content;
+      }
+
+      // PDF 생성 컨텍스트
+      const consentFormContext: FormationConsentFormContext = {
+        fund: {
+          name: fund.name,
+          nameEn: fund.name_en,
+          closedAt: fund.closed_at,
+        },
+        gpList,
+        lpMembers,
+        generatedAt: new Date().toISOString(),
+        startDate: assembly.assembly_date,
+      };
+
+      // PDF 생성
+      const result = await generateFormationConsentFormPDF(
+        consentFormTemplate,
+        consentFormContext
+      );
+
+      pdfBuffer = result.pdfBuffer;
+      memberPages = result.memberPages;
+
+      // content: 템플릿 구조 저장 (문서 재구성을 위해)
+      documentContent = {
+        formation_consent_form: consentFormTemplate,
+      };
+
+      // context: 템플릿 변수들 저장 (문서 재구성을 위한 모든 데이터)
+      documentContext = {
+        fund: {
+          name: fund.name,
+          nameEn: fund.name_en,
+          closedAt: fund.closed_at,
+        },
+        gpList,
+        lpMembers, // 전체 LP 조합원 배열
+        generatedAt: new Date().toISOString(),
+        startDate: assembly.assembly_date,
+        templateVersion: template?.version || '1.0.0',
+        member_pages: memberPages, // 페이지 매핑 정보
+      };
+      break;
+    }
 
     case 'formation_minutes':
       if (!params.content?.formation_minutes) {
@@ -745,6 +927,7 @@ export async function generateAssemblyDocumentBuffer(params: {
     context: documentContext,
     template_id: template?.id,
     template_version: template?.version,
+    memberPages,
   };
 }
 
@@ -771,32 +954,198 @@ export async function saveAssemblyDocument(params: {
   }
 
   // 기존 문서가 있는지 확인하고 있으면 삭제
-  const { data: existingDoc } = await brandClient.assemblyDocuments
-    .select('id, pdf_storage_path')
+  const { data: existingDocs } = await brandClient.assemblyDocuments
+    .select('id, pdf_storage_path, is_split_parent, parent_document_id')
     .eq('assembly_id', params.assemblyId)
-    .eq('type', params.documentType)
-    .single();
+    .eq('type', params.documentType);
 
-  if (existingDoc) {
-    // 기존 Storage 파일 삭제 (선택사항)
-    if (existingDoc.pdf_storage_path) {
+  if (existingDocs && existingDocs.length > 0) {
+    // 개별 문서들의 Storage 파일 삭제
+    const storagePaths = existingDocs
+      .map(doc => doc.pdf_storage_path)
+      .filter(Boolean);
+    if (storagePaths.length > 0) {
       await brandClient.raw.storage
         .from('generated-documents')
-        .remove([existingDoc.pdf_storage_path]);
+        .remove(storagePaths);
     }
     // DB 레코드 삭제
-    await brandClient.assemblyDocuments.delete().eq('id', existingDoc.id);
+    const docIds = existingDocs.map(doc => doc.id);
+    await brandClient.assemblyDocuments.delete().in('id', docIds);
   }
 
   // PDF 재생성
-  const { pdfBuffer, content, context, template_id, template_version } =
-    await generateAssemblyDocumentBuffer({
-      assemblyId: params.assemblyId,
-      documentType: params.documentType,
-      content: params.content,
-    });
+  const result = await generateAssemblyDocumentBuffer({
+    assemblyId: params.assemblyId,
+    documentType: params.documentType,
+    content: params.content,
+  });
 
-  // Storage에 업로드
+  const {
+    pdfBuffer,
+    content: documentContent,
+    context,
+    template_id,
+    template_version,
+    memberPages,
+  } = result;
+
+  // formation_consent_form의 경우 통합 + 개별 저장 (전체 롤백 방식)
+  if (params.documentType === 'formation_consent_form' && memberPages) {
+    // 업로드된 파일 경로 추적 (롤백용)
+    const uploadedPaths: string[] = [];
+    let parentDocId: string | null = null;
+
+    try {
+      // 1. 통합 PDF 저장
+      const fullFileName = `${assembly.fund_id}/assembly/${
+        params.documentType
+      }_full_${Date.now()}.pdf`;
+      const fullStoragePath = await uploadFileToStorage({
+        bucket: 'generated-documents',
+        path: fullFileName,
+        file: pdfBuffer,
+        contentType: 'application/pdf',
+        brand: params.brand,
+      });
+      uploadedPaths.push(fullStoragePath);
+
+      // 2. 통합 문서 DB 저장
+      const { data: parentDoc, error: parentDocError } =
+        await brandClient.assemblyDocuments
+          .insert({
+            assembly_id: params.assemblyId,
+            type: params.documentType,
+            content: documentContent,
+            context,
+            template_id,
+            template_version,
+            pdf_storage_path: fullStoragePath,
+            generated_by: params.generatedBy,
+            is_split_parent: true,
+          })
+          .select()
+          .single();
+
+      if (parentDocError || !parentDoc) {
+        throw new Error(
+          `통합 문서 DB 저장 실패: ${
+            parentDocError?.message || '알 수 없는 오류'
+          }`
+        );
+      }
+
+      parentDocId = parentDoc.id;
+
+      // 3. 개별 PDF 생성 및 저장 (하나라도 실패하면 throw)
+      for (const memberPage of memberPages) {
+        // 페이지 추출
+        const individualPdfBuffer = await extractPdfPage(
+          pdfBuffer,
+          memberPage.page_number
+        );
+
+        // Storage 업로드 (재시도 포함)
+        const individualFileName = `${assembly.fund_id}/assembly/${
+          params.documentType
+        }_member_${memberPage.member_id}_${Date.now()}.pdf`;
+        const individualStoragePath = await uploadFileToStorage({
+          bucket: 'generated-documents',
+          path: individualFileName,
+          file: individualPdfBuffer,
+          contentType: 'application/pdf',
+          brand: params.brand,
+        });
+        uploadedPaths.push(individualStoragePath);
+
+        // 해당 조합원 데이터 찾기
+        const memberData = (context as any).lpMembers.find(
+          (m: any) => m.id === memberPage.member_id
+        );
+
+        if (!memberData) {
+          throw new Error(
+            `조합원 데이터를 찾을 수 없습니다: ${memberPage.member_name} (${memberPage.member_id})`
+          );
+        }
+
+        // DB 저장
+        const { error: insertError } =
+          await brandClient.assemblyDocuments.insert({
+            assembly_id: params.assemblyId,
+            type: params.documentType,
+            // content: 부모와 동일한 템플릿 구조 (문서 재구성을 위해)
+            content: documentContent,
+            // context: 해당 조합원 한 명의 데이터 (문서 재구성을 위해)
+            context: {
+              fund: (context as any).fund,
+              gpList: (context as any).gpList,
+              lpMembers: [memberData], // 해당 조합원 한 명만
+              generatedAt: (context as any).generatedAt,
+              startDate: (context as any).startDate,
+              templateVersion: (context as any).templateVersion,
+              page_number: memberPage.page_number, // 페이지 번호 (참고용)
+            },
+            template_id,
+            template_version,
+            pdf_storage_path: individualStoragePath,
+            generated_by: params.generatedBy,
+            is_split_parent: false,
+            parent_document_id: parentDoc.id,
+            member_id: memberPage.member_id,
+          });
+
+        if (insertError) {
+          throw new Error(
+            `조합원 ${memberPage.member_name}의 DB 저장 실패: ${insertError.message}`
+          );
+        }
+      }
+
+      // 모든 문서 생성 성공
+      console.log(`문서 생성 완료: 통합 1개 + 개별 ${memberPages.length}개`);
+      return {
+        documentId: parentDoc.id,
+      };
+    } catch (error) {
+      // 롤백 시작
+      console.error('문서 생성 중 오류 발생, 롤백 시작:', error);
+
+      // 1. DB 문서 삭제
+      if (parentDocId) {
+        try {
+          await brandClient.assemblyDocuments
+            .delete()
+            .eq('assembly_id', params.assemblyId)
+            .eq('type', params.documentType);
+          console.log('DB 문서 롤백 완료');
+        } catch (dbError) {
+          console.error('DB 롤백 실패:', dbError);
+        }
+      }
+
+      // 2. Storage 파일 삭제
+      if (uploadedPaths.length > 0) {
+        try {
+          await brandClient.raw.storage
+            .from('generated-documents')
+            .remove(uploadedPaths);
+          console.log(`Storage 파일 롤백 완료: ${uploadedPaths.length}개`);
+        } catch (storageError) {
+          console.error('Storage 롤백 실패:', storageError);
+        }
+      }
+
+      // 사용자에게 명확한 에러 메시지
+      throw new Error(
+        `문서 생성 실패: ${
+          error instanceof Error ? error.message : '알 수 없는 오류'
+        }. ` + 'Storage 일시적 오류일 수 있습니다. 잠시 후 다시 시도해주세요.'
+      );
+    }
+  }
+
+  // 일반 문서 저장 (기존 로직)
   const fileName = `${assembly.fund_id}/assembly/${
     params.documentType
   }_${Date.now()}.pdf`;
@@ -808,16 +1157,16 @@ export async function saveAssemblyDocument(params: {
     brand: params.brand,
   });
 
-  // DB에 문서 정보 저장 (content와 context 분리)
+  // DB에 문서 정보 저장
   const { data: document, error: docError } =
     await brandClient.assemblyDocuments
       .insert({
         assembly_id: params.assemblyId,
         type: params.documentType,
-        content, // 사용자 편집 데이터
-        context, // 자동 생성 데이터 (스냅샷)
-        template_id, // 템플릿 ID
-        template_version, // 템플릿 버전
+        content: documentContent,
+        context,
+        template_id,
+        template_version,
         pdf_storage_path: storagePath,
         generated_by: params.generatedBy,
       })

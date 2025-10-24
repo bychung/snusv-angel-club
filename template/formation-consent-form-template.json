@@ -1,0 +1,76 @@
+{
+  "type": "formation_consent_form",
+  "version": "1.0.0",
+  "description": "조합원 총회 동의서 템플릿",
+  "content": {
+    "header": {
+      "text": ""
+    },
+    "title": "조 합 원 동 의 서",
+    "content": [
+      {
+        "type": "paragraph",
+        "text": "본인은 ${startDate} 서면으로 개최된 ${fundName}의 결성총회의 결과에 대하여 확인하고 동의하는 바, 의사록 기명날인을 대신하여 본 동의서에 날인합니다 ",
+        "align": "left"
+      },
+      {
+        "type": "spacer",
+        "lines": 3
+      },
+      {
+        "type": "paragraph",
+        "text": "${startDate}",
+        "align": "center"
+      },
+      {
+        "type": "spacer",
+        "lines": 3
+      },
+      {
+        "type": "form-fields",
+        "fields": [
+          {
+            "label": "성    명",
+            "variable": "${name}",
+            "seal": true
+          },
+          {
+            "label": "생년월일",
+            "variable": "${birthDateOrBusinessNumber}"
+          },
+          {
+            "label": "주    소",
+            "variable": "${address}"
+          },
+          {
+            "label": "연 락 처",
+            "variable": "${contact}"
+          },
+          {
+            "label": "출자좌수",
+            "variable": "${shares}좌"
+          }
+        ]
+      },
+      {
+        "type": "spacer",
+        "lines": 5
+      },
+      {
+        "type": "paragraph",
+        "text": "${fundName}",
+        "align": "right"
+      },
+      {
+        "type": "paragraph",
+        "text": "업무집행조합원",
+        "align": "right"
+      },
+      {
+        "type": "paragraph",
+        "text": "${gpList} 귀하",
+        "align": "right"
+      }
+    ]
+  }
+}
