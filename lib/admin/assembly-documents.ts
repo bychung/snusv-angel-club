@@ -20,6 +20,7 @@ import {
   generateMemberListPDF,
   getDefaultMemberListTemplate,
 } from '../pdf/member-list-generator';
+import { loadExternalTemplate } from '../pdf/template-loader';
 import { uploadFileToStorage } from '../storage/upload';
 import { getActiveAssemblyTemplate } from './assembly-templates';
 
@@ -543,16 +544,29 @@ export async function getNextDocumentInfo(
 
   // 템플릿이 없으면 기존 방식 사용 (하위 호환성)
   if (!template) {
-    // 기존 방식 (fallback) - 기본 템플릿 함수 사용
+    // 기존 방식 (fallback) - loadExternalTemplate 사용 (DB → 파일 → 코드 기본값)
     switch (nextDocType) {
-      case 'formation_member_list':
+      case 'formation_member_list': {
+        let memberListTemplate = null;
+        try {
+          // DB → 파일 순서로 템플릿 로드 시도
+          memberListTemplate = await loadExternalTemplate(
+            'member-list-template'
+          );
+        } catch (error) {
+          // 둘 다 없으면 코드 기본값 사용
+          console.log('외부 템플릿 로드 실패, 코드 기본값 사용:', error);
+          memberListTemplate = getDefaultMemberListTemplate();
+        }
+
         return {
           document_type: nextDocType,
           requires_input: false,
           default_content: {
-            formation_member_list: getDefaultMemberListTemplate(),
+            formation_member_list: memberListTemplate,
           } as any,
         };
+      }
 
       case 'formation_agenda':
         return {

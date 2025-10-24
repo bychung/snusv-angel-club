@@ -220,7 +220,7 @@ function templateRefToDbType(templateRef: string): string {
     'lpa-consent-form-template': 'lpa_consent_form',
     'lpa-template': 'lpa',
     'plan-template': 'plan',
-    'member-list-template': 'member-list',
+    'member-list-template': 'member_list',
     // 필요시 추가
   };
 
@@ -476,7 +476,7 @@ async function renderAppendix(
 | `lpa-consent-form-template` | `lpa_consent_form` |
 | `lpa-template`              | `lpa`              |
 | `plan-template`             | `plan`             |
-| `member-list-template`      | `member-list`      |
+| `member-list-template`      | `member_list`      |
 
 **신규 템플릿 추가 시** `templateRefToDbType` 함수의 매핑 테이블 업데이트 필요
 

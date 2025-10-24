@@ -5,12 +5,13 @@ import * as path from 'path';
 import PDFDocument from 'pdfkit';
 import { getNameForSorting } from '../format-utils';
 import { MEMBER_LIST_CONFIG } from './member-list-config';
+import { getFontPath } from './template-font';
+import { loadExternalTemplate } from './template-loader';
 import {
   renderTemplateString,
   STYLE_MARKERS,
   wrapInputValueForPreview,
 } from './template-utils';
-import { getFontPath } from './template-font';
 
 interface GPInfo {
   id: string;
@@ -342,7 +343,6 @@ function renderStyledText(doc: any, text: string, options?: any): void {
  * 조합원 명부 기본 템플릿 설정
  */
 export function getDefaultMemberListTemplate() {
-  console.log('getDefaultMemberListTemplate');
   return {
     title: '조합원 명부',
     table_config: {
@@ -374,6 +374,26 @@ export function getDefaultMemberListTemplate() {
 export async function generateMemberListPDF(
   data: MemberListData
 ): Promise<Buffer> {
+  // 템플릿 로드 (Promise 생성 전에 처리)
+  let finalTemplate: any;
+  if (data.template) {
+    // 이미 템플릿이 전달된 경우
+    console.log(
+      '[generateMemberListPDF]템플릿이 전달되었습니다.',
+      data.template
+    );
+    finalTemplate = data.template;
+  } else {
+    // 템플릿이 없으면 DB → 파일 → 코드 기본값 순서로 로드
+    try {
+      const loadedContent = await loadExternalTemplate('member-list-template');
+      finalTemplate = { content: loadedContent };
+    } catch (error) {
+      console.log('외부 템플릿 로드 실패, 코드 기본값 사용:', error);
+      finalTemplate = { content: getDefaultMemberListTemplate() };
+    }
+  }
+
   return new Promise((resolve, reject) => {
     try {
       const defaultFontPath = getFontPath();
@@ -393,9 +413,9 @@ export async function generateMemberListPDF(
       // 한글 폰트 등록
       registerKoreanFonts(doc);
 
-      // 템플릿에서 설정 가져오기 (없으면 기본값)
+      // 템플릿에서 설정 가져오기
       const config = MEMBER_LIST_CONFIG;
-      const templateContent = data.template?.content || {};
+      const templateContent = finalTemplate?.content || {};
       const defaultTemplate = getDefaultMemberListTemplate();
 
       const title = templateContent.title || defaultTemplate.title;

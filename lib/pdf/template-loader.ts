@@ -87,7 +87,7 @@ function templateRefToDbType(templateRef: string): string {
     'lpa-consent-form-template': 'lpa_consent_form',
     'lpa-template': 'lpa',
     'plan-template': 'plan',
-    'member-list-template': 'member-list',
+    'member-list-template': 'member_list',
     // 필요시 추가
   };
 
