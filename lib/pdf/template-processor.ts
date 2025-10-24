@@ -242,6 +242,12 @@ export function processTemplateVariables(
       markPreview(member.phone || '', isPreview)
     );
 
+    // 법인 대표이사명
+    processedText = processedText.replace(
+      /\$\{ceo\}/g,
+      markPreview(member.ceo || '', isPreview)
+    );
+
     // 생년월일 또는 사업자번호 (개인은 생년월일, 법인은 사업자번호)
     const birthDateOrBusinessNumber =
       member.entity_type === 'corporate'

@@ -1,7 +1,7 @@
 import { tryFont } from './template-font';
 import { processTemplateVariables } from './template-processor';
 import { STYLE_MARKERS } from './template-utils';
-import { AppendixContentElement, LPAContext } from './types';
+import { AppendixContentElement, FieldCondition, LPAContext } from './types';
 
 /* -------------------- export functions, types, etc... -------------------*/
 
@@ -81,6 +81,14 @@ export async function renderAppendixContentElement(
       tryFont(doc, '맑은고딕', 'NanumGothic');
 
       for (const field of element.fields || []) {
+        // 조건부 필드 평가
+        if (
+          field.condition &&
+          !evaluateFieldCondition(field.condition, context)
+        ) {
+          continue; // 조건을 만족하지 않으면 스킵
+        }
+
         let value = processTemplateVariables(field.variable, context);
 
         // 빈 양식이면 PREVIEW 마커와 0 값 제거
@@ -88,14 +96,7 @@ export async function renderAppendixContentElement(
           value = cleanEmptyFormText(value);
         }
 
-        // 법인의 경우 "생년월일" 레이블을 "사업자번호"로 변경
-        let displayLabel = field.label;
-        if (field.label === '생년월일' && context.currentMember) {
-          const member = context.currentMember as any;
-          if (member.entity_type === 'corporate') {
-            displayLabel = '사업자번호';
-          }
-        }
+        const displayLabel = field.label;
 
         const labelText = field.seal
           ? `${displayLabel} : ${value}    (인)`
@@ -426,6 +427,48 @@ interface StyledSegment {
 }
 
 type StyleType = keyof typeof STYLE_MARKERS;
+
+/**
+ * 조건부 필드 조건 평가
+ */
+function evaluateFieldCondition(
+  condition: FieldCondition,
+  context: LPAContext
+): boolean {
+  if (!context.currentMember) return false;
+
+  // 필드 값 가져오기
+  let fieldValue: any;
+  if (condition.field === 'memberType') {
+    // memberType은 entity_type을 기반으로 매핑
+    fieldValue = context.currentMember.entity_type || 'individual';
+  } else if (condition.field === 'entity_type') {
+    fieldValue = context.currentMember.entity_type || 'individual';
+  } else {
+    // 다른 필드는 currentMember에서 직접 가져오기
+    fieldValue = (context.currentMember as any)[condition.field];
+  }
+
+  // 연산자에 따른 평가
+  switch (condition.operator) {
+    case 'equals':
+      return fieldValue === condition.value;
+
+    case 'not_equals':
+      return fieldValue !== condition.value;
+
+    case 'in':
+      if (!Array.isArray(condition.value)) return false;
+      return condition.value.includes(fieldValue);
+
+    case 'not_in':
+      if (!Array.isArray(condition.value)) return true;
+      return !condition.value.includes(fieldValue);
+
+    default:
+      return false;
+  }
+}
 
 /**
  * 빈 양식인지 확인 (조합원 정보가 모두 비어있는지)

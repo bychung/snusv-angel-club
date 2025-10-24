@@ -812,6 +812,7 @@ export async function generateAssemblyDocumentBuffer(params: {
         birthDateOrBusinessNumber: string;
         contact: string;
         shares: number;
+        entity_type: 'individual' | 'corporate';
       };
 
       const lpMembers: LpMemberInfo[] = members
@@ -823,6 +824,7 @@ export async function generateAssemblyDocumentBuffer(params: {
           birthDateOrBusinessNumber: m.birth_date || m.business_number || '',
           contact: m.phone || '',
           shares: m.units || 0,
+          entity_type: m.entity_type || 'individual',
         }));
 
       // LP 조합원 가나다순 정렬

@@ -13,6 +13,7 @@ export interface Profile {
   entity_type: 'individual' | 'corporate';
   birth_date?: string | null;
   business_number?: string | null;
+  ceo?: string | null;
   address: string;
   role: 'ADMIN' | 'USER';
   email_notifications?: EmailNotificationType[];

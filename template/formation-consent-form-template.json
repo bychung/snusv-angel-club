@@ -30,24 +30,62 @@
         "type": "form-fields",
         "fields": [
           {
-            "label": "성    명",
+            "label": "성        명",
             "variable": "${name}",
-            "seal": true
+            "seal": true,
+            "condition": {
+              "field": "memberType",
+              "operator": "equals",
+              "value": "individual"
+            }
           },
           {
-            "label": "생년월일",
-            "variable": "${birthDateOrBusinessNumber}"
+            "label": "회   사   명",
+            "variable": "${name}",
+            "seal": true,
+            "condition": {
+              "field": "memberType",
+              "operator": "equals",
+              "value": "corporate"
+            }
           },
           {
-            "label": "주    소",
+            "label": "대 표 이 사",
+            "variable": "${ceo}",
+            "condition": {
+              "field": "memberType",
+              "operator": "equals",
+              "value": "corporate"
+            }
+          },
+          {
+            "label": "생 년 월 일",
+            "variable": "${birthDateOrBusinessNumber}",
+            "condition": {
+              "field": "memberType",
+              "operator": "equals",
+              "value": "individual"
+            }
+          },
+          {
+            "label": "사업자번호",
+            "variable": "${birthDateOrBusinessNumber}",
+            "condition": {
+              "field": "memberType",
+              "operator": "equals",
+              "value": "corporate"
+            }
+          },
+          {
+            "label": "주        소",
             "variable": "${address}"
           },
           {
-            "label": "연 락 처",
+            "label": "연   락   처",
             "variable": "${contact}"
           },
           {
-            "label": "출자좌수",
+            "label": "출 자 좌 수",
             "variable": "${shares}좌"
           }
         ]

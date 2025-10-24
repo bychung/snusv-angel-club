@@ -31,11 +31,19 @@ export type AppendixRenderType =
   | 'repeating-section' // 같은 페이지에 섹션 반복
   | 'sample'; // 빈 샘플 1개만 렌더링
 
+// 조건부 필드 조건 타입
+export interface FieldCondition {
+  field: string; // 평가할 필드명 (예: 'memberType', 'entity_type')
+  operator: 'equals' | 'not_equals' | 'in' | 'not_in'; // 비교 연산자
+  value: string | string[]; // 비교 값
+}
+
 // 별지 필드 타입
 export interface AppendixField {
   label: string;
   variable: string;
   seal?: boolean; // 날인 표시 필요 여부
+  condition?: FieldCondition; // 조건부 렌더링 조건
 }
 
 // 별지 컨텐츠 요소 타입
@@ -118,6 +126,7 @@ export interface LPAContext {
     business_number?: string | null; // 사업자번호 (법인)
     phone?: string | null; // 연락처
     entity_type?: 'individual' | 'corporate'; // 개인/법인 구분
+    ceo?: string | null; // 법인 대표이사명
   }>;
   generatedAt: Date;
   isPreview?: boolean; // 미리보기 모드 여부
@@ -135,6 +144,7 @@ export interface LPAContext {
     business_number?: string | null;
     phone?: string | null;
     entity_type?: 'individual' | 'corporate';
+    ceo?: string | null; // 법인 대표이사명
   };
 }
 

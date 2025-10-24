@@ -144,6 +144,7 @@ export async function buildLpaConsentFormContext(
     birthDateOrBusinessNumber: string;
     contact: string;
     shares: number;
+    entity_type: 'individual' | 'corporate';
   }> = lpMembers.map((member: any) => {
     const profile = member.profile;
     return {
@@ -155,6 +156,7 @@ export async function buildLpaConsentFormContext(
           : profile?.birth_date || '',
       contact: profile?.phone || '',
       shares: member.total_units || 0,
+      entity_type: profile?.entity_type || 'individual',
     };
   });
 

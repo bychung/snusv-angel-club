@@ -37,6 +37,7 @@ export interface FormationConsentFormContext {
     birthDateOrBusinessNumber: string;
     contact: string;
     shares: number;
+    entity_type: 'individual' | 'corporate'; // 개인/법인 구분
   }>;
   generatedAt: string;
   startDate: string; // 총회 개최일
@@ -115,18 +116,15 @@ function buildLPAContextFromConsentFormContext(
     email: member.contact, // contact를 email로 사용
     address: member.address,
     birth_date:
-      member.birthDateOrBusinessNumber.length <= 6
+      member.entity_type === 'individual'
         ? member.birthDateOrBusinessNumber
         : null,
     business_number:
-      member.birthDateOrBusinessNumber.length > 6
+      member.entity_type === 'corporate'
         ? member.birthDateOrBusinessNumber
         : null,
     phone: member.contact,
-    entity_type:
-      member.birthDateOrBusinessNumber.length > 6
-        ? ('corporate' as const)
-        : ('individual' as const),
+    entity_type: member.entity_type,
   }));
 
   // GP 멤버와 LP 멤버를 합침

@@ -55,6 +55,7 @@ export interface LpaConsentFormContext {
     birthDateOrBusinessNumber: string;
     contact: string;
     shares: number;
+    entity_type: 'individual' | 'corporate'; // 개인/법인 구분
   }>;
   generatedAt: string;
   templateVersion: string;
