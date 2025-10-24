@@ -12,7 +12,6 @@ import { getActiveTemplate, getTemplatesByType } from './document-templates';
  */
 export const ASSEMBLY_TEMPLATE_TYPES = [
   'formation_agenda',
-  'formation_member_list',
   'formation_official_letter',
   'formation_minutes',
   'fund_registration_application',
@@ -87,8 +86,6 @@ export function validateAssemblyTemplateContent(
   switch (type) {
     case 'formation_agenda':
       return validateFormationAgendaContent(content);
-    case 'formation_member_list':
-      return validateMemberListContent(content);
     default:
       // 다른 타입은 향후 추가
       return null;
@@ -117,46 +114,6 @@ function validateFormationAgendaContent(content: any): string | null {
     if (!agenda.title) {
       return `의안 ${i + 1}번의 제목이 필요합니다.`;
     }
-  }
-
-  return null;
-}
-
-/**
- * 조합원 명부 템플릿 검증
- */
-function validateMemberListContent(content: any): string | null {
-  if (!content.title) {
-    return '문서 제목이 필요합니다.';
-  }
-
-  if (!content.table_config || !content.table_config.columns) {
-    return '테이블 구조 정의가 필요합니다.';
-  }
-
-  if (!Array.isArray(content.table_config.columns)) {
-    return '테이블 컬럼은 배열이어야 합니다.';
-  }
-
-  // 필수 컬럼 검증
-  const requiredColumns = [
-    'no',
-    'name',
-    'identifier',
-    'address',
-    'phone',
-    'units',
-  ];
-  const columnKeys = content.table_config.columns.map((col: any) => col.key);
-
-  for (const required of requiredColumns) {
-    if (!columnKeys.includes(required)) {
-      return `필수 컬럼 '${required}'이(가) 없습니다.`;
-    }
-  }
-
-  if (!content.footer_labels) {
-    return '하단 레이블이 필요합니다.';
   }
 
   return null;
@@ -200,12 +157,7 @@ export function getAssemblyEditorConfig(type: string) {
           },
         },
       };
-    case 'formation_member_list':
-      return {
-        fields: {},
-        readonly: true,
-        message: '이 템플릿은 자동 생성되므로 편집할 수 없습니다.',
-      };
+
     default:
       return null;
   }
@@ -220,45 +172,6 @@ export function generateSampleData(type: string) {
       return {
         // fund_name: '테스트 투자조합',
         assembly_date: '2024-12-31', // YYYY-MM-DD 형식으로 수정
-      };
-    case 'formation_member_list':
-      return {
-        fund_name: '테스트 투자조합',
-        assembly_date: '2024-12-31',
-        gps: [
-          {
-            id: 'gp-1',
-            name: '테스트벤처스',
-            representative: '홍길동',
-            entity_type: 'corporate' as const,
-          },
-        ],
-        members: [
-          {
-            name: '홍길동',
-            entity_type: 'individual' as const,
-            birth_date: '1980-01-01',
-            address: '서울시 강남구 테헤란로 123',
-            phone: '010-1234-5678',
-            units: 100,
-          },
-          {
-            name: '김철수',
-            entity_type: 'individual' as const,
-            birth_date: '1985-05-15',
-            address: '서울시 서초구 서초대로 456',
-            phone: '010-2345-6789',
-            units: 50,
-          },
-          {
-            name: '(주)스타트업',
-            entity_type: 'corporate' as const,
-            business_number: '123-45-67890',
-            address: '서울시 강남구 역삼동 789',
-            phone: '02-1234-5678',
-            units: 200,
-          },
-        ],
       };
     default:
       return {};

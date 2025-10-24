@@ -227,7 +227,6 @@ export function AssemblyTemplateVersionHistoryModal({
   const getTemplateDisplayName = (type: string): string => {
     const names: Record<string, string> = {
       formation_agenda: '결성총회 의안',
-      formation_member_list: '조합원 명부',
       formation_official_letter: '공문',
       formation_minutes: '회의록',
     };

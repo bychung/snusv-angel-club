@@ -21,7 +21,6 @@ import { AlertCircle, Eye, Loader2, Save } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { AssemblyFormationAgendaEditor } from './AssemblyFormationAgendaEditor';
-import { AssemblyMemberListEditor } from './AssemblyMemberListEditor';
 
 const PDFPreviewModal = dynamic(
   () => import('@/components/admin/PDFPreviewModal'),
@@ -76,7 +75,6 @@ export function AssemblyTemplateEditModal({
   const getTemplateDisplayName = (type: string): string => {
     const names: Record<string, string> = {
       formation_agenda: '결성총회 의안',
-      formation_member_list: '조합원 명부',
       formation_official_letter: '공문',
       formation_minutes: '회의록',
     };
@@ -182,14 +180,6 @@ export function AssemblyTemplateEditModal({
       case 'formation_agenda':
         return (
           <AssemblyFormationAgendaEditor
-            content={editedContent}
-            onChange={setEditedContent}
-            originalContent={originalContent}
-          />
-        );
-      case 'formation_member_list':
-        return (
-          <AssemblyMemberListEditor
             content={editedContent}
             onChange={setEditedContent}
             originalContent={originalContent}

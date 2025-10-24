@@ -5,7 +5,6 @@ import { generateSampleData } from '@/lib/admin/assembly-templates';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { requireSystemAdmin } from '@/lib/auth/system-admin';
 import { generateFormationAgendaPDF } from '@/lib/pdf/formation-agenda-generator';
-import { generateMemberListPDF } from '@/lib/pdf/member-list-generator';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -49,17 +48,6 @@ export async function POST(request: NextRequest) {
             chairman: content.chairman || '',
             agendas: content.agendas || [],
           },
-          template: { content }, // 템플릿 content 전달
-          isPreview: true, // 미리보기 모드: 마커 표시
-        });
-        break;
-
-      case 'formation_member_list':
-        pdfBuffer = await generateMemberListPDF({
-          fund_name: sampleData.fund_name,
-          assembly_date: sampleData.assembly_date,
-          gps: sampleData.gps,
-          members: sampleData.members,
           template: { content }, // 템플릿 content 전달
           isPreview: true, // 미리보기 모드: 마커 표시
         });

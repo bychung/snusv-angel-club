@@ -16,11 +16,7 @@ import {
   getDefaultFormationAgendaTemplate,
 } from '../pdf/formation-agenda-generator';
 import { generateFormationMinutesPDF } from '../pdf/formation-minutes-generator';
-import {
-  generateMemberListPDF,
-  getDefaultMemberListTemplate,
-} from '../pdf/member-list-generator';
-import { loadExternalTemplate } from '../pdf/template-loader';
+import { generateMemberListPDF } from '../pdf/member-list-generator';
 import { uploadFileToStorage } from '../storage/upload';
 import { getActiveAssemblyTemplate } from './assembly-templates';
 
@@ -611,28 +607,6 @@ export async function getNextDocumentInfo(
   if (!template) {
     // 기존 방식 (fallback) - loadExternalTemplate 사용 (DB → 파일 → 코드 기본값)
     switch (nextDocType) {
-      case 'formation_member_list': {
-        let memberListTemplate = null;
-        try {
-          // DB → 파일 순서로 템플릿 로드 시도
-          memberListTemplate = await loadExternalTemplate(
-            'member-list-template'
-          );
-        } catch (error) {
-          // 둘 다 없으면 코드 기본값 사용
-          console.log('외부 템플릿 로드 실패, 코드 기본값 사용:', error);
-          memberListTemplate = getDefaultMemberListTemplate();
-        }
-
-        return {
-          document_type: nextDocType,
-          requires_input: false,
-          default_content: {
-            formation_member_list: memberListTemplate,
-          } as any,
-        };
-      }
-
       case 'formation_agenda':
         return {
           document_type: nextDocType,
@@ -718,52 +692,6 @@ export async function generateAssemblyDocumentBuffer(params: {
 
   // 문서 타입에 따라 생성
   switch (params.documentType) {
-    case 'formation_member_list':
-      // context 생성: 조합원 목록 스냅샷
-      const { fund, gps, members } = await getFundMemberData(assembly.fund_id);
-      documentContext = {
-        fund_name: fund.name,
-        assembly_date: assembly.assembly_date,
-        gp_info: gps.map((gp: any) => ({
-          id: gp.id,
-          name: gp.name,
-          entity_type: gp.entity_type,
-        })),
-        members: members.map((m: any) => ({
-          name: m.name,
-          entity_type: m.entity_type,
-          birth_date: m.birth_date,
-          business_number: m.business_number,
-          address: m.address,
-          phone: m.phone,
-          units: m.units,
-        })),
-        generated_at: new Date().toISOString(),
-      };
-
-      // 템플릿 전달하여 PDF 생성
-      pdfBuffer = await generateMemberListPDF({
-        fund_name: fund.name,
-        assembly_date: assembly.assembly_date,
-        gps: gps.map((gp: any) => ({
-          id: gp.id,
-          name: gp.name,
-          representative: null,
-          entity_type: gp.entity_type as 'individual' | 'corporate',
-        })),
-        members: members.map((m: any) => ({
-          name: m.name,
-          entity_type: m.entity_type as 'individual' | 'corporate',
-          birth_date: m.birth_date,
-          business_number: m.business_number,
-          address: m.address,
-          phone: m.phone,
-          units: m.units,
-        })),
-        template: template || undefined,
-      });
-      break;
-
     case 'formation_agenda':
       if (!params.content?.formation_agenda) {
         throw new Error('의안 내용이 필요합니다.');
@@ -994,24 +922,6 @@ export async function regenerateAssemblyDocument(params: {
 
   // 문서 타입에 따라 재생성
   switch (document.type) {
-    case 'formation_member_list':
-      // context에서 조합원 정보 복원
-      if (!context || !context.members) {
-        throw new Error('문서 복원에 필요한 정보가 없습니다.');
-      }
-
-      const gpInfos = context.gp_info || [];
-      const memberInfos = context.members || [];
-
-      pdfBuffer = await generateMemberListPDF({
-        fund_name: context.fund_name || fundName,
-        assembly_date: context.assembly_date || assemblyDate,
-        gps: gpInfos,
-        members: memberInfos,
-        template: template || undefined,
-      });
-      break;
-
     case 'formation_agenda':
       // content에서 의안 정보 복원
       if (!content || !content.formation_agenda) {

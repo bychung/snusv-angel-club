@@ -97,7 +97,6 @@ export interface LpaConsentFormDiff {
 // 문서 타입 정의
 export type AssemblyDocumentType =
   // 결성총회
-  | 'formation_member_list' // 조합원 명부
   | 'formation_agenda' // 결성총회 의안
   | 'formation_official_letter' // 결성총회 공문
   | 'formation_minutes' // 결성총회 의사록
@@ -161,9 +160,6 @@ export interface AssemblyEmail {
 
 // 문서 내용 타입
 export interface AssemblyDocumentContent {
-  // 조합원 명부는 자동 생성되므로 content 불필요
-  formation_member_list?: any; // 템플릿 전체 구조 (자동 생성)
-
   // 결성총회 의안 내용
   formation_agenda?: FormationAgendaContent | any; // FormationAgendaContent 또는 템플릿 전체 구조
 
@@ -321,18 +317,7 @@ export const ASSEMBLY_DOCUMENT_TYPES: Record<
   AssemblyType,
   AssemblyDocumentType[]
 > = {
-  formation: [
-    'formation_member_list',
-    'formation_agenda',
-    'formation_minutes',
-    // Phase 1에서는 위 3개만 구현
-    // 'formation_official_letter',
-    // 'fund_registration_application',
-    // 'investment_certificate',
-    // 'seal_registration',
-    // 'member_consent',
-    // 'personal_info_consent',
-  ],
+  formation: ['formation_agenda', 'formation_minutes'],
   special: ['special_agenda', 'special_minutes'],
   regular: ['regular_agenda', 'regular_minutes'],
   dissolution: ['dissolution_agenda', 'dissolution_minutes'],
@@ -340,7 +325,6 @@ export const ASSEMBLY_DOCUMENT_TYPES: Record<
 
 // 문서 타입별 한글 이름
 export const DOCUMENT_TYPE_NAMES: Record<AssemblyDocumentType, string> = {
-  formation_member_list: '조합원 명부',
   formation_agenda: '결성총회 의안',
   formation_official_letter: '결성총회 공문',
   formation_minutes: '결성총회 의사록',

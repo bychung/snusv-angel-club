@@ -13,14 +13,6 @@ export const DOCUMENT_EDITORS: Record<
   DocumentEditorConfig
 > = {
   // === 결성총회 문서 ===
-  formation_member_list: {
-    requiresInput: false,
-    getDefaultContent: () => ({}),
-    EditorComponent: FormationMemberListEditor,
-    description:
-      '이 문서는 현재 펀드의 조합원 정보를 바탕으로 자동으로 생성됩니다.',
-  },
-
   formation_agenda: {
     requiresInput: true,
     getDefaultContent: () => ({
