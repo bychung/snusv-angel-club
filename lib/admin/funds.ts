@@ -28,7 +28,11 @@ export interface DocumentStatus {
 }
 
 export interface FundDetailsResponse {
-  fund: Fund & { gp_info: FundMemberInfo[]; totalInvestment: number };
+  fund: Fund & {
+    gp_info: FundMemberInfo[];
+    totalInvestment: number;
+    totalCommittedAmount: number;
+  };
   documents_status: {
     agreement: DocumentStatus;
     tax: DocumentStatus;
@@ -145,13 +149,22 @@ export async function getFundDetails(
 
   // 3. 펀드 멤버 정보 조회 (전체 결성 금액 계산용, 브랜드별)
   const { data: fundMembers } = await brandClient.fundMembers
-    .select('investment_units')
-    .eq('fund_id', fundId);
+    .select('investment_units, total_units')
+    .eq('fund_id', fundId)
+    .is('deleted_at', null); // soft delete된 조합원 제외
 
+  // 실제 납입 금액 (investment_units 기준)
   const totalInvestment =
     fundMembers?.reduce(
       (sum: number, member: any) =>
         sum + member.investment_units * fund.par_value,
+      0
+    ) || 0;
+
+  // 약정 금액 (total_units 기준)
+  const totalCommittedAmount =
+    fundMembers?.reduce(
+      (sum: number, member: any) => sum + member.total_units * fund.par_value,
       0
     ) || 0;
 
@@ -222,7 +235,7 @@ export async function getFundDetails(
   }
 
   return {
-    fund: { ...fund, gp_info, totalInvestment },
+    fund: { ...fund, gp_info, totalInvestment, totalCommittedAmount },
     documents_status,
     user_permission: 'user',
   };

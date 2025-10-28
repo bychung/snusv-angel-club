@@ -267,7 +267,11 @@ export default function FundDetailCard({
                         : '전체 결성 금액'}
                     </span>
                     <span className="font-mono font-medium">
-                      {fund.totalInvestment.toLocaleString()}원
+                      {(fund.status === 'processing'
+                        ? fund.totalCommittedAmount || fund.totalInvestment
+                        : fund.totalInvestment
+                      ).toLocaleString()}
+                      원
                     </span>
                   </div>
                 )}
@@ -335,7 +339,11 @@ export default function FundDetailCard({
                       </span>
                       <span className="font-mono font-medium">
                         {(
-                          (investmentInfo.totalAmount / fund.totalInvestment) *
+                          (investmentInfo.totalAmount /
+                            (fund.status === 'processing'
+                              ? fund.totalCommittedAmount ||
+                                fund.totalInvestment
+                              : fund.totalInvestment)) *
                           100
                         ).toFixed(2)}
                         %
