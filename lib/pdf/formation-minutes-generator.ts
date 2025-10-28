@@ -9,12 +9,12 @@ import type {
 } from '../../types/assemblies';
 import { getNameForSorting } from '../format-utils';
 import { FORMATION_MINUTES_CONFIG } from './formation-minutes-config';
+import { getFontPath } from './template-font';
 import {
   renderTemplateString,
   STYLE_MARKERS,
   wrapInputValueForPreview,
 } from './template-utils';
-import { getFontPath } from './template-font';
 
 interface MemberInfo {
   id: string;
@@ -39,6 +39,8 @@ interface FormationMinutesContext {
   }>;
   gp_names_full: string;
   attendance_rate?: number;
+  total_members?: number;
+  attended_members?: number;
   generated_at?: string;
 }
 
@@ -285,10 +287,14 @@ function renderTitle(
   const titleConfig = FORMATION_MINUTES_CONFIG.fonts.title;
   const titleTemplate = data.content.title_template;
 
-  let titleText = renderTemplateString(titleTemplate, context, data.isPreview);
+  let titleText = renderTemplateString(
+    titleTemplate,
+    context,
+    data.isPreview || false
+  );
 
   if (data.isPreview) {
-    titleText = wrapInputValueForPreview(titleText);
+    titleText = wrapInputValueForPreview(titleText, data.isPreview);
   }
 
   doc.font(titleConfig.family).fontSize(titleConfig.size).text(titleText, {
@@ -321,7 +327,7 @@ function renderSection(
   doc.font(bodyConfig.family).fontSize(bodyConfig.size);
   let renderedValue = renderTemplateString(value, context, isPreview);
   if (isPreview) {
-    renderedValue = wrapInputValueForPreview(renderedValue);
+    renderedValue = wrapInputValueForPreview(renderedValue, isPreview);
   }
   renderText(doc, renderedValue);
 
@@ -514,14 +520,14 @@ function renderAgendas(
       .replace('{title}', agenda.title);
 
     let titleText = isPreview
-      ? wrapInputValueForPreview(agendaTitle)
+      ? wrapInputValueForPreview(agendaTitle, isPreview)
       : agendaTitle;
     renderText(doc, titleText);
 
     // 의안 결과
     const resultText = `- ${agenda.result}`;
     let renderedResult = isPreview
-      ? wrapInputValueForPreview(resultText)
+      ? wrapInputValueForPreview(resultText, isPreview)
       : resultText;
     renderText(doc, renderedResult);
 
@@ -562,7 +568,7 @@ function renderSignature(
   // 날짜
   let dateText = renderTemplateString(signature.date_label, context, isPreview);
   if (isPreview) {
-    dateText = wrapInputValueForPreview(dateText);
+    dateText = wrapInputValueForPreview(dateText, isPreview);
   }
   doc
     .font(signatureConfig.family)
@@ -578,7 +584,7 @@ function renderSignature(
     isPreview
   );
   if (isPreview) {
-    fundNameText = wrapInputValueForPreview(fundNameText);
+    fundNameText = wrapInputValueForPreview(fundNameText, isPreview);
   }
   doc.text(fundNameText, {
     align: FORMATION_MINUTES_CONFIG.alignment.signature,
@@ -592,7 +598,9 @@ function renderSignature(
       ? `${signature.gp_label}  ${gp.name} 대표이사`
       : `${signature.gp_label}  ${gp.name}`;
 
-    let renderedGP = isPreview ? wrapInputValueForPreview(gpText) : gpText;
+    let renderedGP = isPreview
+      ? wrapInputValueForPreview(gpText, isPreview)
+      : gpText;
     doc.text(renderedGP, {
       align: FORMATION_MINUTES_CONFIG.alignment.signature,
     });
@@ -600,7 +608,7 @@ function renderSignature(
     if (gp.representative) {
       let repText = `${gp.representative} ${signature.seal_text}`;
       if (isPreview) {
-        repText = wrapInputValueForPreview(repText);
+        repText = wrapInputValueForPreview(repText, isPreview);
       }
       doc.text(repText, {
         align: FORMATION_MINUTES_CONFIG.alignment.signature,
@@ -648,9 +656,9 @@ export async function generateFormationMinutesPDF(
       const attendanceRate =
         totalMembers > 0 ? (attendedMembers / totalMembers) * 100 : 0;
 
-      const enrichedContext = {
+      const enrichedContext: FormationMinutesContext = {
         ...context,
-        attendance_rate: attendanceRate.toFixed(1),
+        attendance_rate: parseFloat(attendanceRate.toFixed(1)),
         total_members: totalMembers,
         attended_members: attendedMembers,
       };
