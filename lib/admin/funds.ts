@@ -346,6 +346,28 @@ export async function updateFundDetails(
 }
 
 /**
+ * 펀드의 결성 예정일(closed_at)을 업데이트합니다 (총회 생성 시 사용)
+ */
+export async function updateFundFormationDate(
+  fundId: string,
+  formationDate: string
+): Promise<void> {
+  const brandClient = await createBrandServerClient();
+
+  const { error } = await brandClient.funds
+    .update({
+      closed_at: formationDate,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', fundId);
+
+  if (error) {
+    console.error('펀드 결성 예정일 업데이트 실패:', error);
+    throw new Error('결성 예정일 업데이트에 실패했습니다.');
+  }
+}
+
+/**
  * 펀드 정보와 멤버 정보를 조회합니다 (PDF 생성용, 관리자 전용)
  */
 export async function getFundDataForDocument(fundId: string, userId: string) {

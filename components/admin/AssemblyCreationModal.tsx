@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface AssemblyCreationModalProps {
   fundId: string;
@@ -28,7 +28,39 @@ export default function AssemblyCreationModal({
 }: AssemblyCreationModalProps) {
   const [assemblyDate, setAssemblyDate] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingFund, setIsFetchingFund] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // 모달이 열릴 때 조합의 결성 예정일을 가져와서 기본값으로 설정
+  useEffect(() => {
+    if (isOpen && fundId) {
+      loadFundFormationDate();
+    }
+  }, [isOpen, fundId]);
+
+  const loadFundFormationDate = async () => {
+    setIsFetchingFund(true);
+    try {
+      const response = await fetch(`/api/admin/funds/${fundId}/details`);
+      if (!response.ok) {
+        console.error('펀드 정보 조회 실패');
+        return;
+      }
+
+      const data = await response.json();
+      if (data.fund?.closed_at) {
+        // closed_at을 YYYY-MM-DD 형식으로 변환
+        const formattedDate = new Date(data.fund.closed_at)
+          .toISOString()
+          .split('T')[0];
+        setAssemblyDate(formattedDate);
+      }
+    } catch (err) {
+      console.error('펀드 정보 조회 중 오류:', err);
+    } finally {
+      setIsFetchingFund(false);
+    }
+  };
 
   const handleCreateAssembly = async () => {
     if (!assemblyDate) {
@@ -73,9 +105,11 @@ export default function AssemblyCreationModal({
 
   const handleClose = () => {
     // 초기화
-    setAssemblyDate('');
-    setError(null);
-    onClose();
+    if (!isFetchingFund && !isLoading) {
+      setAssemblyDate('');
+      setError(null);
+      onClose();
+    }
   };
 
   return (
@@ -141,13 +175,22 @@ export default function AssemblyCreationModal({
 
           <div>
             <Label htmlFor="assembly-date">총회 개최일</Label>
-            <Input
-              id="assembly-date"
-              type="date"
-              value={assemblyDate}
-              onChange={e => setAssemblyDate(e.target.value)}
-              className="mt-1"
-            />
+            {isFetchingFund ? (
+              <div className="flex items-center justify-center py-3 border rounded-md mt-1">
+                <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                <span className="ml-2 text-sm text-gray-500">
+                  결성 예정일 조회 중...
+                </span>
+              </div>
+            ) : (
+              <Input
+                id="assembly-date"
+                type="date"
+                value={assemblyDate}
+                onChange={e => setAssemblyDate(e.target.value)}
+                className="mt-1"
+              />
+            )}
           </div>
 
           <Alert>

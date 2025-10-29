@@ -355,7 +355,7 @@ export const ASSEMBLY_DOCUMENT_TYPES: Record<
   formation: [
     'formation_agenda',
     'formation_consent_form',
-    'formation_minutes',
+    // 'formation_minutes',
   ],
   special: ['special_agenda', 'special_minutes'],
   regular: ['regular_agenda', 'regular_minutes'],

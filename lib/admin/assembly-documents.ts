@@ -32,7 +32,7 @@ import { getActiveAssemblyTemplate } from './assembly-templates';
 const FORMATION_DOCUMENT_ORDER: AssemblyDocumentType[] = [
   'formation_agenda',
   'formation_consent_form',
-  'formation_minutes',
+  // 'formation_minutes',
 ];
 
 /**

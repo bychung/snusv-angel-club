@@ -90,6 +90,17 @@ export async function POST(
       profile.brand
     );
 
+    // 결성총회인 경우, 조합의 결성 예정일(closed_at)을 총회 개최일로 업데이트
+    if (type === 'formation') {
+      const { updateFundFormationDate } = await import('@/lib/admin/funds');
+      try {
+        await updateFundFormationDate(fundId, assembly_date);
+      } catch (updateError) {
+        console.error('조합 결성 예정일 업데이트 실패:', updateError);
+        // 총회는 이미 생성되었으므로 에러를 던지지 않고 로그만 남김
+      }
+    }
+
     return NextResponse.json({ assembly }, { status: 201 });
   } catch (error) {
     console.error('총회 생성 실패:', error);

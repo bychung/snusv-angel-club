@@ -5,12 +5,12 @@ import * as path from 'path';
 import PDFDocument from 'pdfkit';
 import type { FormationAgendaContent } from '../../types/assemblies';
 import { FORMATION_AGENDA_CONFIG } from './formation-agenda-config';
+import { getFontPath } from './template-font';
 import {
   renderTemplateString,
   STYLE_MARKERS,
   wrapInputValueForPreview,
 } from './template-utils';
-import { getFontPath } from './template-font';
 
 interface FormationAgendaData {
   fund_name: string;
@@ -295,14 +295,26 @@ export async function generateFormationAgendaPDF(
       registerKoreanFonts(doc);
 
       // 템플릿에서 레이블 가져오기 (없으면 기본값)
-      const templateContent = data.template?.content || {};
-      const defaultTemplate = getDefaultFormationAgendaTemplate();
+      let labels, titleTemplate, footerMessage;
 
-      const labels = templateContent.labels || defaultTemplate.labels;
-      const titleTemplate =
-        templateContent.title_template || defaultTemplate.title_template;
-      const footerMessage =
-        templateContent.footer_message || defaultTemplate.footer_message;
+      if (data.template?.content) {
+        const templateContent = data.template.content;
+        labels = templateContent.labels;
+        titleTemplate = templateContent.title_template;
+        footerMessage = templateContent.footer_message;
+
+        console.log('[generateFormationAgendaPDF] DB 템플릿 사용:', {
+          templateId: data.template.id,
+          templateVersion: data.template.version,
+        });
+      } else {
+        const defaultTemplate = getDefaultFormationAgendaTemplate();
+        labels = defaultTemplate.labels;
+        titleTemplate = defaultTemplate.title_template;
+        footerMessage = defaultTemplate.footer_message;
+
+        console.log('[generateFormationAgendaPDF] 기본 템플릿(fallback) 사용');
+      }
 
       // 미리보기 여부 판단 (명시적인 플래그 사용, 기본값 false)
       const isPreview = data.isPreview ?? false;
