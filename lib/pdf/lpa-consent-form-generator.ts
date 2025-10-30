@@ -8,6 +8,7 @@
 import type {
   LpaConsentFormContext,
   LpaConsentFormTemplate,
+  MemberPage,
 } from '@/types/assemblies';
 import PDFDocument from 'pdfkit';
 import { getFontPath } from './template-font';
@@ -103,12 +104,15 @@ function buildLPAContextFromConsentFormContext(
  *
  * @param template - 규약 동의서 템플릿 (기존 appendix2 구조와 동일)
  * @param context - 조합원 정보 컨텍스트
- * @returns PDF Buffer
+ * @returns PDF Buffer 및 memberPages 매핑 정보
  */
 export async function generateLpaConsentFormPDF(
   template: LpaConsentFormTemplate,
   context: LpaConsentFormContext
-): Promise<Buffer> {
+): Promise<{
+  pdfBuffer: Buffer;
+  memberPages: MemberPage[];
+}> {
   const defaultFontPath = getFontPath();
 
   const doc = new PDFDocument({
@@ -148,6 +152,21 @@ export async function generateLpaConsentFormPDF(
     },
   } as any; // 타입 호환성을 위해 any 사용
 
+  // memberPages 매핑 정보 생성
+  const memberPages: MemberPage[] = [];
+  for (let i = 0; i < lpMembersOnly.length; i++) {
+    const member = lpMembersOnly[i];
+    // context.lpMembers에서 해당 이름의 실제 profile_id 찾기
+    const lpMemberData = context.lpMembers.find(lp => lp.name === member.name);
+    if (lpMemberData) {
+      memberPages.push({
+        member_id: lpMemberData.id, // 실제 profile_id
+        member_name: member.name,
+        page_number: i + 1, // 1-based
+      });
+    }
+  }
+
   // 별지 렌더링 (기존 함수 재사용, generateAllConsents: true로 모든 조합원 생성)
   await renderRepeatingPageAppendix(
     doc,
@@ -163,7 +182,7 @@ export async function generateLpaConsentFormPDF(
     doc.on('end', () => {
       const pdfBuffer = Buffer.concat(chunks);
       console.log(`규약 동의서 PDF 생성 완료: ${pdfBuffer.length} bytes`);
-      resolve(pdfBuffer);
+      resolve({ pdfBuffer, memberPages });
     });
     doc.on('error', reject);
   });
@@ -216,7 +235,6 @@ export async function renderRepeatingPageAppendix(
     // 컨텐츠 요소들 렌더링
     for (const element of (appendixDef.template as AppendixTemplate).content ||
       []) {
-      console.log('memberContext', memberContext);
       await renderAppendixContentElement(doc, element, memberContext);
     }
   }

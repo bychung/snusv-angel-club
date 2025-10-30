@@ -50,6 +50,7 @@ export interface LpaConsentFormContext {
   };
   gpList: string; // GP 조합원 리스트 (쉼표로 구분)
   lpMembers: Array<{
+    id: string; // profile_id (개별 PDF 생성에 필요)
     name: string;
     address: string;
     birthDateOrBusinessNumber: string;
@@ -59,6 +60,7 @@ export interface LpaConsentFormContext {
   }>;
   generatedAt: string;
   templateVersion: string;
+  memberPages?: MemberPage[]; // 페이지 매핑 정보 (통합 문서 생성 시 추가)
 }
 
 // LPA 규약 동의서 문서 (content/context 구조)

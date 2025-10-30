@@ -139,6 +139,7 @@ export async function buildLpaConsentFormContext(
 
   // 5. LP 조합원 정보 배열 생성
   const lpMembersData: Array<{
+    id: string;
     name: string;
     address: string;
     birthDateOrBusinessNumber: string;
@@ -148,6 +149,7 @@ export async function buildLpaConsentFormContext(
   }> = lpMembers.map((member: any) => {
     const profile = member.profile;
     return {
+      id: profile?.id || '', // profile_id 추가
       name: profile?.name || '',
       address: profile?.address || '',
       birthDateOrBusinessNumber:
@@ -417,36 +419,16 @@ export async function generateLpaConsentForm(params: {
       .eq('type', 'lpa_consent_form');
   }
 
-  // 5. PDF 생성 (아직 구현되지 않았으므로 임시로 빈 버퍼 사용)
-  // TODO: PDF 생성기 구현 후 교체
+  // 5. PDF 생성 (memberPages 포함)
   const { generateLpaConsentFormPDF } = await import(
     '@/lib/pdf/lpa-consent-form-generator'
   );
-  const pdfBuffer = await generateLpaConsentFormPDF(template, context);
+  const { pdfBuffer, memberPages } = await generateLpaConsentFormPDF(
+    template,
+    context
+  );
 
-  // 6. 문서 저장 (PDF URL은 나중에 업데이트)
-  const { data: document, error: insertError } = await brandClient.fundDocuments
-    .insert({
-      fund_id: params.fundId,
-      type: 'lpa_consent_form',
-      version_number: nextVersion,
-      is_active: true,
-      template_id: templateId || null,
-      template_version: templateVersion,
-      processed_content: template, // content
-      generation_context: context, // context
-      generated_by: params.userId,
-    })
-    .select()
-    .single();
-
-  if (insertError || !document) {
-    throw new Error(
-      `문서 저장 실패: ${insertError?.message || '알 수 없는 오류'}`
-    );
-  }
-
-  // 7. Storage에 PDF 업로드
+  // 6. 통합 PDF Storage에 업로드
   const { uploadFileToStorage } = await import('../storage/upload');
   const fileName = `lpa-consent-form-v${nextVersion}.pdf`;
   const storagePath = `${params.fundId}/lpa-consent-form/${fileName}`;
@@ -458,26 +440,78 @@ export async function generateLpaConsentForm(params: {
     brand: getCurrentBrand(),
   });
 
-  // 8. PDF URL 업데이트
-  const { error: updateError } = await brandClient.fundDocuments
-    .update({ pdf_storage_path: pdfUrl })
-    .eq('id', document.id);
+  // 7. 통합 문서 DB 저장 (memberPages를 generation_context에 포함)
+  const contextWithMapping = {
+    ...context,
+    memberPages, // 페이지 매핑 정보 추가
+  };
 
-  if (updateError) {
-    console.error('PDF URL 업데이트 실패:', updateError);
+  const { data: parentDoc, error: parentDocError } =
+    await brandClient.fundDocuments
+      .insert({
+        fund_id: params.fundId,
+        type: 'lpa_consent_form',
+        version_number: nextVersion,
+        is_active: true,
+        template_id: templateId || null,
+        template_version: templateVersion,
+        processed_content: template,
+        generation_context: contextWithMapping,
+        generated_by: params.userId,
+        pdf_storage_path: pdfUrl,
+        is_split_parent: true, // 통합 문서 표시
+      })
+      .select()
+      .single();
+
+  if (parentDocError || !parentDoc) {
+    throw new Error(
+      `통합 문서 저장 실패: ${parentDocError?.message || '알 수 없는 오류'}`
+    );
+  }
+
+  // 8. 개별 문서 레코드만 생성 (PDF는 생성하지 않음)
+  const individualInserts = memberPages.map(memberPage => ({
+    fund_id: params.fundId,
+    type: 'lpa_consent_form' as const,
+    version_number: nextVersion,
+    is_active: true,
+    template_id: templateId || null,
+    template_version: templateVersion,
+    processed_content: template,
+    generation_context: {
+      page_number: memberPage.page_number,
+      member_name: memberPage.member_name,
+    },
+    generated_by: params.userId,
+    pdf_storage_path: null, // 아직 생성하지 않음
+    is_split_parent: false,
+    parent_document_id: parentDoc.id,
+    member_id: memberPage.member_id,
+  }));
+
+  if (individualInserts.length > 0) {
+    const { error: childrenError } = await brandClient.fundDocuments.insert(
+      individualInserts
+    );
+
+    if (childrenError) {
+      console.error('개별 문서 레코드 생성 실패:', childrenError);
+      throw new Error(`개별 문서 레코드 생성 실패: ${childrenError.message}`);
+    }
   }
 
   return {
     document: {
-      id: document.id,
-      fund_id: document.fund_id,
+      id: parentDoc.id,
+      fund_id: parentDoc.fund_id,
       type: 'lpa_consent_form',
       content: template,
-      context,
+      context: contextWithMapping,
       version: templateVersion,
       template_id: templateId || undefined,
       pdf_url: pdfUrl,
-      generated_at: document.generated_at,
+      generated_at: parentDoc.generated_at,
       generated_by: params.userId,
     },
     pdfBuffer,
@@ -498,9 +532,145 @@ export async function previewLpaConsentForm(fundId: string): Promise<Buffer> {
   const { generateLpaConsentFormPDF } = await import(
     '@/lib/pdf/lpa-consent-form-generator'
   );
-  const pdfBuffer = await generateLpaConsentFormPDF(template, context);
+  const { pdfBuffer } = await generateLpaConsentFormPDF(template, context);
 
   return pdfBuffer;
+}
+
+/**
+ * 개별 조합원의 규약 동의서 PDF 가져오기 (없으면 생성)
+ */
+export async function getIndividualLpaConsentFormPdf(
+  fundId: string,
+  memberId: string
+): Promise<{ path: string; buffer: Buffer }> {
+  const brandClient = await createBrandServerClient();
+  const { createStorageClient } = await import('@/lib/supabase/server');
+  const storageClient = createStorageClient();
+
+  // 1. 활성 개별 문서 레코드 조회
+  const { data: individualDoc, error: docError } =
+    await brandClient.fundDocuments
+      .select('*')
+      .eq('fund_id', fundId)
+      .eq('type', 'lpa_consent_form')
+      .eq('is_active', true)
+      .eq('is_split_parent', false)
+      .eq('member_id', memberId)
+      .maybeSingle();
+
+  if (docError || !individualDoc) {
+    throw new Error('개별 문서 레코드를 찾을 수 없습니다');
+  }
+
+  // 2. 이미 생성된 PDF가 있으면 반환
+  if (individualDoc.pdf_storage_path) {
+    const { data: fileData, error: downloadError } = await storageClient.storage
+      .from('generated-documents')
+      .download(individualDoc.pdf_storage_path);
+
+    if (!downloadError && fileData) {
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      return {
+        path: individualDoc.pdf_storage_path,
+        buffer,
+      };
+    }
+  }
+
+  // 3. PDF가 없으면 생성
+  // 3-1. 통합 문서 조회
+  const { data: parentDoc, error: parentError } =
+    await brandClient.fundDocuments
+      .select('*')
+      .eq('id', individualDoc.parent_document_id)
+      .single();
+
+  if (parentError || !parentDoc) {
+    throw new Error('통합 문서를 찾을 수 없습니다');
+  }
+
+  // 3-2. 통합 PDF 다운로드
+  const { data: fullPdfData, error: fullPdfError } = await storageClient.storage
+    .from('generated-documents')
+    .download(parentDoc.pdf_storage_path);
+
+  if (fullPdfError || !fullPdfData) {
+    throw new Error('통합 PDF 다운로드 실패');
+  }
+
+  const fullPdfBuffer = Buffer.from(await fullPdfData.arrayBuffer());
+
+  // 3-3. 페이지 번호 추출
+  const pageNumber = individualDoc.generation_context?.page_number;
+  if (!pageNumber) {
+    throw new Error('페이지 번호를 찾을 수 없습니다');
+  }
+
+  // 3-4. PDF 분리
+  const { extractPdfPages } = await import('@/lib/pdf/pdf-splitter');
+  const individualBuffer = await extractPdfPages(fullPdfBuffer, [pageNumber]);
+
+  // 3-5. Storage에 저장
+  const { uploadFileToStorage } = await import('../storage/upload');
+  const fileName = `lpa-consent-form-v${individualDoc.version_number}-${memberId}.pdf`;
+  const storagePath = `${fundId}/lpa-consent-form/individual/${fileName}`;
+
+  const uploadedPath = await uploadFileToStorage({
+    file: individualBuffer,
+    bucket: 'generated-documents',
+    path: storagePath,
+    brand: getCurrentBrand(),
+  });
+
+  // 3-6. DB 업데이트
+  await brandClient.fundDocuments
+    .update({ pdf_storage_path: uploadedPath })
+    .eq('id', individualDoc.id);
+
+  return {
+    path: uploadedPath,
+    buffer: individualBuffer,
+  };
+}
+
+/**
+ * 활성 버전의 모든 개별 규약 동의서 조회
+ */
+export async function getIndividualLpaConsentForms(
+  fundId: string
+): Promise<
+  Array<import('@/types/database').FundDocument & { member_id: string }>
+> {
+  const brandClient = await createBrandServerClient();
+
+  const { data: individualDocs } = await brandClient.fundDocuments
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('type', 'lpa_consent_form')
+    .eq('is_active', true)
+    .eq('is_split_parent', false)
+    .not('member_id', 'is', null);
+
+  return (individualDocs || []) as Array<
+    import('@/types/database').FundDocument & { member_id: string }
+  >;
+}
+
+/**
+ * 규약 동의서 재생성 (버전 업그레이드)
+ * 조합원 정보 변경, 추가, 삭제 시 호출
+ */
+export async function regenerateLpaConsentForm(params: {
+  fundId: string;
+  userId: string;
+}): Promise<{
+  document: LpaConsentFormDocument;
+  pdfBuffer: Buffer;
+}> {
+  // generateLpaConsentForm과 동일한 로직
+  // (이미 기존 버전 비활성화 로직 포함)
+  return await generateLpaConsentForm(params);
 }
 
 /**
