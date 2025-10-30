@@ -102,7 +102,8 @@ export async function buildLpaConsentFormContext(
         phone,
         birth_date,
         business_number,
-        entity_type
+        entity_type,
+        ceo
       )
     `
       )
@@ -146,6 +147,7 @@ export async function buildLpaConsentFormContext(
     contact: string;
     shares: number;
     entity_type: 'individual' | 'corporate';
+    ceo?: string;
   }> = lpMembers.map((member: any) => {
     const profile = member.profile;
     return {
@@ -159,6 +161,7 @@ export async function buildLpaConsentFormContext(
       contact: profile?.phone || '',
       shares: member.total_units || 0,
       entity_type: profile?.entity_type || 'individual',
+      ceo: profile?.ceo || undefined,
     };
   });
 
@@ -268,6 +271,13 @@ export function compareLpMembers(
         changes.birthDateOrBusinessNumber = {
           old: oldMember.birthDateOrBusinessNumber,
           new: newMember.birthDateOrBusinessNumber,
+        };
+      }
+      // 대표이사 필드 비교 (법인만 해당)
+      if ((oldMember.ceo || '') !== (newMember.ceo || '')) {
+        changes.ceo = {
+          old: oldMember.ceo || '',
+          new: newMember.ceo || '',
         };
       }
 

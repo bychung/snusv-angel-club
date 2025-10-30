@@ -57,6 +57,7 @@ export interface LpaConsentFormContext {
     contact: string;
     shares: number;
     entity_type: 'individual' | 'corporate'; // 개인/법인 구분
+    ceo?: string; // 법인 대표이사명 (법인만 해당)
   }>;
   generatedAt: string;
   templateVersion: string;

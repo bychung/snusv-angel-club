@@ -64,10 +64,16 @@ export default function LpaConsentFormDiffViewer({
                         {field === 'shares' && '출자좌수'}
                         {field === 'birthDateOrBusinessNumber' &&
                           '생년월일/사업자번호'}
-                        :
+                        {field === 'ceo' && '대표이사'}
+                        {field === 'entity_type' && '엔티티 타입'}
+                        {field === 'business_number' && '사업자번호'}
+                        {field === 'birth_date' && '생년월일'}
+                        {field === 'email' && '이메일'}
+                        {field === 'phone' && '연락처'}
+                        {field === 'name' && '이름'}:
                       </span>
                       <span className="text-gray-500 line-through ml-1">
-                        {change.old}
+                        {change.old || '없음'}
                       </span>
                       <span className="mx-1">→</span>
                       <span className="text-blue-600 font-medium">
