@@ -134,14 +134,30 @@ export async function GET(
       };
     }
 
-    // 기본 제목 및 본문
-    const subject = getDefaultEmailSubject(fund.name, assembly.type);
-    const body = getDefaultEmailBody(
-      fund.name,
-      assembly.type,
-      assembly.assembly_date,
-      emailParams
-    );
+    // 이전 발송 기록 확인 (가장 최근 이메일)
+    const { data: latestEmail } = await brandClient.assemblyEmails
+      .select('subject, body')
+      .eq('assembly_id', assemblyId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // 이전 발송 기록이 있으면 그것을 사용, 없으면 기본 템플릿 생성
+    let subject: string;
+    let body: string;
+
+    if (latestEmail) {
+      subject = latestEmail.subject;
+      body = latestEmail.body;
+    } else {
+      subject = getDefaultEmailSubject(fund.name, assembly.type);
+      body = getDefaultEmailBody(
+        fund.name,
+        assembly.type,
+        assembly.assembly_date,
+        emailParams
+      );
+    }
 
     return NextResponse.json({
       recipients,
