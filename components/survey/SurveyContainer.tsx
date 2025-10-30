@@ -245,6 +245,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
       updates.birthDate = profile.birth_date;
     if (!existingData?.businessNumber && profile.business_number)
       updates.businessNumber = profile.business_number;
+    if (!existingData?.ceo && profile.ceo) updates.ceo = profile.ceo;
 
     // 업데이트할 데이터가 있으면 적용
     if (Object.keys(updates).length > 0) {
@@ -300,8 +301,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
             // 비로그인 사용자의 경우 로컬 스토리지에서 완료 여부 확인
             if (!isLoggedInUser) {
               const localData = store.getFundSurveyData(currentFundId);
-              if (localData.currentPage === 9) {
-                // 9페이지(완료 페이지)에 있다면 이미 제출된 것으로 처리
+              if (localData.currentPage === 10) {
+                // 10페이지(완료 페이지)에 있다면 이미 제출된 것으로 처리
                 setIsAlreadySubmitted(true);
               }
             }
@@ -403,6 +404,13 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     return null;
   };
 
+  const validateCeo = () => {
+    if (surveyData?.entityType === 'corporate' && !surveyData.ceo) {
+      return '대표이사명을 입력해주세요';
+    }
+    return null;
+  };
+
   // 페이지별 유효성 검사
   const validateCurrentPage = () => {
     switch (currentPage) {
@@ -422,6 +430,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         return validateBirthDate();
       case 8:
         return validateBusinessNumber();
+      case 9:
+        return validateCeo();
       default:
         return null;
     }
@@ -469,7 +479,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
         store.setProfileId(activeFundId, result.profileId);
       }
 
-      // 9페이지로 이동 (제출 완료 페이지)
+      // 10페이지로 이동 (제출 완료 페이지)
       store.nextPage(activeFundId);
     } catch (error) {
       console.error('제출 오류:', error);
@@ -820,6 +830,35 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
                 required
               />
               <Button
+                onClick={handleNext}
+                className="w-full text-lg py-6"
+                size="lg"
+              >
+                다음
+              </Button>
+            </div>
+          </>
+        );
+
+      case 9:
+        // 대표이사명 입력 페이지 (법인)
+        return (
+          <>
+            <div className="mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-center sm:text-left">
+                법인 대표이사명을 알려주세요.
+              </h2>
+            </div>
+            <div className="space-y-6">
+              <TextInput
+                value={surveyData?.ceo || ''}
+                onChange={value =>
+                  activeFundId && store.updateField(activeFundId, 'ceo', value)
+                }
+                placeholder="홍길동"
+                required
+              />
+              <Button
                 onClick={handleSubmit}
                 className="w-full text-lg py-6"
                 size="lg"
@@ -860,7 +899,8 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
           </>
         );
 
-      case 9:
+      case 10:
+        // 제출 완료 페이지
         return (
           <>
             <div className="text-center mb-6">
@@ -1012,7 +1052,7 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container max-w-full sm:max-w-xl lg:max-w-2xl mx-auto px-4 sm:px-6 lg:px-6">
         {/* 로그인 옵션: 임시 disabled */}
-        {false && !isLoggedInUser && currentPage < 9 && (
+        {false && !isLoggedInUser && currentPage < 10 && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1047,11 +1087,11 @@ export default function SurveyContainer({ fundId }: { fundId?: string }) {
           </div>
         )}
 
-        {currentPage < 9 && <SurveyProgress />}
-        {currentPage < 9 && <SurveyNavigation />}
+        {currentPage < 10 && <SurveyProgress />}
+        {currentPage < 10 && <SurveyNavigation />}
 
         {/* 펀드 설명 문구 */}
-        {fundName && currentPage < 9 && (
+        {fundName && currentPage < 10 && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-center text-blue-800 font-medium">
               <b>{fundName}</b>에 대한 출자 의향을 묻는 조사입니다. <br />

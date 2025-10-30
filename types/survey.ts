@@ -16,6 +16,7 @@ export interface SurveyData {
 
   // 법인인 경우
   businessNumber?: string;
+  ceo?: string; // 법인 대표이사명
 }
 
 export interface SurveyPageConfig {

@@ -61,6 +61,7 @@ const initialSurveyData: SurveyData = {
   entityType: null,
   birthDate: undefined,
   businessNumber: undefined,
+  ceo: undefined,
 };
 
 const LOCAL_STORAGE_KEY_PREFIX = 'survey_draft_';

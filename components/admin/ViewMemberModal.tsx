@@ -139,6 +139,14 @@ export default function ViewMemberModal({
                       </p>
                     </div>
                   )}
+                {member.entity_type === 'corporate' && member.ceo && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">
+                      대표이사
+                    </label>
+                    <p className="mt-1 text-sm text-gray-900">{member.ceo}</p>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     가입일

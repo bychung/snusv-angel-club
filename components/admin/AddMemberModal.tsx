@@ -41,6 +41,7 @@ interface MemberFormData {
   entity_type: 'individual' | 'corporate';
   birth_date?: string;
   business_number?: string;
+  ceo?: string;
   address: string;
   investment_units: number;
   total_units: number;
@@ -54,6 +55,7 @@ interface ExistingProfile {
   entity_type: 'individual' | 'corporate';
   birth_date?: string;
   business_number?: string;
+  ceo?: string;
   address: string;
 }
 
@@ -73,6 +75,7 @@ export default function AddMemberModal({
     entity_type: 'individual',
     birth_date: '',
     business_number: '',
+    ceo: '',
     address: '',
     investment_units: 0,
     total_units: 1,
@@ -131,7 +134,7 @@ export default function AddMemberModal({
       const brandClient = createBrandClient();
       const { data, error } = await brandClient.profiles
         .select(
-          'id, name, email, phone, entity_type, birth_date, business_number, address'
+          'id, name, email, phone, entity_type, birth_date, business_number, ceo, address'
         )
         .order('name');
 
@@ -166,6 +169,7 @@ export default function AddMemberModal({
           entity_type: selectedProfile.entity_type,
           birth_date: selectedProfile.birth_date || '',
           business_number: selectedProfile.business_number || '',
+          ceo: selectedProfile.ceo || '',
           address: selectedProfile.address,
           investment_units: formData.investment_units,
           total_units: formData.total_units,
@@ -180,6 +184,7 @@ export default function AddMemberModal({
         entity_type: 'individual',
         birth_date: '',
         business_number: '',
+        ceo: '',
         address: '',
         investment_units: 1,
         total_units: 1,
@@ -213,6 +218,7 @@ export default function AddMemberModal({
       entity_type: type,
       birth_date: type === 'individual' ? prev.birth_date : undefined,
       business_number: type === 'corporate' ? prev.business_number : undefined,
+      ceo: type === 'corporate' ? prev.ceo : undefined,
     }));
   };
 
@@ -325,13 +331,21 @@ export default function AddMemberModal({
             profileInsertData.birth_date = birth_date;
           }
 
-          // 법인인 경우 사업자번호 추가 (값이 있을 경우만)
+          // 법인인 경우 사업자번호와 대표이사명 추가 (값이 있을 경우만)
           if (
             entity_type === 'corporate' &&
             business_number &&
             business_number.trim()
           ) {
             profileInsertData.business_number = business_number.trim();
+          }
+
+          if (
+            entity_type === 'corporate' &&
+            formData.ceo &&
+            formData.ceo.trim()
+          ) {
+            profileInsertData.ceo = formData.ceo.trim();
           }
 
           const { data: newProfile, error: insertError } =
@@ -426,6 +440,7 @@ export default function AddMemberModal({
       entity_type: 'individual',
       birth_date: '',
       business_number: '',
+      ceo: '',
       address: '',
       investment_units: 0,
       total_units: 1,
@@ -558,18 +573,30 @@ export default function AddMemberModal({
             )}
 
             {formData.entity_type === 'corporate' && (
-              <div className="space-y-2">
-                <Label htmlFor="business_number">사업자번호</Label>
-                <Input
-                  id="business_number"
-                  value={formData.business_number || ''}
-                  onChange={e =>
-                    handleChange('business_number', e.target.value)
-                  }
-                  placeholder="123-45-67890"
-                  disabled={isSubmitting || Boolean(selectedProfileId)}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="business_number">사업자번호</Label>
+                  <Input
+                    id="business_number"
+                    value={formData.business_number || ''}
+                    onChange={e =>
+                      handleChange('business_number', e.target.value)
+                    }
+                    placeholder="123-45-67890"
+                    disabled={isSubmitting || Boolean(selectedProfileId)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ceo">대표이사명</Label>
+                  <Input
+                    id="ceo"
+                    value={formData.ceo || ''}
+                    onChange={e => handleChange('ceo', e.target.value)}
+                    placeholder="홍길동"
+                    disabled={isSubmitting || Boolean(selectedProfileId)}
+                  />
+                </div>
+              </>
             )}
             {/* </div> */}
 

@@ -12,6 +12,7 @@ interface SubmitApplicationRequest {
     entityType: 'individual' | 'corporate';
     birthDate?: string;
     businessNumber?: string;
+    ceo?: string;
     investmentUnits: number;
   };
 }
@@ -70,6 +71,8 @@ export async function POST(
         surveyData.entityType === 'corporate'
           ? surveyData.businessNumber || null
           : null,
+      ceo:
+        surveyData.entityType === 'corporate' ? surveyData.ceo || null : null,
       address: surveyData.address,
       updated_at: new Date().toISOString(),
     };

@@ -53,6 +53,7 @@ export default function ProfileEditModal({
         address: profile.address,
         birth_date: profile.birth_date || undefined,
         business_number: profile.business_number || undefined,
+        ceo: profile.ceo || undefined,
       };
       setEditData(initialData);
       setHasChanges(false);
@@ -68,7 +69,8 @@ export default function ProfileEditModal({
         editData.email !== profile.email ||
         editData.address !== profile.address ||
         editData.birth_date !== profile.birth_date ||
-        editData.business_number !== profile.business_number;
+        editData.business_number !== profile.business_number ||
+        editData.ceo !== profile.ceo;
       setHasChanges(hasChanged);
     }
   }, [editData, profile]);
@@ -240,18 +242,30 @@ export default function ProfileEditModal({
 
             {/* 사업자번호 (법인인 경우) */}
             {profile.entity_type === 'corporate' && (
-              <div className="space-y-2">
-                <Label htmlFor="business_number">사업자번호</Label>
-                <Input
-                  id="business_number"
-                  value={editData.business_number || ''}
-                  onChange={e =>
-                    handleChange('business_number', e.target.value)
-                  }
-                  placeholder="123-45-67890"
-                  disabled={isReadOnly}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="business_number">사업자번호</Label>
+                  <Input
+                    id="business_number"
+                    value={editData.business_number || ''}
+                    onChange={e =>
+                      handleChange('business_number', e.target.value)
+                    }
+                    placeholder="123-45-67890"
+                    disabled={isReadOnly}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ceo">대표이사명</Label>
+                  <Input
+                    id="ceo"
+                    value={editData.ceo || ''}
+                    onChange={e => handleChange('ceo', e.target.value)}
+                    placeholder="홍길동"
+                    disabled={isReadOnly}
+                  />
+                </div>
+              </>
             )}
           </div>
 

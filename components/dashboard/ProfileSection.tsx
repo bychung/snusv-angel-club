@@ -44,6 +44,7 @@ export default function ProfileSection() {
       address: profile.address,
       birth_date: profile.birth_date || undefined,
       business_number: profile.business_number || undefined,
+      ceo: profile.ceo || undefined,
     });
   };
 
@@ -184,22 +185,38 @@ export default function ProfileSection() {
 
           {/* 사업자번호 (법인인 경우) */}
           {profile.entity_type === 'corporate' && (
-            <div className="space-y-2">
-              <Label>사업자번호</Label>
-              {isEditing ? (
-                <Input
-                  value={editData.business_number || ''}
-                  onChange={e =>
-                    handleChange('business_number', e.target.value)
-                  }
-                  placeholder="000-00-00000"
-                />
-              ) : (
-                <div className="p-3 bg-gray-50 rounded-md">
-                  {profile.business_number || '-'}
-                </div>
-              )}
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label>사업자번호</Label>
+                {isEditing ? (
+                  <Input
+                    value={editData.business_number || ''}
+                    onChange={e =>
+                      handleChange('business_number', e.target.value)
+                    }
+                    placeholder="000-00-00000"
+                  />
+                ) : (
+                  <div className="p-3 bg-gray-50 rounded-md">
+                    {profile.business_number || '-'}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>대표이사명</Label>
+                {isEditing ? (
+                  <Input
+                    value={editData.ceo || ''}
+                    onChange={e => handleChange('ceo', e.target.value)}
+                    placeholder="홍길동"
+                  />
+                ) : (
+                  <div className="p-3 bg-gray-50 rounded-md">
+                    {profile.ceo || '-'}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
 

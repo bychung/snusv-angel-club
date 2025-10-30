@@ -56,6 +56,7 @@ export default function EditMemberModal({
     address: '',
     birth_date: '',
     business_number: '',
+    ceo: '',
     investment_units: 0,
     total_units: 0,
     role: 'USER' as 'ADMIN' | 'USER',
@@ -80,6 +81,7 @@ export default function EditMemberModal({
         address: member.address,
         birth_date: member.birth_date || '',
         business_number: member.business_number || '',
+        ceo: member.ceo || '',
         investment_units: investmentUnits,
         total_units: totalUnits,
         role: member.role,
@@ -152,6 +154,7 @@ export default function EditMemberModal({
         formData.address !== member.address ||
         formData.birth_date !== (member.birth_date || '') ||
         formData.business_number !== (member.business_number || '') ||
+        formData.ceo !== (member.ceo || '') ||
         formData.role !== member.role ||
         JSON.stringify(formData.email_notifications) !==
           JSON.stringify(member.email_notifications || []) ||
@@ -167,6 +170,7 @@ export default function EditMemberModal({
             address: formData.address,
             birth_date: formData.birth_date || null,
             business_number: formData.business_number || null,
+            ceo: formData.ceo || null,
             role: formData.role,
             email_notifications: formData.email_notifications,
             memo: formData.memo || null,
@@ -416,20 +420,36 @@ export default function EditMemberModal({
             )}
 
             {member.entity_type === 'corporate' && (
-              <div className="space-y-2">
-                <Label htmlFor="business_number">사업자번호</Label>
-                <Input
-                  id="business_number"
-                  value={formData.business_number}
-                  onChange={e =>
-                    setFormData({
-                      ...formData,
-                      business_number: formatBusinessNumber(e.target.value),
-                    })
-                  }
-                  placeholder="123-45-67890"
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="business_number">사업자번호</Label>
+                  <Input
+                    id="business_number"
+                    value={formData.business_number}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        business_number: formatBusinessNumber(e.target.value),
+                      })
+                    }
+                    placeholder="123-45-67890"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ceo">대표이사명</Label>
+                  <Input
+                    id="ceo"
+                    value={formData.ceo}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        ceo: e.target.value,
+                      })
+                    }
+                    placeholder="홍길동"
+                  />
+                </div>
+              </>
             )}
 
             {/* 출자 정보는 펀드 멤버 목록에서만 표시 */}

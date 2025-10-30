@@ -176,9 +176,17 @@ export default function MemberTable({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 flex-wrap">
-                          <h3 className="text-sm font-medium text-gray-900 truncate">
-                            {member.name}
-                          </h3>
+                          <div className="flex flex-col">
+                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                              {member.name}
+                            </h3>
+                            {member.entity_type === 'corporate' &&
+                              member.ceo && (
+                                <p className="text-xs text-gray-500">
+                                  (대표이사: {member.ceo})
+                                </p>
+                              )}
+                          </div>
                           {getRoleBadge(member.role)}
                           {mode === 'fund_members'
                             ? // 펀드 조합원 모드: 출자금액 표시
