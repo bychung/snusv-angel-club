@@ -38,6 +38,7 @@ export interface FormationConsentFormContext {
     contact: string;
     shares: number;
     entity_type: 'individual' | 'corporate'; // 개인/법인 구분
+    ceo?: string; // 법인 대표이사명 (법인만 해당)
   }>;
   generatedAt: string;
   startDate: string; // 총회 개최일
@@ -125,6 +126,7 @@ function buildLPAContextFromConsentFormContext(
         : null,
     phone: member.contact,
     entity_type: member.entity_type,
+    ceo: member.ceo || null, // 법인 대표이사명 추가
   }));
 
   // GP 멤버와 LP 멤버를 합침

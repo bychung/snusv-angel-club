@@ -295,6 +295,7 @@ export async function getAssemblyDocuments(
   const { data, error } = await brandClient.assemblyDocuments
     .select('*')
     .eq('assembly_id', assemblyId)
+    .or('is_split_parent.eq.true,is_split_parent.is.null') // parent 문서만 또는 분할되지 않은 문서
     .order('created_at', { ascending: true });
 
   if (error) {

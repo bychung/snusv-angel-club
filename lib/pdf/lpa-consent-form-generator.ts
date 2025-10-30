@@ -70,6 +70,7 @@ function buildLPAContextFromConsentFormContext(
         : null,
     phone: member.contact,
     entity_type: member.entity_type,
+    ceo: member.ceo || null, // 법인 대표이사명 추가
   }));
 
   // GP 멤버와 LP 멤버를 합침

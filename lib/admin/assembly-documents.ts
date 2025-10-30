@@ -140,7 +140,7 @@ async function getFundMemberData(fundId: string) {
 
   if (gpIds.length > 0) {
     const { data: gpData, error: gpError } = await brandClient.profiles
-      .select('id, name, entity_type, business_number')
+      .select('id, name, entity_type, business_number, ceo')
       .in('id', gpIds);
 
     if (gpError) {
@@ -813,6 +813,7 @@ export async function generateAssemblyDocumentBuffer(params: {
         contact: string;
         shares: number;
         entity_type: 'individual' | 'corporate';
+        ceo?: string; // 법인 대표이사명 (법인만 해당)
       };
 
       const lpMembers: LpMemberInfo[] = members
@@ -825,6 +826,7 @@ export async function generateAssemblyDocumentBuffer(params: {
           contact: m.phone || '',
           shares: m.units || 0,
           entity_type: m.entity_type || 'individual',
+          ceo: m.ceo || undefined, // 법인 대표이사명 추가
         }));
 
       // LP 조합원 가나다순 정렬

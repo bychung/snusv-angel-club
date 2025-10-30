@@ -188,7 +188,7 @@ export async function buildLpaConsentFormContext(
 }
 
 /**
- * 최신 규약 동의서 문서 조회
+ * 최신 규약 동의서 문서 조회 (parent 문서만)
  */
 export async function getLatestLpaConsentForm(
   fundId: string
@@ -200,6 +200,7 @@ export async function getLatestLpaConsentForm(
     .eq('fund_id', fundId)
     .eq('type', 'lpa_consent_form')
     .eq('is_active', true)
+    .eq('is_split_parent', true) // parent 문서만 조회
     .order('version_number', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -235,8 +236,8 @@ export function compareLpMembers(
   oldContext: LpaConsentFormContext,
   newContext: LpaConsentFormContext
 ): LpaConsentFormDiff {
-  const oldMembers = oldContext.lpMembers;
-  const newMembers = newContext.lpMembers;
+  const oldMembers = oldContext.lpMembers || [];
+  const newMembers = newContext.lpMembers || [];
 
   // 이름 기준으로 비교
   const oldNames = new Set(oldMembers.map(m => m.name));
@@ -344,8 +345,8 @@ export async function calculateLpaConsentFormDiff(
   // 2. 현재 조합원 정보로 컨텍스트 생성
   const currentContext = await buildLpaConsentFormContext(fundId);
 
-  // 3. 최신 문서가 없으면 변경사항 있음 (최초 생성)
-  if (!latestDocument) {
+  // 3. 최신 문서가 없거나 context가 없으면 변경사항 있음 (최초 생성)
+  if (!latestDocument || !latestDocument.context) {
     // 가나다순 정렬
     const sortedMembers = currentContext.lpMembers
       .sort((a, b) => {
@@ -685,12 +686,14 @@ export async function regenerateLpaConsentForm(params: {
 
 /**
  * LPA 규약 동의서 삭제
+ * parent 문서와 모든 child 문서(개별 조합원용)를 함께 삭제합니다.
  * DB 레코드와 Storage 파일을 모두 삭제합니다.
  * 최신 버전(is_active=true)을 삭제하면 이전 버전을 활성화합니다.
  */
 export async function deleteLpaConsentForm(documentId: string): Promise<void> {
   const brandClient = await createBrandServerClient();
   const { createStorageClient } = await import('@/lib/supabase/server');
+  const storageClient = createStorageClient();
 
   // 1. 문서 조회
   const { data: doc, error: fetchError } = await brandClient.fundDocuments
@@ -708,18 +711,56 @@ export async function deleteLpaConsentForm(documentId: string): Promise<void> {
     id: doc.id,
     fund_id: doc.fund_id,
     type: doc.type,
-    version: doc.version,
+    version_number: doc.version_number,
     is_active: doc.is_active,
+    is_split_parent: doc.is_split_parent,
     pdf_storage_path: doc.pdf_storage_path,
   });
 
-  // 2. Storage에서 PDF 파일 삭제
+  // 2. parent 문서만 삭제 가능
+  if (!doc.is_split_parent) {
+    throw new Error(
+      '개별 조합원 문서는 직접 삭제할 수 없습니다. parent 문서를 삭제해주세요.'
+    );
+  }
+
+  // 3. parent 문서의 모든 child 문서들 조회
+  const { data: childDocs, error: childrenError } =
+    await brandClient.fundDocuments
+      .select('*')
+      .eq('parent_document_id', documentId)
+      .eq('type', 'lpa_consent_form');
+
+  if (childrenError) {
+    console.warn('[deleteLpaConsentForm] child 문서 조회 실패:', childrenError);
+  }
+
+  const children = childDocs || [];
+  console.log(`[deleteLpaConsentForm] child 문서 ${children.length}개 발견`);
+
+  // 4. Storage에서 모든 PDF 파일 삭제
+  const filesToDelete: string[] = [];
+
+  // parent 문서 파일
   if (doc.pdf_storage_path) {
+    filesToDelete.push(doc.pdf_storage_path);
+  }
+
+  // child 문서 파일들
+  for (const child of children) {
+    if (child.pdf_storage_path) {
+      filesToDelete.push(child.pdf_storage_path);
+    }
+  }
+
+  if (filesToDelete.length > 0) {
     try {
-      const storageClient = createStorageClient();
+      console.log(
+        `[deleteLpaConsentForm] Storage 파일 ${filesToDelete.length}개 삭제 시도`
+      );
       const { error: storageError } = await storageClient.storage
         .from('generated-documents')
-        .remove([doc.pdf_storage_path]);
+        .remove(filesToDelete);
 
       if (storageError) {
         console.error(
@@ -728,10 +769,7 @@ export async function deleteLpaConsentForm(documentId: string): Promise<void> {
         );
         // Storage 삭제 실패해도 계속 진행 (파일이 이미 없을 수 있음)
       } else {
-        console.log(
-          '[deleteLpaConsentForm] Storage 파일 삭제 성공:',
-          doc.pdf_storage_path
-        );
+        console.log('[deleteLpaConsentForm] Storage 파일 삭제 성공');
       }
     } catch (error) {
       console.error('[deleteLpaConsentForm] Storage 삭제 중 오류:', error);
@@ -739,72 +777,132 @@ export async function deleteLpaConsentForm(documentId: string): Promise<void> {
     }
   }
 
-  // 3. DB에서 문서 삭제 및 이전 버전 활성화 로직
+  // 4. DB에서 문서 삭제 및 이전 버전 활성화 로직
   if (doc.is_active) {
-    // 3-1. 같은 펀드의 같은 타입의 바로 이전 버전 찾기
-    let previousVersion = null;
+    // 4-1. 같은 펀드의 같은 타입의 바로 이전 버전(parent) 찾기
+    let previousParentVersion = null;
     try {
       const { data: previousVersions, error: prevError } =
         await brandClient.fundDocuments
           .select('*')
           .eq('fund_id', doc.fund_id)
           .eq('type', 'lpa_consent_form')
-          .lt('version', doc.version)
-          .order('version', { ascending: false })
+          .eq('is_split_parent', true) // parent 문서만 조회
+          .lt('version_number', doc.version_number)
+          .order('version_number', { ascending: false })
           .limit(1);
 
       if (prevError) {
         console.warn('[deleteLpaConsentForm] 이전 버전 조회 실패:', prevError);
-        // 이전 버전 조회 실패해도 계속 진행 (이전 버전이 없을 수 있음)
       } else {
-        previousVersion =
+        previousParentVersion =
           previousVersions && previousVersions.length > 0
             ? previousVersions[0]
             : null;
       }
     } catch (error) {
       console.warn('[deleteLpaConsentForm] 이전 버전 조회 중 오류:', error);
-      // 계속 진행
     }
 
     console.log(
       '[deleteLpaConsentForm] 이전 버전:',
-      previousVersion
-        ? { id: previousVersion.id, version: previousVersion.version }
+      previousParentVersion
+        ? {
+            id: previousParentVersion.id,
+            version_number: previousParentVersion.version_number,
+          }
         : '없음'
     );
 
-    // 3-2. 현재 문서 삭제
+    // 4-2. 모든 child 문서 삭제
+    if (children.length > 0) {
+      const { error: deleteChildrenError } = await brandClient.fundDocuments
+        .delete()
+        .eq('parent_document_id', documentId);
+
+      if (deleteChildrenError) {
+        console.error(
+          '[deleteLpaConsentForm] child 문서 삭제 실패:',
+          deleteChildrenError
+        );
+        throw new Error(`child 문서 삭제 실패: ${deleteChildrenError.message}`);
+      }
+      console.log(
+        `[deleteLpaConsentForm] child 문서 ${children.length}개 삭제 성공`
+      );
+    }
+
+    // 4-3. parent 문서 삭제
     const { error: deleteError } = await brandClient.fundDocuments
       .delete()
       .eq('id', documentId);
 
     if (deleteError) {
-      console.error('[deleteLpaConsentForm] 문서 삭제 실패:', deleteError);
+      console.error(
+        '[deleteLpaConsentForm] parent 문서 삭제 실패:',
+        deleteError
+      );
       throw new Error(`규약 동의서 삭제 실패: ${deleteError.message}`);
     }
 
-    console.log('[deleteLpaConsentForm] 문서 삭제 성공');
+    console.log('[deleteLpaConsentForm] parent 문서 삭제 성공');
 
-    // 3-3. 이전 버전이 있으면 활성화
-    if (previousVersion) {
-      const { error: updateError } = await brandClient.fundDocuments
+    // 4-4. 이전 버전(parent 및 child)이 있으면 활성화
+    if (previousParentVersion) {
+      // 이전 parent 활성화
+      const { error: updateParentError } = await brandClient.fundDocuments
         .update({ is_active: true })
-        .eq('id', previousVersion.id);
+        .eq('id', previousParentVersion.id);
 
-      if (updateError) {
+      if (updateParentError) {
         console.error(
-          '[deleteLpaConsentForm] 이전 버전 활성화 실패:',
-          updateError
+          '[deleteLpaConsentForm] 이전 parent 버전 활성화 실패:',
+          updateParentError
         );
-        throw new Error(`이전 버전 활성화 실패: ${updateError.message}`);
+        throw new Error(`이전 버전 활성화 실패: ${updateParentError.message}`);
       }
-      console.log('[deleteLpaConsentForm] 이전 버전 활성화 성공');
+
+      // 이전 버전의 모든 child 활성화
+      const { error: updateChildrenError } = await brandClient.fundDocuments
+        .update({ is_active: true })
+        .eq('parent_document_id', previousParentVersion.id)
+        .eq('type', 'lpa_consent_form');
+
+      if (updateChildrenError) {
+        console.error(
+          '[deleteLpaConsentForm] 이전 버전 child 활성화 실패:',
+          updateChildrenError
+        );
+        // child 활성화 실패는 warning만 출력하고 계속 진행
+      }
+
+      console.log(
+        '[deleteLpaConsentForm] 이전 버전(parent 및 child) 활성화 성공'
+      );
     } else {
       console.log('[deleteLpaConsentForm] 이전 버전이 없어 활성화 건너뜀');
     }
   } else {
-    // 4. 최신 버전이 아닌 경우 그냥 삭제
+    // 5. 최신 버전이 아닌 경우 그냥 삭제
+    // 5-1. 모든 child 문서 삭제
+    if (children.length > 0) {
+      const { error: deleteChildrenError } = await brandClient.fundDocuments
+        .delete()
+        .eq('parent_document_id', documentId);
+
+      if (deleteChildrenError) {
+        console.error(
+          '[deleteLpaConsentForm] child 문서 삭제 실패:',
+          deleteChildrenError
+        );
+        throw new Error(`child 문서 삭제 실패: ${deleteChildrenError.message}`);
+      }
+      console.log(
+        `[deleteLpaConsentForm] child 문서 ${children.length}개 삭제 성공`
+      );
+    }
+
+    // 5-2. parent 문서 삭제
     const { error: deleteError } = await brandClient.fundDocuments
       .delete()
       .eq('id', documentId);
