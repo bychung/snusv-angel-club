@@ -9,6 +9,7 @@ import {
   updateAssemblyEmailStatus,
   updateAssemblyStatus,
 } from '@/lib/admin/assemblies';
+import { retryWithDelay } from '@/lib/api-utils';
 import { validateAdminAuth } from '@/lib/auth/admin-server';
 import { sendAssemblyEmail } from '@/lib/email/assembly-notifications';
 import {
@@ -220,7 +221,7 @@ export async function POST(
       recipientProfileIds.length > 0
     ) {
       for (const profileId of recipientProfileIds) {
-        try {
+        await retryWithDelay(async () => {
           const { data: doc } = await brandClient.assemblyDocuments
             .select('*')
             .eq('assembly_id', assemblyId)
@@ -230,7 +231,7 @@ export async function POST(
             .maybeSingle();
 
           if (!doc || !doc.pdf_storage_path) {
-            continue;
+            return;
           }
 
           const buffer = await downloadFromStorage(doc.pdf_storage_path);
@@ -241,12 +242,7 @@ export async function POST(
             contentType: 'application/pdf',
           });
           profileAttachmentsMap.set(profileId, attachments);
-        } catch (error) {
-          console.error(
-            `결성총회 의안 동의서 첨부 실패 (profile_id: ${profileId}):`,
-            error
-          );
-        }
+        });
       }
     }
 
@@ -260,7 +256,7 @@ export async function POST(
       );
 
       for (const profileId of recipientProfileIds) {
-        try {
+        await retryWithDelay(async () => {
           const { data: doc } = await brandClient.fundDocuments
             .select('*')
             .eq('fund_id', fundId)
@@ -271,7 +267,7 @@ export async function POST(
             .maybeSingle();
 
           if (!doc) {
-            continue;
+            return;
           }
 
           let buffer: Buffer;
@@ -293,12 +289,7 @@ export async function POST(
             contentType: 'application/pdf',
           });
           profileAttachmentsMap.set(profileId, attachments);
-        } catch (error) {
-          console.error(
-            `규약 동의서 첨부 실패 (profile_id: ${profileId}):`,
-            error
-          );
-        }
+        });
       }
     }
 
@@ -312,7 +303,7 @@ export async function POST(
       );
 
       for (const profileId of recipientProfileIds) {
-        try {
+        await retryWithDelay(async () => {
           const { data: doc } = await brandClient.fundDocuments
             .select('*')
             .eq('fund_id', fundId)
@@ -323,7 +314,7 @@ export async function POST(
             .maybeSingle();
 
           if (!doc) {
-            continue;
+            return;
           }
 
           let buffer: Buffer;
@@ -345,12 +336,7 @@ export async function POST(
             contentType: 'application/pdf',
           });
           profileAttachmentsMap.set(profileId, attachments);
-        } catch (error) {
-          console.error(
-            `개인정보 동의서 첨부 실패 (profile_id: ${profileId}):`,
-            error
-          );
-        }
+        });
       }
     }
 
