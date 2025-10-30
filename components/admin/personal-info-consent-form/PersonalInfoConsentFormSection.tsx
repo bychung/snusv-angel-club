@@ -219,7 +219,7 @@ export default function PersonalInfoConsentFormSection({
                 <span className="font-medium">최신 문서</span>
               </div>
               <Badge variant="secondary">
-                v{latestDocument.context?.templateVersion || '1.0.0'}
+                v{latestDocument.version_number}
               </Badge>
             </div>
             <div className="text-sm text-gray-600">

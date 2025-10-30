@@ -72,6 +72,7 @@ export interface LpaConsentFormDocument {
   content: LpaConsentFormTemplate; // 생성 시점의 템플릿 스냅샷
   context: LpaConsentFormContext; // 생성 시점의 조합원 정보
   version: string; // 템플릿 버전
+  version_number: number; // 문서 버전 번호
   template_id?: string; // 글로벌 템플릿 참조
   pdf_url?: string;
   generated_at: string;
@@ -161,6 +162,7 @@ export interface PersonalInfoConsentFormDocument {
   content: PersonalInfoConsentFormTemplate;
   context: PersonalInfoConsentFormContext;
   version: string;
+  version_number: number; // 문서 버전 번호
   template_id?: string;
   pdf_url?: string;
   generated_at: string;

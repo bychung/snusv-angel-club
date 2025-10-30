@@ -287,7 +287,9 @@ export default function LpaConsentFormSection({
                 <FileText className="h-5 w-5 text-gray-500" />
                 <span className="font-medium">최신 문서</span>
               </div>
-              <Badge variant="secondary">v{latestDocument.version}</Badge>
+              <Badge variant="secondary">
+                v{latestDocument.version_number}
+              </Badge>
             </div>
             <div className="text-sm text-gray-600">
               생성일:{' '}
