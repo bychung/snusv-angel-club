@@ -29,7 +29,7 @@ export async function GET(
         memberId
       );
 
-      return new NextResponse(buffer, {
+      return new NextResponse(new Uint8Array(buffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
@@ -67,7 +67,7 @@ export async function GET(
 
     const buffer = Buffer.from(await fileData.arrayBuffer());
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

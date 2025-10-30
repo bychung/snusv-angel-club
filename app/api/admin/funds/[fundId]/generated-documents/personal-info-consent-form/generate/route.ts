@@ -15,7 +15,7 @@ export async function POST(
 ) {
   try {
     // 관리자 권한 검증
-    const user = await validateAdminAuth(request);
+    const { user } = await validateAdminAuth(request);
 
     const { fundId } = await params;
 
