@@ -345,7 +345,7 @@ export async function generateFormationAgendaPDF(
       const dateText = `* ${labels.date} ${wrapInputValueForPreview(
         formatDate(data.assembly_date),
         isPreview
-      )}`;
+      )} (서면에 의한 결의)`;
       renderStyledText(doc, dateText, {
         align: config.alignment.section,
       });

@@ -50,10 +50,12 @@ function addTitlePage(doc: any, context: LPAContext): void {
     width: pageWidth - 100,
   });
 
-  // 날짜
-  const generatedAt = context.generatedAt;
-  const year = generatedAt.getFullYear();
-  const month = String(generatedAt.getMonth() + 1).padStart(2, '0');
+  // 날짜 (결성총회일 우선, 없으면 생성일 사용)
+  const dateToUse = context.fund.closed_at
+    ? new Date(context.fund.closed_at)
+    : context.generatedAt;
+  const year = dateToUse.getFullYear();
+  const month = String(dateToUse.getMonth() + 1).padStart(2, '0');
 
   doc.fontSize(14);
   tryFont(doc, '맑은고딕', 'NanumGothic');
@@ -876,7 +878,6 @@ async function renderSampleAppendix(
     // fundName, gpList, startDate는 이미 context.fund, context.members에 있음
   };
 
-  console.log('externalTemplate', externalTemplate);
   // 기존 renderRepeatingPageAppendix 재사용
   // 더미 멤버 1개만 전달하여 1페이지만 생성
   const appendixForRender = {

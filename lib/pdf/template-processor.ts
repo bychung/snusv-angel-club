@@ -1,5 +1,6 @@
 // 템플릿 변수 치환 유틸리티
 
+import { getNameForSorting } from '../format-utils';
 import type {
   LPAContext,
   LPATemplate,
@@ -215,7 +216,17 @@ export function processTemplateVariables(
   );
   processedText = processedText.replace(
     /\$\{lpList\}/g,
-    markPreview(lpMembers.map(m => m.name).join(', '), isPreview)
+    markPreview(
+      lpMembers
+        .sort((a, b) => {
+          const nameA = getNameForSorting(a.name);
+          const nameB = getNameForSorting(b.name);
+          return nameA.localeCompare(nameB, 'ko-KR');
+        })
+        .map(m => m.name)
+        .join(', '),
+      isPreview
+    )
   );
 
   // currentMember 컨텍스트 변수 (별지 렌더링용)
