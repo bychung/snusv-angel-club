@@ -53,6 +53,7 @@ import DocumentUpload from './DocumentUpload';
 import InvestmentCertificateManager from './InvestmentCertificateManager';
 import LpaConsentFormSection from './lpa-consent-form/LpaConsentFormSection';
 import MemberListSection from './member-list/MemberListSection';
+import PersonalInfoConsentFormSection from './personal-info-consent-form/PersonalInfoConsentFormSection';
 
 interface FundDetailManagerProps {
   fundId: string;
@@ -914,6 +915,9 @@ export default function FundDetailManager({ fundId }: FundDetailManagerProps) {
 
             {/* 조합원 명부 섹션 */}
             <MemberListSection fundId={fundId} />
+
+            {/* 개인정보 수집·이용·제공 동의서 섹션 */}
+            <PersonalInfoConsentFormSection fundId={fundId} />
 
             {/* 향후 추가될 섹션들 */}
             {/* <DocumentGenerationSection

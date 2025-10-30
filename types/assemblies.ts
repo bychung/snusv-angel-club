@@ -98,6 +98,95 @@ export interface LpaConsentFormDiff {
   };
 }
 
+// === 개인정보 수집·이용·제공 동의서 타입 (독립 문서) ===
+
+// 개인정보 동의서 템플릿
+export interface PersonalInfoConsentFormTemplate {
+  type: 'personal_info_consent_form';
+  version: string;
+  description: string;
+  pages: Array<{
+    page: number;
+    header?: string; // 페이지 1만 헤더 있음
+    title?: string; // 페이지 1만 타이틀 있음
+    description: {
+      paragraphs: Array<{
+        text: string;
+        indent: number; // 0: 들여쓰기 없음, 1: 1단계, 2: 2단계
+      }>;
+    };
+    consent_box: {
+      title: string; // "※ 위와 같이..."
+      items: Array<{
+        label: string; // "- 필수 항목 중..."
+        options: string[]; // ["[v]동의함", "[ ]동의하지 않음"]
+      }>;
+    };
+    footer: {
+      date: string; // "${date}"
+      birthDate: string; // "${birthDateMasked}"
+      signerName: string; // "${name}"
+      lines: Array<{
+        text: string;
+        align?: 'left' | 'right' | 'center';
+        spacer?: boolean; // 빈 줄
+      }>;
+    };
+    page_number?: string; // 페이지 2만 해당
+  }>;
+}
+
+// 개인정보 동의서 컨텍스트
+export interface PersonalInfoConsentFormContext {
+  fund: {
+    name: string;
+    closedAt?: string; // 결성총회일
+  };
+  gpList: string;
+  lpMembers: Array<{
+    id: string; // profile_id
+    name: string;
+    birthDate: string; // YYMMDD 형식
+  }>;
+  generatedAt: string;
+  templateVersion: string;
+  memberPages?: MemberPage[]; // 페이지 매핑 정보
+}
+
+// 개인정보 동의서 문서 (content/context 구조)
+export interface PersonalInfoConsentFormDocument {
+  id: string;
+  fund_id: string;
+  type: 'personal_info_consent_form';
+  content: PersonalInfoConsentFormTemplate;
+  context: PersonalInfoConsentFormContext;
+  version: string;
+  template_id?: string;
+  pdf_url?: string;
+  generated_at: string;
+  generated_by?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 개인정보 동의서 Diff 정보
+export interface PersonalInfoConsentFormDiff {
+  hasChanges: boolean;
+  contextChanges?: {
+    lpMembersAdded: string[]; // 추가된 LP 조합원 이름
+    lpMembersRemoved: string[]; // 제거된 LP 조합원 이름
+    lpMembersModified: Array<{
+      name: string;
+      changes: Record<string, { old: string; new: string }>;
+    }>;
+    gpListChanged?: { old: string; new: string };
+  };
+  templateChanges?: {
+    versionChanged: { old: string; new: string };
+    contentModified: boolean;
+  };
+}
+
 // 문서 타입 정의
 export type AssemblyDocumentType =
   // 결성총회

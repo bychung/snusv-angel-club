@@ -107,7 +107,8 @@ async function main() {
     // 'template/lpa-template.json',
     // 'template/lpa-consent-form-template.json',
     // 'template/member-list-template.json',
-    'template/formation-agenda-template.json',
+    // 'template/formation-agenda-template.json',
+    'template/personal-info-consent-form-template.json',
   ];
 
   for (const templatePath of templates) {

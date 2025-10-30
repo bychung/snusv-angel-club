@@ -13,6 +13,10 @@ export function registerKoreanFonts(doc: any): void {
     const nanumRegularPath = path.join(fontDir, 'NanumGothic.ttf');
     const nanumBoldPath = path.join(fontDir, 'NanumGothicBold.ttf');
 
+    // NotoSansKR 폰트 경로
+    const notoRegularPath = path.join(fontDir, 'NotoSansKR-Regular.ttf');
+    const notoBoldPath = path.join(fontDir, 'NotoSansKR-Bold.ttf');
+
     if (fs.existsSync(regularPath)) {
       doc.registerFont('맑은고딕', regularPath);
     }
@@ -28,8 +32,30 @@ export function registerKoreanFonts(doc: any): void {
     if (fs.existsSync(nanumBoldPath)) {
       doc.registerFont('NanumGothicBold', nanumBoldPath);
     }
+
+    // NotoSansKR 폰트 등록
+    if (fs.existsSync(notoRegularPath)) {
+      doc.registerFont('NotoSansKR-Regular', notoRegularPath);
+      console.log('✓ NotoSansKR-Regular 폰트 등록 완료');
+    } else {
+      console.warn(
+        '⚠ NotoSansKR-Regular.ttf 파일을 찾을 수 없습니다:',
+        notoRegularPath
+      );
+    }
+
+    if (fs.existsSync(notoBoldPath)) {
+      doc.registerFont('NotoSansKR-Bold', notoBoldPath);
+      console.log('✓ NotoSansKR-Bold 폰트 등록 완료');
+    } else {
+      console.warn(
+        '⚠ NotoSansKR-Bold.ttf 파일을 찾을 수 없습니다:',
+        notoBoldPath
+      );
+    }
   } catch (error) {
     console.error('폰트 등록 실패:', error);
+    throw error;
   }
 }
 
