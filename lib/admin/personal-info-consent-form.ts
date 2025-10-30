@@ -481,7 +481,7 @@ export async function generatePersonalInfoConsentForm(params: {
     pdf_storage_path: null, // 아직 생성하지 않음
     is_split_parent: false,
     parent_document_id: parentDoc.id,
-    member_id: memberPage.member_id,
+    profile_id: memberPage.member_id,
   }));
 
   if (individualInserts.length > 0) {
@@ -549,7 +549,7 @@ export async function previewPersonalInfoConsentForm(
  */
 export async function getIndividualPersonalInfoConsentFormPdf(
   fundId: string,
-  memberId: string
+  profileId: string
 ): Promise<{ path: string; buffer: Buffer }> {
   const brandClient = await createBrandServerClient();
   const { createStorageClient } = await import('@/lib/supabase/server');
@@ -563,7 +563,7 @@ export async function getIndividualPersonalInfoConsentFormPdf(
       .eq('type', 'personal_info_consent_form')
       .eq('is_active', true)
       .eq('is_split_parent', false)
-      .eq('member_id', memberId)
+      .eq('profile_id', profileId)
       .maybeSingle();
 
   if (docError || !individualDoc) {
@@ -623,7 +623,7 @@ export async function getIndividualPersonalInfoConsentFormPdf(
 
   // 3-5. Storage에 저장
   const { uploadFileToStorage } = await import('../storage/upload');
-  const fileName = `personal-info-consent-form-v${individualDoc.version_number}-${memberId}.pdf`;
+  const fileName = `personal-info-consent-form-v${individualDoc.version_number}-${profileId}.pdf`;
   const storagePath = `${fundId}/personal-info-consent-form/individual/${fileName}`;
 
   const uploadedPath = await uploadFileToStorage({
@@ -650,7 +650,7 @@ export async function getIndividualPersonalInfoConsentFormPdf(
 export async function getIndividualPersonalInfoConsentForms(
   fundId: string
 ): Promise<
-  Array<import('@/types/database').FundDocument & { member_id: string }>
+  Array<import('@/types/database').FundDocument & { profile_id: string }>
 > {
   const brandClient = await createBrandServerClient();
 
@@ -660,10 +660,10 @@ export async function getIndividualPersonalInfoConsentForms(
     .eq('type', 'personal_info_consent_form')
     .eq('is_active', true)
     .eq('is_split_parent', false)
-    .not('member_id', 'is', null);
+    .not('profile_id', 'is', null);
 
   return (individualDocs || []) as Array<
-    import('@/types/database').FundDocument & { member_id: string }
+    import('@/types/database').FundDocument & { profile_id: string }
   >;
 }
 

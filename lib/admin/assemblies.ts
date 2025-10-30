@@ -397,3 +397,152 @@ export async function getAssemblyEmails(
 
   return data || [];
 }
+
+/**
+ * 결성총회 의안 동의서 개별 문서 조회
+ */
+export async function getIndividualFormationConsentForms(
+  assemblyId: string
+): Promise<Array<AssemblyDocument & { profile_id: string }>> {
+  const brandClient = await createBrandServerClient();
+
+  // 통합 문서 찾기
+  const { data: parentDoc } = await brandClient.assemblyDocuments
+    .select('id')
+    .eq('assembly_id', assemblyId)
+    .eq('type', 'formation_consent_form')
+    .eq('is_split_parent', true)
+    .maybeSingle();
+
+  if (!parentDoc) return [];
+
+  // 개별 문서들 조회
+  const { data: individualDocs } = await brandClient.assemblyDocuments
+    .select('*')
+    .eq('parent_document_id', parentDoc.id)
+    .not('profile_id', 'is', null);
+
+  return (individualDocs || []) as Array<
+    AssemblyDocument & { profile_id: string }
+  >;
+}
+
+/**
+ * 규약 동의서 개별 문서 조회 (최신 활성 버전)
+ */
+export async function getIndividualLpaConsentForms(
+  fundId: string
+): Promise<Array<any>> {
+  const brandClient = await createBrandServerClient();
+
+  // 최신 활성 통합 문서 찾기
+  const { data: parentDoc } = await brandClient.fundDocuments
+    .select('id, version_number')
+    .eq('fund_id', fundId)
+    .eq('type', 'lpa_consent_form')
+    .eq('is_active', true)
+    .eq('is_split_parent', true)
+    .maybeSingle();
+
+  if (!parentDoc) return [];
+
+  // 개별 문서들 조회 (같은 버전)
+  const { data: individualDocs } = await brandClient.fundDocuments
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('type', 'lpa_consent_form')
+    .eq('version_number', parentDoc.version_number)
+    .eq('is_active', true)
+    .eq('is_split_parent', false)
+    .not('member_id', 'is', null);
+
+  return individualDocs || [];
+}
+
+/**
+ * 개인정보 동의서 개별 문서 조회 (최신 활성 버전)
+ */
+export async function getIndividualPersonalInfoConsentForms(
+  fundId: string
+): Promise<Array<any>> {
+  const brandClient = await createBrandServerClient();
+
+  // 최신 활성 통합 문서 찾기
+  const { data: parentDoc } = await brandClient.fundDocuments
+    .select('id, version_number')
+    .eq('fund_id', fundId)
+    .eq('type', 'personal_info_consent_form')
+    .eq('is_active', true)
+    .eq('is_split_parent', true)
+    .maybeSingle();
+
+  if (!parentDoc) return [];
+
+  // 개별 문서들 조회 (같은 버전)
+  const { data: individualDocs } = await brandClient.fundDocuments
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('type', 'personal_info_consent_form')
+    .eq('version_number', parentDoc.version_number)
+    .eq('is_active', true)
+    .eq('is_split_parent', false)
+    .not('member_id', 'is', null);
+
+  return individualDocs || [];
+}
+
+/**
+ * 최신 규약 (LPA) 문서 조회
+ */
+export async function getLatestLpaDocument(
+  fundId: string
+): Promise<any | null> {
+  const brandClient = await createBrandServerClient();
+
+  const { data } = await brandClient.fundDocuments
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('type', 'lpa')
+    .eq('is_active', true)
+    .maybeSingle();
+
+  return data;
+}
+
+/**
+ * 최신 계좌 사본 조회
+ */
+export async function getLatestAccountDocument(
+  fundId: string
+): Promise<any | null> {
+  const brandClient = await createBrandServerClient();
+
+  const { data } = await brandClient.documents
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('category', 'account')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data;
+}
+
+/**
+ * 최신 고유번호증 조회
+ */
+export async function getLatestTaxDocument(
+  fundId: string
+): Promise<any | null> {
+  const brandClient = await createBrandServerClient();
+
+  const { data } = await brandClient.documents
+    .select('*')
+    .eq('fund_id', fundId)
+    .eq('category', 'tax')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return data;
+}

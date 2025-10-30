@@ -97,7 +97,7 @@ export interface Document {
   file_size: number;
   file_url: string;
   uploaded_by?: string | null;
-  member_id?: string | null; // 조합원별 문서용 (투자확인서 등)
+  profile_id?: string | null; // 조합원별 문서용 (투자확인서 등) - profiles.id
   document_year?: number | null; // 연도별 구분용
   brand: string;
   created_at: string;
@@ -166,7 +166,7 @@ export interface FundDocument {
   // 개별 문서 지원 필드 (규약 동의서 개별 PDF용)
   is_split_parent?: boolean; // 통합 문서 여부
   parent_document_id?: string | null; // 개별 문서의 경우 통합 문서 ID
-  member_id?: string | null; // 개별 문서의 경우 조합원 profile_id
+  profile_id?: string | null; // 개별 문서의 경우 조합원 프로필 ID (profiles.id)
 }
 
 export interface ProfilePermission {

@@ -235,7 +235,7 @@ export interface AssemblyDocument {
   updated_at: string;
   is_split_parent?: boolean; // 통합 문서 여부
   parent_document_id?: string; // 개별 문서의 경우 부모 문서 ID
-  member_id?: string; // 개별 문서의 경우 조합원 ID
+  profile_id?: string; // 개별 문서의 경우 조합원 프로필 ID (profiles.id)
 }
 
 export interface AssemblyEmail {

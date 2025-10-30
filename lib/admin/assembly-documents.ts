@@ -1096,7 +1096,7 @@ export async function saveAssemblyDocument(params: {
             generated_by: params.generatedBy,
             is_split_parent: false,
             parent_document_id: parentDoc.id,
-            member_id: memberPage.member_id,
+            profile_id: memberPage.member_id,
           });
 
         if (insertError) {
