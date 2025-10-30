@@ -39,7 +39,7 @@ export async function GET(
     const brandClient = await createBrandServerClient();
 
     const { data: fund, error: fundError } = await brandClient.funds
-      .select('name')
+      .select('name, account_bank, account, gp_id')
       .eq('id', fundId)
       .single();
 
@@ -69,7 +69,7 @@ export async function GET(
     const profileIds =
       fundMembers?.map((m: { profile_id: string }) => m.profile_id) || [];
     const { data: profiles, error: profilesError } = await brandClient.profiles
-      .select('id, name, email')
+      .select('id, name, email, address')
       .in('id', profileIds);
 
     if (profilesError) {
@@ -100,12 +100,47 @@ export async function GET(
         })
       ) || [];
 
+    // 결성총회의 경우 추가 정보 수집
+    let emailParams;
+    if (assembly.type === 'formation') {
+      // 1. 의안 정보 조회
+      const { data: agendaDoc } = await brandClient.assemblyDocuments
+        .select('content')
+        .eq('assembly_id', assemblyId)
+        .eq('type', 'formation_agenda')
+        .maybeSingle();
+
+      const agendaTitles =
+        agendaDoc?.content?.agendas?.map(
+          (agenda: { title: string }) => agenda.title
+        ) || [];
+
+      // 2. GP 정보 수집
+      const gpIds = (fund.gp_id as string[]) || [];
+      const gpProfiles =
+        profiles?.filter((p: { id: string }) => gpIds.includes(p.id)) || [];
+
+      const gpList = gpProfiles
+        .map((gp: { name: string }) => gp.name)
+        .join(', ');
+      const gpAddress = gpProfiles[0]?.address || '';
+
+      emailParams = {
+        agendaTitles,
+        bankName: fund.account_bank || undefined,
+        accountNumber: fund.account || undefined,
+        gpAddress,
+        gpList,
+      };
+    }
+
     // 기본 제목 및 본문
     const subject = getDefaultEmailSubject(fund.name, assembly.type);
     const body = getDefaultEmailBody(
       fund.name,
       assembly.type,
-      assembly.assembly_date
+      assembly.assembly_date,
+      emailParams
     );
 
     return NextResponse.json({

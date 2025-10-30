@@ -193,27 +193,84 @@ export function getDefaultEmailSubject(
 export function getDefaultEmailBody(
   fundName: string,
   assemblyType: 'formation' | 'special' | 'regular' | 'dissolution',
-  assemblyDate: string // YYYY-MM-DD 형식
+  assemblyDate: string, // YYYY-MM-DD 형식
+  params?: {
+    agendaTitles?: string[]; // 의안 제목 목록
+    bankName?: string; // 은행명
+    accountNumber?: string; // 계좌번호
+    gpAddress?: string; // GP 주소
+    gpList?: string; // GP 명단
+  }
 ): string {
-  const typeNames = {
-    formation: '결성총회',
-    special: '임시총회',
-    regular: '정기총회',
-    dissolution: '해산/청산총회',
-  };
+  switch (assemblyType) {
+    case 'formation':
+      return getFormationEmailBody(fundName, assemblyDate, params);
+    case 'special':
+    case 'regular':
+    case 'dissolution':
+    default:
+      return '안녕하십니까.';
+  }
+}
 
+interface FormationEmailParams {
+  agendaTitles?: string[]; // 의안 제목 목록
+  bankName?: string; // 은행명
+  accountNumber?: string; // 계좌번호
+  gpAddress?: string; // GP 주소
+  gpList?: string; // GP 명단
+}
+
+function getFormationEmailBody(
+  fundName: string,
+  assemblyDate: string,
+  params?: FormationEmailParams
+) {
   const date = new Date(assemblyDate);
+  const dayOfWeek = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
   const dateStr = `${date.getFullYear()}년 ${
     date.getMonth() + 1
-  }월 ${date.getDate()}일`;
+  }월 ${date.getDate()}일(${dayOfWeek})`;
 
-  return `안녕하세요, ${fundName} 조합원 여러분.
+  // 의안 목록 생성
+  const agendaText = params?.agendaTitles?.length
+    ? params.agendaTitles
+        .map((title, index) => ` - 제${index + 1}호 의안: ${title}`)
+        .join('\n')
+    : ' - 제1호 의안: 규약 승인의 건\n - 제2호 의안: 사업계획 승인의 건';
 
-${typeNames[assemblyType]}와 관련된 문서를 첨부하여 발송드립니다.
+  // 은행 정보
+  const bankName = params?.bankName || '[은행명]';
+  const accountNumber = params?.accountNumber || '[계좌번호]';
 
-일시: ${dateStr}
+  // GP 정보
+  const gpAddress = params?.gpAddress || '[GP 주소]';
+  const gpList = params?.gpList || '[업무집행조합원명]';
 
-첨부된 문서를 확인하시고, 궁금하신 사항이 있으시면 언제든지 문의해 주시기 바랍니다.
+  return `안녕하십니까, ${fundName} 조합원 여러분.
+${fundName}의 결성총회를 개최하고자 메일을 발송드리게 되었습니다.
 
-감사합니다.`;
+* 결성총회 개최
+
+1. 일시: ${dateStr}
+2. 부의 안건
+${agendaText}
+
+* 안내 사항
+
+1. 출자금 납입
+${dateStr} 오전까지 조합원분들께서 각자 약정하신 출자금 납입을 부탁드립니다.
+납입 계좌: ${bankName} ${accountNumber} (예금주: ${fundName})
+
+2. 동의서 등 회신
+첨부드린 서류인 규약 동의서 / 결성 총회 동의서 / 개인정보 동의서(개인의 경우만)를 프린트 하시고,
+개인 정보 동의서에만 주민등록번호 뒷자리를 기재하신 다음 날인(개인은 자필 서명 가능, 법인은 법인인감) 하신 후,
+스캔하여 메일로 ${dateStr} 오전까지 회신주시면 감사하겠습니다.
+원본 서류는 시간되실 때 천천히 아래 주소로 보내주시면 되겠습니다.
+주소: ${gpAddress}
+
+그럼 자세한 내용은 첨부된 문서를 확인하시고, 궁금하신 사항이 있으시면 언제든지 문의해 주시기 바랍니다.
+
+감사합니다.
+${gpList} 드림`;
 }
